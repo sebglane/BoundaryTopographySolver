@@ -35,7 +35,9 @@ template <int dim>
 class SolverBase
 {
 public:
-    SolverBase();
+    SolverBase(const unsigned int  n_refinements = 3,
+               const double        newton_tolerance = 1e-9,
+               const unsigned int  n_maximum_iterations = 10);
 
     void run();
 
@@ -58,13 +60,11 @@ private:
 
     void solve(const bool initial_step);
 
-    void newton_iteration(const double tolerance,
-                          const unsigned int max_iteration,
-                          const bool is_initial_step,
-                          const unsigned int level);
+    void newton_iteration(const bool is_initial_step);
 
-    virtual void output_results(const unsigned int level = 0,
-                                const bool  initial_step = false) const;
+    virtual void postprocess_solution(const unsigned int cycle = 0) = 0;
+
+    virtual void output_results(const unsigned int cycle = 0) const = 0;
 
     virtual void refine_mesh();
 
@@ -88,6 +88,11 @@ private:
 
     // monitor of computing times
     TimerOutput                 computing_timer;
+
+    const unsigned int  n_refinements;
+
+    const double        newton_tolerance;
+    const unsigned int  n_maximum_iterations;
 
 };
 

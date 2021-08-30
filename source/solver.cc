@@ -21,6 +21,7 @@
 #include <solver.h>
 #include <postprocessor.h>
 
+#include <fstream>
 #include <map>
 
 namespace TopographyProblem {
