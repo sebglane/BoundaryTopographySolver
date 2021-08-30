@@ -14,6 +14,8 @@
 #include <grid_factory.h>
 #include <solver.h>
 
+#include <fstream>
+
 namespace TopographyProblem {
 
 template<>

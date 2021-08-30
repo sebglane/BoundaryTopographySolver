@@ -14,6 +14,7 @@ SET(TARGET_SRC
     postprocessing.cc
     setup.cc
     solver.cc
+    solver_base.cc
 )
 ADD_LIBRARY(boundary_topography SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(boundary_topography)
