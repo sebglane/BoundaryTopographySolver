@@ -10,7 +10,7 @@
 
 #include <deal.II/numerics/data_postprocessor.h>
 
-#include "equation_data.h"
+#include <equation_data.h>
 
 namespace TopographyProblem {
 

@@ -18,8 +18,10 @@
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include "solver.h"
-#include "postprocessor.h"
+#include <solver.h>
+#include <postprocessor.h>
+
+#include <map>
 
 namespace TopographyProblem {
 
@@ -209,11 +211,13 @@ void TopographySolver<dim>::refine_mesh()
 
     // error estimation based on temperature
     Vector<float>   estimated_error_per_cell(triangulation.n_active_cells());
-    const FEValuesExtractors::Vector    velocity(1);
+    const FEValuesExtractors::Vector    velocity();
+
+
 
     KellyErrorEstimator<dim>::estimate(dof_handler,
                                        QGauss<dim-1>(parameters.velocity_degree + 1),
-                                       typename FunctionMap<dim>::type(),
+                                       std::map<types::boundary_id, const Function<dim> *>(),
                                        present_solution,
                                        estimated_error_per_cell);
     // set refinement flags

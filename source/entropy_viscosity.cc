@@ -9,8 +9,8 @@
 
 #include <deal.II/fe/fe_values.h>
 
-#include "equation_data.h"
-#include "solver.h"
+#include <equation_data.h>
+#include <solver.h>
 
 namespace TopographyProblem {
 

@@ -8,9 +8,9 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/work_stream.h>
 
-#include "solver.h"
+#include <solver.h>
 
-#include "equation_data.h"
+#include <equation_data.h>
 
 namespace TopographyProblem {
 

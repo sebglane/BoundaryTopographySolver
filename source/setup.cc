@@ -9,14 +9,13 @@
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/dofs/dof_renumbering.h>
-#include <deal.II/dofs/function_map.h>
 
 #include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
-#include "solver.h"
-#include "equation_data.h"
+#include <solver.h>
+#include <equation_data.h>
 
 namespace TopographyProblem {
 
@@ -33,9 +32,8 @@ void TopographySolver<dim>::setup_dofs()
     DoFRenumbering::block_wise(dof_handler);
 
     // IO
-    std::vector<types::global_dof_index> dofs_per_block(5);
-    DoFTools::count_dofs_per_block(dof_handler,
-                                   dofs_per_block);
+    std::vector<types::global_dof_index> dofs_per_block =
+        DoFTools::count_dofs_per_fe_block(dof_handler);
 
     std::cout << "      Number of active cells: "
               << triangulation.n_active_cells()

@@ -5,7 +5,7 @@
  *      Author: sg
  */
 
-#include "solver.h"
+#include <solver.h>
 
 namespace TopographyProblem {
 
@@ -94,6 +94,11 @@ void TopographySolver<dim>::newton_iteration(const double       tolerance,
 }  // namespace TopographyProblem
 
 // explicit instantiation
+template void TopographyProblem::
+TopographySolver<2>::newton_iteration(const double,
+                                      const unsigned int,
+                                      const bool,
+                                      const unsigned int);
 template void TopographyProblem::
 TopographySolver<3>::newton_iteration(const double,
                                       const unsigned int,

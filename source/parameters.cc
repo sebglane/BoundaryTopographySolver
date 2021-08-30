@@ -5,7 +5,10 @@
  *      Author: sg
  */
 
-#include "parameters.h"
+#include <parameters.h>
+
+#include <fstream>
+#include <string>
 
 namespace TopographyProblem {
 

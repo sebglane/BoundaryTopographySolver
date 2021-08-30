@@ -10,9 +10,9 @@
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_generator.h>
 
-#include "equation_data.h"
-#include "grid_factory.h"
-#include "solver.h"
+#include <equation_data.h>
+#include <grid_factory.h>
+#include <solver.h>
 
 namespace TopographyProblem {
 

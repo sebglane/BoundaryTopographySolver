@@ -5,8 +5,8 @@
  *      Author: sg
  */
 
-#include "equation_data.h"
-#include "solver.h"
+#include <equation_data.h>
+#include <solver.h>
 
 namespace TopographyProblem {
 
@@ -235,9 +235,9 @@ void TopographySolver<dim>::copy_local_to_global(
         const bool                      assemble_matrix,
         const bool                      initial_step)
 {
-    const ConstraintMatrix &constraints_used = (initial_step ?
-                                                nonzero_constraints
-                                                : zero_constraints);
+    const AffineConstraints<double> &constraints_used =
+        (initial_step ? nonzero_constraints: zero_constraints);
+
     if (assemble_matrix)
         constraints_used.distribute_local_to_global(data.local_matrix,
                                                     data.local_rhs,

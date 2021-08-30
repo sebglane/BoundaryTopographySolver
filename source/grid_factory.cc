@@ -11,8 +11,8 @@
 #include <algorithm>
 #include <cmath>
 
-#include "equation_data.h"
-#include "grid_factory.h"
+#include <equation_data.h>
+#include <grid_factory.h>
 
 namespace GridFactory {
 

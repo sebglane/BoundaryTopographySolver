@@ -7,7 +7,7 @@
 
 #include <deal.II/lac/vector.h>
 
-#include "equation_data.h"
+#include <equation_data.h>
 
 namespace EquationData {
 
