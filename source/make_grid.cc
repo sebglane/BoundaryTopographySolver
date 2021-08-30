@@ -15,6 +15,7 @@
 #include <solver.h>
 
 #include <fstream>
+#include <string>
 
 namespace TopographyProblem {
 
