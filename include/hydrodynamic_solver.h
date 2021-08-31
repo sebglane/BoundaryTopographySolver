@@ -17,11 +17,12 @@ class HydrodynamicSolver: public SolverBase<dim>
 {
 
 public:
-  HydrodynamicSolver(const double       reynolds_number,
-                     const unsigned int velocity_fe_degree = 2,
-                     const unsigned int n_refinements = 3,
-                     const double       newton_tolerance = 1e-9,
-                     const unsigned int n_maximum_iterations = 10);
+  HydrodynamicSolver(const Triangulation<dim>  &tria,
+                     const double               reynolds_number,
+                     const unsigned int         velocity_fe_degree = 2,
+                     const unsigned int         n_refinements = 3,
+                     const double               newton_tolerance = 1e-9,
+                     const unsigned int         n_maximum_iterations = 10);
 
 private:
   virtual void setup_fe_system();

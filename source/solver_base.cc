@@ -15,10 +15,12 @@ namespace TopographyProblem {
 
 template <int dim>
 SolverBase<dim>::SolverBase
-(const unsigned int  n_refinements,
- const double        newton_tolerance,
- const unsigned int  n_maximum_iterations)
+(const Triangulation<dim>  &tria,
+ const unsigned int         n_refinements,
+ const double               newton_tolerance,
+ const unsigned int         n_maximum_iterations)
 :
+triangulation(tria),
 fe_system(nullptr),
 dof_handler(triangulation),
 computing_timer(std::cout, TimerOutput::summary, TimerOutput::wall_times),
@@ -40,10 +42,6 @@ void SolverBase<dim>::setup_dofs()
   dof_handler.distribute_dofs(*fe_system);
 
   DoFRenumbering::block_wise(dof_handler);
-
-  // IO
-  std::vector<types::global_dof_index> dofs_per_block =
-    DoFTools::count_dofs_per_fe_block(dof_handler);
 
   std::cout << "      Number of active cells: "
             << triangulation.n_active_cells()
@@ -92,8 +90,6 @@ template <int dim>
 void SolverBase<dim>::run()
 {
   bool initial_step = true;
-
-  this->make_grid();
 
   this->setup_fe_system();
 
@@ -182,8 +178,8 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
 
 
 
-template SolverBase<2>::SolverBase(const unsigned int, const double, const unsigned int);
-template SolverBase<3>::SolverBase(const unsigned int, const double, const unsigned int);
+template SolverBase<2>::SolverBase(const Triangulation<2>  &, const unsigned int, const double, const unsigned int);
+template SolverBase<3>::SolverBase(const Triangulation<3>  &, const unsigned int, const double, const unsigned int);
 
 template void SolverBase<2>::setup_dofs();
 template void SolverBase<3>::setup_dofs();

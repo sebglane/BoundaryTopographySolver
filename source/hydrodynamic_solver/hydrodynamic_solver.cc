@@ -17,13 +17,14 @@ namespace TopographyProblem {
 
 template <int dim>
 HydrodynamicSolver<dim>::HydrodynamicSolver
-(const double       reynolds_number,
+(const Triangulation<dim> &tria,
+ const double       reynolds_number,
  const unsigned int velocity_fe_degree,
  const unsigned int n_refinements,
  const double       newton_tolerance,
  const unsigned int n_maximum_iterations)
 :
-SolverBase<dim>(n_refinements, newton_tolerance, n_maximum_iterations),
+SolverBase<dim>(tria, n_refinements, newton_tolerance, n_maximum_iterations),
 velocity_fe_degree(velocity_fe_degree),
 reynolds_number(reynolds_number)
 {}
@@ -54,13 +55,15 @@ void HydrodynamicSolver<dim>::output_results(const unsigned int cycle) const
 
 // explicit instantiation
 template HydrodynamicSolver<2>::HydrodynamicSolver
-(const double       ,
+(const Triangulation<2>  &,
+ const double       ,
  const unsigned int ,
  const unsigned int ,
  const double       ,
  const unsigned int );
 template HydrodynamicSolver<3>::HydrodynamicSolver
-(const double       ,
+(const Triangulation<3>  &,
+ const double       ,
  const unsigned int ,
  const unsigned int ,
  const double       ,

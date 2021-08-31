@@ -44,11 +44,15 @@ std::vector<std::string> HydrodynamicPostprocessor<dim>::get_names() const
   return (solution_names);
 }
 
+
+
 template<int dim>
 UpdateFlags HydrodynamicPostprocessor<dim>::get_needed_update_flags() const
 {
     return (update_values|update_gradients);
 }
+
+
 
 template<int dim>
 std::vector<DataComponentInterpretation::DataComponentInterpretation>
@@ -74,6 +78,8 @@ HydrodynamicPostprocessor<dim>::get_data_component_interpretation() const
 
   return (component_interpretation);
 }
+
+
 
 template<int dim>
 void HydrodynamicPostprocessor<dim>::evaluate_vector_field

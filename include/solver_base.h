@@ -35,13 +35,12 @@ template <int dim>
 class SolverBase
 {
 public:
-  SolverBase(const unsigned int  n_refinements = 3,
-             const double        newton_tolerance = 1e-9,
-             const unsigned int  n_maximum_iterations = 10);
+  SolverBase(const Triangulation<dim>  &tria,
+             const unsigned int         n_refinements = 3,
+             const double               newton_tolerance = 1e-9,
+             const unsigned int         n_maximum_iterations = 10);
 
   void run();
-
-  virtual void make_grid() = 0;
 
 protected:
   virtual void assemble_system(const bool initial_step) = 0;
@@ -62,7 +61,7 @@ protected:
 
   virtual void output_results(const unsigned int cycle = 0) const = 0;
 
-  Triangulation<dim>          triangulation;
+  const Triangulation<dim>   &triangulation;
   FESystem<dim>              *fe_system;
   DoFHandler<dim>             dof_handler;
 
