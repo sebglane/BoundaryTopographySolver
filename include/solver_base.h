@@ -35,64 +35,64 @@ template <int dim>
 class SolverBase
 {
 public:
-    SolverBase(const unsigned int  n_refinements = 3,
-               const double        newton_tolerance = 1e-9,
-               const unsigned int  n_maximum_iterations = 10);
+  SolverBase(const unsigned int  n_refinements = 3,
+             const double        newton_tolerance = 1e-9,
+             const unsigned int  n_maximum_iterations = 10);
 
-    void run();
+  void run();
 
-    virtual void make_grid() = 0;
+  virtual void make_grid() = 0;
+
+protected:
+  virtual void assemble_system(const bool initial_step) = 0;
+
+  virtual void assemble_rhs(const bool initial_step) = 0;
+
+  virtual void setup_dofs();
+
+  virtual void setup_fe_system() = 0;
+
+  void setup_system_matrix
+  (const std::vector<types::global_dof_index> &dofs_per_block,
+   const Table<2, DoFTools::Coupling>         &coupling_table);
+
+  void setup_vectors(const std::vector<types::global_dof_index> &dofs_per_block);
+
+  virtual void postprocess_solution(const unsigned int cycle = 0) = 0;
+
+  virtual void output_results(const unsigned int cycle = 0) const = 0;
+
+  Triangulation<dim>          triangulation;
+  FESystem<dim>              *fe_system;
+  DoFHandler<dim>             dof_handler;
+
+  // constraints
+  AffineConstraints<double>   nonzero_constraints;
+  AffineConstraints<double>   zero_constraints;
+
+  // system matrix
+  BlockSparsityPattern        sparsity_pattern;
+  BlockSparseMatrix<double>   system_matrix;
+
+  // vectors
+  BlockVector<double>         evaluation_point;
+  BlockVector<double>         present_solution;
+  BlockVector<double>         solution_update;
+  BlockVector<double>         system_rhs;
+
+  // monitor of computing times
+  TimerOutput                 computing_timer;
 
 private:
-    virtual void setup_fe_system() = 0;
+  void solve(const bool initial_step);
 
-    virtual void setup_dofs();
+  void newton_iteration(const bool is_initial_step);
 
-    void setup_system_matrix
-    (const std::vector<types::global_dof_index> &dofs_per_block,
-     const Table<2, DoFTools::Coupling>         &coupling_table);
+  virtual void refine_mesh();
 
-    void setup_vectors(const std::vector<types::global_dof_index> &dofs_per_block);
-
-    virtual void assemble_system(const bool initial_step) = 0;
-
-    virtual void assemble_rhs(const bool initial_step) = 0;
-
-    void solve(const bool initial_step);
-
-    void newton_iteration(const bool is_initial_step);
-
-    virtual void postprocess_solution(const unsigned int cycle = 0) = 0;
-
-    virtual void output_results(const unsigned int cycle = 0) const = 0;
-
-    virtual void refine_mesh();
-
-    Triangulation<dim>          triangulation;
-    FESystem<dim>              *fe_system;
-    DoFHandler<dim>             dof_handler;
-
-    // constraints
-    AffineConstraints<double>   nonzero_constraints;
-    AffineConstraints<double>   zero_constraints;
-
-    // system matrix
-    BlockSparsityPattern        sparsity_pattern;
-    BlockSparseMatrix<double>   system_matrix;
-
-    // vectors
-    BlockVector<double>         evaluation_point;
-    BlockVector<double>         present_solution;
-    BlockVector<double>         solution_update;
-    BlockVector<double>         system_rhs;
-
-    // monitor of computing times
-    TimerOutput                 computing_timer;
-
-    const unsigned int  n_refinements;
-
-    const double        newton_tolerance;
-    const unsigned int  n_maximum_iterations;
+  const unsigned int  n_refinements;
+  const double        newton_tolerance;
+  const unsigned int  n_maximum_iterations;
 
 };
 
