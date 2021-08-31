@@ -1,11 +1,11 @@
 ##
 #  CMake script
 ##
-MESSAGE("====================================================")
-MESSAGE("=============== Configuring RotatingMHD ============")
-MESSAGE("========= An adaptive parallel flow solver =========")
-MESSAGE("========= for rotating magnetohydrodynamics ========")
-MESSAGE("====================================================")
+MESSAGE("========================================================")
+MESSAGE("========= Configuring BoundaryTopographySolver  ========")
+MESSAGE("========= An adaptive flow solver ======================")
+MESSAGE("========= for stationary problems with boundary ========")
+MESSAGE("========= topography. ==================================")
 ##
 # Is the cmake version sufficient?
 ##
@@ -92,4 +92,4 @@ ADD_SUBDIRECTORY(source)
 # ADD_SUBDIRECTORY(tests/applications/)
 # ADD_SUBDIRECTORY(tests/convergence_tests/)
 
-MESSAGE("====================================================")
+MESSAGE("========================================================")

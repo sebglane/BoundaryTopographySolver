@@ -24,6 +24,10 @@ void HydrodynamicSolver<dim>::setup_fe_system()
 template <int dim>
 void HydrodynamicSolver<dim>::setup_dofs()
 {
+  TimerOutput::Scope timer_section(this->computing_timer, "Setup dofs");
+
+  std::cout << "   Setup dofs..." << std::endl;
+
   SolverBase<dim>::setup_dofs();
 
   std::vector<types::global_dof_index> dofs_per_block =

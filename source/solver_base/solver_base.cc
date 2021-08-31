@@ -5,8 +5,6 @@
  *      Author: sg
  */
 
-#include <deal.II/dofs/dof_renumbering.h>
-
 #include <solver_base.h>
 
 #include <iostream>
@@ -15,74 +13,18 @@ namespace TopographyProblem {
 
 template <int dim>
 SolverBase<dim>::SolverBase
-(const Triangulation<dim>  &tria,
- const unsigned int         n_refinements,
- const double               newton_tolerance,
- const unsigned int         n_maximum_iterations)
+(Triangulation<dim>  &tria,
+ const unsigned int   n_refinements,
+ const double         newton_tolerance,
+ const unsigned int   n_maximum_iterations)
 :
 triangulation(tria),
-fe_system(nullptr),
 dof_handler(triangulation),
 computing_timer(std::cout, TimerOutput::summary, TimerOutput::wall_times),
 n_refinements(n_refinements),
 newton_tolerance(newton_tolerance),
 n_maximum_iterations(n_maximum_iterations)
 {}
-
-
-
-template <int dim>
-void SolverBase<dim>::setup_dofs()
-{
-  TimerOutput::Scope timer_section(computing_timer, "Setup DoFs");
-
-  std::cout << "   Setup dofs..." << std::endl;
-
-  // distribute and renumber block-wise
-  dof_handler.distribute_dofs(*fe_system);
-
-  DoFRenumbering::block_wise(dof_handler);
-
-  std::cout << "      Number of active cells: "
-            << triangulation.n_active_cells()
-            << std::endl
-            << "      Number of total degrees of freedom: "
-            << dof_handler.n_dofs()
-            << std::endl;
-}
-
-
-
-template<int dim>
-void SolverBase<dim>::setup_vectors
-(const std::vector<types::global_dof_index> &dofs_per_block)
-{
-  evaluation_point.reinit(dofs_per_block);
-  present_solution.reinit(dofs_per_block);
-  solution_update.reinit(dofs_per_block);
-  system_rhs.reinit(dofs_per_block);
-}
-
-
-
-template<int dim>
-void SolverBase<dim>::setup_system_matrix
-(const std::vector<types::global_dof_index> &dofs_per_block,
- const Table<2, DoFTools::Coupling> &coupling_table)
-{
-  system_matrix.clear();
-
-  BlockDynamicSparsityPattern dsp(dofs_per_block,
-                                  dofs_per_block);
-
-  DoFTools::make_sparsity_pattern(dof_handler,
-                                  coupling_table,
-                                  dsp,
-                                  zero_constraints);
-  sparsity_pattern.copy_from(dsp);
-
-  system_matrix.reinit(sparsity_pattern);
-}
 
 
 
@@ -111,6 +53,7 @@ void SolverBase<dim>::run()
 }
 
 
+
 template <int dim>
 void SolverBase<dim>::newton_iteration(const bool is_initial_step)
 {
@@ -127,22 +70,22 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
     {
       // solve problem
       evaluation_point = present_solution;
-      assemble_system(first_step);
-      solve(first_step);
+      this->assemble_system(first_step);
+      solve_linear_system(first_step);
       present_solution = solution_update;
       nonzero_constraints.distribute(present_solution);
       first_step = false;
       // compute residual
       evaluation_point = present_solution;
-      assemble_rhs(first_step);
+      this->assemble_rhs(first_step);
       current_residual = system_rhs.l2_norm();
     }
     else
     {
       // solve problem
       evaluation_point = present_solution;
-      assemble_system(first_step);
-      solve(first_step);
+      this->assemble_system(first_step);
+      solve_linear_system(first_step);
       // line search
       std::cout << "   Line search: " << std::endl;
       for (double alpha = 1.0; alpha > 1e-4; alpha *= 0.5)
@@ -150,7 +93,7 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
         evaluation_point = present_solution;
         evaluation_point.add(alpha, solution_update);
         nonzero_constraints.distribute(evaluation_point);
-        assemble_rhs(first_step);
+        this->assemble_rhs(first_step);
         current_residual = system_rhs.l2_norm();
         std::cout << "      alpha = " << std::setw(6)
                   << std::scientific << alpha
@@ -176,25 +119,11 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
   }
 }
 
-
-
-template SolverBase<2>::SolverBase(const Triangulation<2>  &, const unsigned int, const double, const unsigned int);
-template SolverBase<3>::SolverBase(const Triangulation<3>  &, const unsigned int, const double, const unsigned int);
-
-template void SolverBase<2>::setup_dofs();
-template void SolverBase<3>::setup_dofs();
-
-template void SolverBase<2>::setup_system_matrix
-(const std::vector<types::global_dof_index> &,
- const Table<2, DoFTools::Coupling> &);
-template void SolverBase<3>::setup_system_matrix
-(const std::vector<types::global_dof_index> &,
- const Table<2, DoFTools::Coupling> &);
-
-template void SolverBase<2>::setup_vectors
-(const std::vector<types::global_dof_index> &);
-template void SolverBase<3>::setup_vectors
-(const std::vector<types::global_dof_index> &);
+// explicit instantiations
+template SolverBase<2>::SolverBase
+(Triangulation<2> &, const unsigned int, const double, const unsigned int);
+template SolverBase<3>::SolverBase
+(Triangulation<3> &, const unsigned int, const double, const unsigned int);
 
 template void SolverBase<2>::newton_iteration(const bool);
 template void SolverBase<3>::newton_iteration(const bool);
@@ -203,6 +132,3 @@ template void SolverBase<2>::run();
 template void SolverBase<3>::run();
 
 }  // namespace TopographyProblem
-
-
-

@@ -18,12 +18,12 @@ class HydrodynamicSolver: public SolverBase<dim>
 {
 
 public:
-  HydrodynamicSolver(const Triangulation<dim>  &tria,
-                     const double               reynolds_number,
-                     const unsigned int         velocity_fe_degree = 2,
-                     const unsigned int         n_refinements = 3,
-                     const double               newton_tolerance = 1e-9,
-                     const unsigned int         n_maximum_iterations = 10);
+  HydrodynamicSolver(Triangulation<dim>  &tria,
+                     const double         reynolds_number,
+                     const unsigned int   velocity_fe_degree = 2,
+                     const unsigned int   n_refinements = 3,
+                     const double         newton_tolerance = 1e-9,
+                     const unsigned int   n_maximum_iterations = 10);
 
   VectorBoundaryConditions<dim>&  get_velocity_bcs();
   const VectorBoundaryConditions<dim>&  get_velocity_bcs() const;
@@ -35,6 +35,8 @@ private:
   virtual void setup_fe_system();
 
   virtual void setup_dofs();
+
+  virtual void apply_boundary_conditions();
 
   virtual void assemble_system(const bool initial_step);
 
