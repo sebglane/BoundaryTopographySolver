@@ -65,7 +65,7 @@ HydrodynamicPostprocessor<dim>::get_data_component_interpretation() const
   component_interpretation.push_back(DataComponentInterpretation::component_is_scalar);
   else if constexpr(dim == 3)
     for (unsigned int d=0; d<dim; ++d)
-      solution_names.push_back(DataComponentInterpretation::component_is_part_of_vector);
+      component_interpretation.push_back(DataComponentInterpretation::component_is_part_of_vector);
   // pressure
   component_interpretation.push_back(DataComponentInterpretation::component_is_scalar);
   // pressure gradient
@@ -80,11 +80,11 @@ void HydrodynamicPostprocessor<dim>::evaluate_vector_field
 (const DataPostprocessorInputs::Vector<dim>  &inputs,
  std::vector<Vector<double>>                 &computed_quantities) const
 {
-  const unsigned int n_quadrature_points{inputs.solution_values.size()};
+  const std::size_t n_quadrature_points{inputs.solution_values.size()};
 
   AssertDimension(computed_quantities.size(), n_quadrature_points);
   {
-    const unsigned int n_solution_components{inputs.solution_values[0].size()};
+    const std::size_t n_solution_components{inputs.solution_values[0].size()};
     Assert(dim + 1 <= n_solution_components,
            ExcLowerRange(dim + 1, n_solution_components));
     Assert(velocity_start_index < n_solution_components,

@@ -5,7 +5,13 @@
  *      Author: sg
  */
 
+#include <deal.II/numerics/data_out.h>
+
 #include <hydrodynamic_solver.h>
+#include <hydrodynamic_postprocessor.h>
+
+#include <fstream>
+#include <string>
 
 namespace TopographyProblem {
 
@@ -22,6 +28,30 @@ velocity_fe_degree(velocity_fe_degree),
 reynolds_number(reynolds_number)
 {}
 
+
+
+template<int dim>
+void HydrodynamicSolver<dim>::output_results(const unsigned int cycle) const
+{
+  std::cout << "   Output results..." << std::endl;
+
+  HydrodynamicPostprocessor<dim>  postprocessor(0, dim);
+
+  // prepare data out object
+  DataOut<dim, DoFHandler<dim>>    data_out;
+  data_out.attach_dof_handler(this->dof_handler);
+  data_out.add_data_vector(this->present_solution, postprocessor);
+
+  data_out.build_patches(velocity_fe_degree);
+
+  // write output to disk
+  const std::string filename = ("solution-" +
+                                Utilities::int_to_string(cycle, 2) +
+                                ".vtk");
+  std::ofstream output(filename.c_str());
+  data_out.write_vtk(output);
+}
+
 // explicit instantiation
 template HydrodynamicSolver<2>::HydrodynamicSolver
 (const double       ,
@@ -35,6 +65,9 @@ template HydrodynamicSolver<3>::HydrodynamicSolver
  const unsigned int ,
  const double       ,
  const unsigned int );
+
+template void HydrodynamicSolver<2>::output_results(const unsigned int ) const;
+template void HydrodynamicSolver<3>::output_results(const unsigned int ) const;
 
 template class HydrodynamicSolver<2>;
 template class HydrodynamicSolver<3>;

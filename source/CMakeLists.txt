@@ -1,5 +1,6 @@
 # Set the source files to be compiled
 SET(TARGET_SRC
+    hydrodynamic_postprocessor.cc
     hydrodynamic_solver/assemble_system.cc
     hydrodynamic_solver/assemble_rhs.cc
     hydrodynamic_solver/hydrodynamic_solver.cc
