@@ -8,6 +8,7 @@
 #ifndef INCLUDE_HYDRODYNAMIC_SOLVER_H_
 #define INCLUDE_HYDRODYNAMIC_SOLVER_H_
 
+#include <boundary_conditions.h>
 #include <solver_base.h>
 
 namespace TopographyProblem {
@@ -24,6 +25,12 @@ public:
                      const double               newton_tolerance = 1e-9,
                      const unsigned int         n_maximum_iterations = 10);
 
+  VectorBoundaryConditions<dim>&  get_velocity_bcs();
+  const VectorBoundaryConditions<dim>&  get_velocity_bcs() const;
+
+  ScalarBoundaryConditions<dim>&  get_pressure_bcs();
+  const ScalarBoundaryConditions<dim>&  get_pressure_bcs() const;
+
 private:
   virtual void setup_fe_system();
 
@@ -35,11 +42,49 @@ private:
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
+  VectorBoundaryConditions<dim> velocity_boundary_conditions;
+
+  ScalarBoundaryConditions<dim> pressure_boundary_conditions;
+
   const unsigned int  velocity_fe_degree;
 
   const double        reynolds_number;
 
 };
+
+// inline functions
+template <int dim>
+inline VectorBoundaryConditions<dim> &
+HydrodynamicSolver<dim>::get_velocity_bcs()
+{
+  return velocity_boundary_conditions;
+}
+
+
+
+template <int dim>
+inline const VectorBoundaryConditions<dim> &
+HydrodynamicSolver<dim>::get_velocity_bcs() const
+{
+  return velocity_boundary_conditions;
+}
+
+
+template <int dim>
+inline ScalarBoundaryConditions<dim> &
+HydrodynamicSolver<dim>::get_pressure_bcs()
+{
+  return pressure_boundary_conditions;
+}
+
+
+
+template <int dim>
+inline const ScalarBoundaryConditions<dim> &
+HydrodynamicSolver<dim>::get_pressure_bcs() const
+{
+  return pressure_boundary_conditions;
+}
 
 }  // namespace TopographyProblem
 
