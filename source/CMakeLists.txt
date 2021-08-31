@@ -7,6 +7,7 @@ SET(TARGET_SRC
     hydrodynamic_solver/setup.cc
     assemble_system.cc
     assembly_data.cc
+    boundary_conditions.cc
     entropy_viscosity.cc
     equation_data.cc
     grid_factory.cc
