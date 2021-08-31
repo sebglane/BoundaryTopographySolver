@@ -23,9 +23,11 @@ void HydrodynamicSolver<dim>::apply_boundary_conditions()
       !pressure_boundary_conditions.periodic_bcs.empty())
   {
     if (!velocity_boundary_conditions.periodic_bcs.empty())
+    {
       AssertThrow(!pressure_boundary_conditions.periodic_bcs.empty(),
                   ExcMessage("No periodic boundary conditions were specified for "
                              "the pressure."));
+    }
     else if (!pressure_boundary_conditions.periodic_bcs.empty())
       AssertThrow(!velocity_boundary_conditions.periodic_bcs.empty(),
                   ExcMessage("No periodic boundary conditions were specified for "
@@ -84,6 +86,3 @@ void HydrodynamicSolver<dim>::apply_boundary_conditions()
 }
 
 }  // namespace TopographyProblem
-
-
-
