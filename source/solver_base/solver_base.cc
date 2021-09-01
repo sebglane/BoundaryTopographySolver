@@ -14,18 +14,20 @@ namespace TopographyProblem {
 template <int dim>
 SolverBase<dim>::SolverBase
 (Triangulation<dim>  &tria,
- const Mapping<dim>  &mapping,
+ Mapping<dim>        &mapping,
  const unsigned int   n_refinements,
  const double         newton_tolerance,
  const unsigned int   n_maximum_iterations)
 :
 triangulation(tria),
-mapping_ptr(&mapping),
+mapping(mapping),
 dof_handler(triangulation),
 computing_timer(std::cout, TimerOutput::summary, TimerOutput::wall_times),
+postprocessor_ptr(nullptr),
 n_refinements(n_refinements),
 newton_tolerance(newton_tolerance),
-n_maximum_iterations(n_maximum_iterations)
+n_maximum_iterations(n_maximum_iterations),
+verbose(false)
 {}
 
 
@@ -60,9 +62,14 @@ void SolverBase<dim>::solve()
 template<int dim>
 void SolverBase<dim>::postprocess_solution(const unsigned int cycle) const
 {
-  postprocessor_ptr->set_cycle(cycle);
+  if (postprocessor_ptr == nullptr)
+    return;
 
-  (*postprocessor_ptr)(*mapping_ptr,
+  if (verbose)
+    std::cout << "    Postprocess solution..." << std::endl;
+
+  postprocessor_ptr->set_cycle(cycle);
+  (*postprocessor_ptr)(mapping,
                        *fe_system,
                        dof_handler,
                        solution_update);
@@ -72,8 +79,8 @@ void SolverBase<dim>::postprocess_solution(const unsigned int cycle) const
 template <int dim>
 void SolverBase<dim>::newton_iteration(const bool is_initial_step)
 {
-  double current_residual = 1.0;
-  double last_residual = 1.0;
+  double current_residual = std::numeric_limits<double>::max();
+  double last_residual = std::numeric_limits<double>::max();
   bool first_step = is_initial_step;
 
   unsigned int iteration = 0;
@@ -103,7 +110,7 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
       solve_linear_system(first_step);
       // line search
       std::cout << "   Line search: " << std::endl;
-      for (double alpha = 1.0; alpha > 1e-4; alpha *= 0.5)
+      for (double alpha = 1.0; alpha > 1e-2; alpha *= 0.5)
       {
         evaluation_point = present_solution;
         evaluation_point.add(alpha, solution_update);
@@ -136,9 +143,9 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
 
 // explicit instantiations
 template SolverBase<2>::SolverBase
-(Triangulation<2> &, const Mapping<2> &, const unsigned int, const double, const unsigned int);
+(Triangulation<2> &, Mapping<2> &, const unsigned int, const double, const unsigned int);
 template SolverBase<3>::SolverBase
-(Triangulation<3> &, const Mapping<3> &, const unsigned int, const double, const unsigned int);
+(Triangulation<3> &, Mapping<3> &, const unsigned int, const double, const unsigned int);
 
 template void SolverBase<2>::postprocess_solution(const unsigned int) const;
 template void SolverBase<3>::postprocess_solution(const unsigned int) const;

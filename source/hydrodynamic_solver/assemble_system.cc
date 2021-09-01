@@ -15,6 +15,9 @@ namespace TopographyProblem {
 template <int dim>
 void HydrodynamicSolver<dim>::assemble_system(const bool initial_step)
 {
+  if (this->verbose)
+    std::cout << "    Assemble linear system..." << std::endl;
+
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 
   this->system_matrix = 0;
@@ -28,7 +31,7 @@ void HydrodynamicSolver<dim>::assemble_system(const bool initial_step)
 
   const QGauss<dim>   quadrature_formula(velocity_fe_degree + 1);
 
-  FEValues<dim> fe_values(*this->mapping_ptr,
+  FEValues<dim> fe_values(this->mapping,
                           *this->fe_system,
                           quadrature_formula,
                           update_values|

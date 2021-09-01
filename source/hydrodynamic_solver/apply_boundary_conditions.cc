@@ -14,6 +14,9 @@ namespace TopographyProblem {
 template <int dim>
 void HydrodynamicSolver<dim>::apply_boundary_conditions()
 {
+  if (this->verbose)
+    std::cout << "    Apply boundary conditions..." << std::endl;
+
   AssertThrow(velocity_boundary_conditions.closed(),
               ExcMessage("The velocity boundary conditions have not been closed."));
   AssertThrow(pressure_boundary_conditions.closed(),
@@ -35,14 +38,14 @@ void HydrodynamicSolver<dim>::apply_boundary_conditions()
     AssertDimension(velocity_boundary_conditions.periodic_bcs.size(),
                     pressure_boundary_conditions.periodic_bcs.size());
 
-    for (std::size_t i=0; i<velocity_boundary_conditions.size(); ++i)
+    for (std::size_t i=0; i<velocity_boundary_conditions.periodic_bcs.size(); ++i)
     {
       PeriodicBoundaryData<dim> &velocity_bc =
           pressure_boundary_conditions.periodic_bcs[i];
 
       bool matching_bc_found = false;
 
-      for (std::size_t j=0; j<pressure_boundary_conditions.size(); ++j)
+      for (std::size_t j=0; j<pressure_boundary_conditions.periodic_bcs.size(); ++j)
       {
         PeriodicBoundaryData<dim> &pressure_bc =
             pressure_boundary_conditions.periodic_bcs[j];
@@ -74,7 +77,6 @@ void HydrodynamicSolver<dim>::apply_boundary_conditions()
     if (!velocity_boundary_conditions.normal_flux_bcs.empty())
       this->apply_normal_flux_constraints(velocity_boundary_conditions.normal_flux_bcs,
                                           this->fe_system->component_mask(velocity));
-
   }
   {
     const FEValuesExtractors::Scalar  pressure(dim);
@@ -84,5 +86,9 @@ void HydrodynamicSolver<dim>::apply_boundary_conditions()
                                         this->fe_system->component_mask(pressure));
   }
 }
+
+// explicit instantiation
+template void HydrodynamicSolver<2>::apply_boundary_conditions();
+template void HydrodynamicSolver<3>::apply_boundary_conditions();
 
 }  // namespace TopographyProblem

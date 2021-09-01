@@ -13,7 +13,8 @@ namespace TopographyProblem {
 template<int dim>
 void SolverBase<dim>::solve_linear_system(const bool initial_step)
 {
-  std::cout << "   Solving linear system..." << std::endl;
+  if (verbose)
+    std::cout << "    Solving linear system..." << std::endl;
 
   TimerOutput::Scope timer_section(computing_timer, "Solve linear system");
 

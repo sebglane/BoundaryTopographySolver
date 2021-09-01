@@ -7,6 +7,8 @@
 
 #include <deal.II/dofs/dof_renumbering.h>
 
+#include <deal.II/fe/mapping_q_cache.h>
+
 #include <solver_base.h>
 
 namespace TopographyProblem {
@@ -28,6 +30,16 @@ void SolverBase<dim>::setup_dofs()
 
   nonzero_constraints.clear();
   zero_constraints.clear();
+
+  // possibly initialize the mapping
+  MappingQCache<dim> *mapping_q_cache_ptr = dynamic_cast<MappingQCache<dim>*>(&mapping);
+  if (mapping_q_cache_ptr != nullptr)
+  {
+    if (verbose)
+      std::cout << "Initialize mapping..." << std::endl;
+    mapping_q_cache_ptr->initialize(triangulation,
+                                    MappingQGeneric<dim>(mapping_q_cache_ptr->get_degree()));
+  }
 
   this->apply_hanging_node_constraints();
 

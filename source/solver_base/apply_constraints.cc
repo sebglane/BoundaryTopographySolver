@@ -10,6 +10,8 @@
 
 #include <solver_base.h>
 
+#include <functional>
+
 namespace TopographyProblem {
 
 template <int dim>
@@ -56,30 +58,98 @@ void SolverBase<dim>::apply_dirichlet_constraints
   std::map<types::boundary_id, const Function<dim> *> function_map;
 
   const unsigned int n_components{mask.n_selected_components()};
+  const unsigned int first_selected_component{mask.first_selected_component()};
 
-  for (const auto &[boundary_id, function]: dirichlet_bcs)
+  Assert(n_components == 1 || n_components==dim,
+         ExcMessage("Expected either one or dim selected components."));
+
+  if (n_components==dim)
+    for (unsigned d=0; d<dim; ++d)
+      AssertThrow(mask[first_selected_component+ d] == true,
+                  ExcMessage("Expected a sequence of dim selected components in "
+                             "component mask"));
+
+  if (n_components != fe_system->n_components())
   {
-    AssertDimension(function->n_components, n_components);
-    function_map[boundary_id] = function.get();
-  }
+    std::map<types::boundary_id, FunctionFromFunctionObjects<dim>> aux_function_map;
 
-  VectorTools::interpolate_boundary_values(*mapping_ptr,
-                                           dof_handler,
-                                           function_map,
-                                           nonzero_constraints,
-                                           mask);
+    Functions::ZeroFunction<dim>  zero_function;
+    auto zero_function_value = [&](const Point<dim> &point){ return zero_function.value(point); };
+    for (const auto &[boundary_id, function]: dirichlet_bcs)
+    {
+      AssertDimension(function->n_components, n_components);
+
+      std::vector<std::function<double(const Point<dim> &)>> function_values;
+
+      for (std::size_t i=0; i<fe_system->n_components(); )
+      {
+        if (mask[i] == false)
+        {
+          function_values.push_back(zero_function_value);
+          ++i;
+        }
+        else
+        {
+          if (n_components == 1)
+          {
+            auto fun = [&](const Point<dim> &point){ return function->value(point); };
+            function_values.push_back(fun);
+            ++i;
+          }
+          else
+            for (unsigned int d=0; d<dim; ++d, ++i)
+            {
+              auto fun = [&, d](const Point<dim> &point){ return function->value(point, d); };
+              function_values.push_back(fun);
+            }
+        }
+      }
+      AssertDimension(function_values.size(), fe_system->n_components());
+
+      FunctionFromFunctionObjects<dim>  auxiliary_function(fe_system->n_components());
+      auxiliary_function.set_function_values(function_values);
+
+      aux_function_map.insert
+      (std::pair<types::boundary_id, FunctionFromFunctionObjects<dim>>(boundary_id, auxiliary_function));
+    }
+
+    for (const auto &bc: dirichlet_bcs)
+      function_map[bc.first] = &aux_function_map[bc.first];
+
+    VectorTools::interpolate_boundary_values(mapping,
+                                             dof_handler,
+                                             function_map,
+                                             zero_constraints,
+                                             mask);
+  }
+  else
+  {
+    for (const auto &[boundary_id, function]: dirichlet_bcs)
+    {
+      AssertDimension(function->n_components, n_components);
+
+      function_map[boundary_id] = function.get();
+    }
+    VectorTools::interpolate_boundary_values(mapping,
+                                             dof_handler,
+                                             function_map,
+                                             nonzero_constraints,
+                                             mask);
+  }
 
   function_map.clear();
-  const Functions::ZeroFunction<dim>  zero_function(n_components);
-  for (const auto &[boundary_id, function]: dirichlet_bcs)
   {
-    function_map[boundary_id] = &zero_function;
+    const Functions::ZeroFunction<dim>  zero_function(fe_system->n_components());
+    for (const auto &[boundary_id, function]: dirichlet_bcs)
+    {
+      function_map[boundary_id] = &zero_function;
+    }
+    VectorTools::interpolate_boundary_values(mapping,
+                                             dof_handler,
+                                             function_map,
+                                             zero_constraints,
+                                             mask);
   }
-  VectorTools::interpolate_boundary_values(*mapping_ptr,
-                                           dof_handler,
-                                           function_map,
-                                           zero_constraints,
-                                           mask);
 }
 
 
@@ -108,12 +178,12 @@ void SolverBase<dim>::apply_normal_flux_constraints
                                                        boundary_id_set,
                                                        function_map,
                                                        nonzero_constraints,
-                                                       *mapping_ptr);
+                                                       mapping);
   VectorTools::compute_no_normal_flux_constraints(dof_handler,
                                                   first_vector_component,
                                                   boundary_id_set,
                                                   zero_constraints,
-                                                  *mapping_ptr);
+                                                  mapping);
 }
 
 // explicit instantiations

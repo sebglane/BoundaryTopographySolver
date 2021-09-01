@@ -18,7 +18,7 @@ namespace TopographyProblem {
 template <int dim>
 HydrodynamicSolver<dim>::HydrodynamicSolver
 (Triangulation<dim>  &tria,
- const Mapping<dim>  &mapping,
+ Mapping<dim>        &mapping,
  const double         reynolds_number,
  const unsigned int   velocity_fe_degree,
  const unsigned int   n_refinements,
@@ -37,7 +37,8 @@ reynolds_number(reynolds_number)
 template<int dim>
 void HydrodynamicSolver<dim>::output_results(const unsigned int cycle) const
 {
-  std::cout << "   Output results..." << std::endl;
+  if (this->verbose)
+    std::cout << "    Output results..." << std::endl;
 
   HydrodynamicPostprocessor<dim>  postprocessor(0, dim);
 
@@ -59,7 +60,7 @@ void HydrodynamicSolver<dim>::output_results(const unsigned int cycle) const
 // explicit instantiation
 template HydrodynamicSolver<2>::HydrodynamicSolver
 (Triangulation<2>  &,
- const Mapping<2>  &,
+ Mapping<2>        &,
  const double       ,
  const unsigned int ,
  const unsigned int ,
@@ -67,7 +68,7 @@ template HydrodynamicSolver<2>::HydrodynamicSolver
  const unsigned int );
 template HydrodynamicSolver<3>::HydrodynamicSolver
 (Triangulation<3>  &,
- const Mapping<3>  &,
+ Mapping<3>        &,
  const double       ,
  const unsigned int ,
  const unsigned int ,

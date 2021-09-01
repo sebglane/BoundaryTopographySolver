@@ -20,16 +20,17 @@ namespace TopographyProblem {
 template <int dim>
 void SolverBase<dim>::refine_mesh()
 {
-  TimerOutput::Scope timer_section(computing_timer, "Refine mesh");
+  if (verbose)
+    std::cout << "    Mesh refinement..." << std::endl;
 
-  std::cout << "   Mesh refinement..." << std::endl;
+  TimerOutput::Scope timer_section(computing_timer, "Refine mesh");
 
   using VectorType = BlockVector<double>;
 
   // error estimation based on temperature
   Vector<float>   estimated_error_per_cell(triangulation.n_active_cells());
 
-  KellyErrorEstimator<dim>::estimate(*mapping_ptr,
+  KellyErrorEstimator<dim>::estimate(mapping,
                                      dof_handler,
                                      QGauss<dim-1>(fe_system->degree + 1),
                                      std::map<types::boundary_id, const Function<dim> *>(),

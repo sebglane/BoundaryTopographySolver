@@ -39,7 +39,7 @@ std::vector<std::string> HydrodynamicPostprocessor<dim>::get_names() const
   solution_names.push_back("pressure");
   // pressure gradient
   for (unsigned int d=0; d<dim; ++d)
-    solution_names.push_back("pressure gradient");
+    solution_names.push_back("pressure_gradient");
 
   return (solution_names);
 }

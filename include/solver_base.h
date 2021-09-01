@@ -40,7 +40,7 @@ class SolverBase
 {
 public:
   SolverBase(Triangulation<dim>  &tria,
-             const Mapping<dim>  &mapping,
+             Mapping<dim>        &mapping,
              const unsigned int   n_refinements = 3,
              const double         newton_tolerance = 1e-9,
              const unsigned int   n_maximum_iterations = 10);
@@ -82,8 +82,7 @@ protected:
   virtual void output_results(const unsigned int cycle = 0) const = 0;
 
   Triangulation<dim>         &triangulation;
-
-  const std::shared_ptr<const Mapping<dim>>   mapping_ptr;
+  Mapping<dim>               &mapping;
 
   FESystem<dim>              *fe_system;
 
@@ -117,9 +116,12 @@ private:
 
   EvaluationBase<dim> *postprocessor_ptr;
 
-  const unsigned int  n_refinements;
-  const double        newton_tolerance;
-  const unsigned int  n_maximum_iterations;
+  const unsigned int   n_refinements;
+  const double         newton_tolerance;
+  const unsigned int   n_maximum_iterations;
+
+protected:
+  bool verbose;
 
 };
 
