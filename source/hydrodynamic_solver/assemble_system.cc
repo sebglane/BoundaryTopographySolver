@@ -61,6 +61,9 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
   {
     fe_values.reinit(cell);
 
+    cell_matrix = 0;
+    cell_rhs = 0;
+
     fe_values[velocity].get_function_values(this->evaluation_point,
                                             present_velocity_values);
     fe_values[velocity].get_function_gradients(this->evaluation_point,
@@ -81,6 +84,8 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
         phi_pressure[i] = fe_values[pressure].value(i, q);
       }
 
+      const double JxW{fe_values.JxW(q)};
+
       for (const unsigned int i : fe_values.dof_indices())
       {
         for (const unsigned int j : fe_values.dof_indices())
@@ -94,7 +99,7 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
               + (grad_phi_velocity[j] * present_velocity_values[q]) * phi_velocity[i]
               + (present_velocity_gradients[q] * phi_velocity[j]) * phi_velocity[i]
               - phi_pressure[j] * div_phi_velocity[i]
-            ) * fe_values.JxW(q);
+            ) * JxW;
         }
 
         cell_rhs(i) +=
@@ -105,7 +110,7 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
               - nu * scalar_product(present_velocity_gradients[q], grad_phi_velocity[i])
               - (present_velocity_gradients[q] * present_velocity_values[q]) * phi_velocity[i]
               + present_pressure_values[q] * div_phi_velocity[i]
-            ) * fe_values.JxW(q);
+            ) * JxW;
       }
     } // end loop over quadrature points
 

@@ -59,6 +59,8 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
   {
     fe_values.reinit(cell);
 
+    cell_rhs = 0;
+
     fe_values[velocity].get_function_values(this->evaluation_point,
                                             present_velocity_values);
     fe_values[velocity].get_function_gradients(this->evaluation_point,
@@ -79,6 +81,8 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
         phi_pressure[i] = fe_values[pressure].value(i, q);
       }
 
+      const double JxW{fe_values.JxW(q)};
+
       for (const unsigned int i : fe_values.dof_indices())
       {
         cell_rhs(i) +=
@@ -89,7 +93,7 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
               - nu * scalar_product(present_velocity_gradients[q], grad_phi_velocity[i])
               - (present_velocity_gradients[q] * present_velocity_values[q]) * phi_velocity[i]
               + present_pressure_values[q] * div_phi_velocity[i]
-            ) * fe_values.JxW(q);
+            ) * JxW;
       }
     } // end loop over quadrature points
 
