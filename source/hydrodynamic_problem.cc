@@ -13,7 +13,7 @@ template <int dim>
 HydrodynamicProblem<dim>::HydrodynamicProblem()
 :
 mapping(2),
-solver(triangulation, mapping, 100.0)
+solver(triangulation, mapping, 1.0)
 {}
 
 

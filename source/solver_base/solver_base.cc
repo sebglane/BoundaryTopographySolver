@@ -35,8 +35,6 @@ verbose(false)
 template <int dim>
 void SolverBase<dim>::solve()
 {
-  bool initial_step = true;
-
   this->setup_fe_system();
 
   this->setup_dofs();
@@ -45,16 +43,13 @@ void SolverBase<dim>::solve()
   {
     std::cout << "Cycle " << cycle << ':' << std::endl;
 
-    newton_iteration(initial_step);
+    newton_iteration(cycle == 0? true: false);
 
     this->postprocess_solution(cycle);
 
     this->output_results(cycle);
 
     this->refine_mesh();
-
-    if (cycle == 0)
-        initial_step = false;
   }
 }
 
@@ -79,49 +74,61 @@ void SolverBase<dim>::postprocess_solution(const unsigned int cycle) const
 template <int dim>
 void SolverBase<dim>::newton_iteration(const bool is_initial_step)
 {
+  auto compute_residual = [this](const double alpha = 0.0,
+                                 const bool use_homogeneous_constraints = true)
+      {
+        this->evaluation_point = this->present_solution;
+        if (alpha != 0.0)
+          this->evaluation_point.add(alpha, this->solution_update);
+        this->nonzero_constraints.distribute(this->evaluation_point);
+        this->assemble_rhs(use_homogeneous_constraints);
+        return this->system_rhs.l2_norm();
+      };
+
+  std::cout << "Initial residual: "
+            << std::scientific << compute_residual(0.0)
+            << std::endl
+            << std::defaultfloat;
+
   double current_residual = std::numeric_limits<double>::max();
   double last_residual = std::numeric_limits<double>::max();
   bool first_step = is_initial_step;
 
   unsigned int iteration = 0;
 
-  while ((first_step || (current_residual > newton_tolerance)) &&
+  while ((current_residual > newton_tolerance) &&
          iteration < n_maximum_iterations)
   {
     if (first_step)
     {
       // solve problem
       evaluation_point = present_solution;
-      this->assemble_system(first_step);
-      solve_linear_system(first_step);
+      this->assemble_system(/* use_homogeneous_constraints ? */ false);
+      solve_linear_system(/* use_homogeneous_constraints ? */ false);
       present_solution = solution_update;
       nonzero_constraints.distribute(present_solution);
       first_step = false;
       // compute residual
-      evaluation_point = present_solution;
-      this->assemble_rhs(first_step);
-      current_residual = system_rhs.l2_norm();
+      current_residual = compute_residual(0.0, true);
     }
     else
     {
       // solve problem
       evaluation_point = present_solution;
-      this->assemble_system(first_step);
-      solve_linear_system(first_step);
+      this->assemble_system(/* use_homogeneous_constraints ? */ true);
+      solve_linear_system(/* use_homogeneous_constraints ? */ true);
       // line search
-      std::cout << "   Line search: " << std::endl;
+      if (verbose)
+        std::cout << "   Line search: " << std::endl;
       for (double alpha = 1.0; alpha > 1e-2; alpha *= 0.5)
       {
-        evaluation_point = present_solution;
-        evaluation_point.add(alpha, solution_update);
-        nonzero_constraints.distribute(evaluation_point);
-        this->assemble_rhs(first_step);
-        current_residual = system_rhs.l2_norm();
-        std::cout << "      alpha = " << std::setw(6)
-                  << std::scientific << alpha
-                  << " residual = " << current_residual
-                  << std::endl
-                  << std::defaultfloat;
+        current_residual = compute_residual(alpha);
+        if (verbose)
+          std::cout << "      alpha = " << std::setw(6)
+                    << std::scientific << alpha
+                    << " residual = " << current_residual
+                    << std::endl
+                    << std::defaultfloat;
         if (current_residual < last_residual)
           break;
       }
@@ -139,6 +146,9 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
     last_residual = current_residual;
     ++iteration;
   }
+
+  AssertThrow(current_residual <= newton_tolerance,
+              ExcMessage("Newton solver did not converge!"));
 }
 
 // explicit instantiations
