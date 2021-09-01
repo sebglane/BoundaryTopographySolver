@@ -6,7 +6,7 @@ INCLUDE_DIRECTORIES(
     )
 
 SET(SOURCE_FILES
-    main
+    cavity_problem.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
@@ -15,5 +15,5 @@ FOREACH(sourcefile ${SOURCE_FILES})
     PROJECT(${executablename})
     ADD_EXECUTABLE(${executablename} ${sourcefile})
     DEAL_II_SETUP_TARGET(${executablename})
-    TARGET_LINK_LIBRARIES(${executablename} rotatingMHD stdc++fs)
+    TARGET_LINK_LIBRARIES(${executablename} boundary_topography)
 ENDFOREACH(sourcefile ${APP_SOURCES})
