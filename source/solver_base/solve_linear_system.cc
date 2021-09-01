@@ -11,7 +11,7 @@
 namespace TopographyProblem {
 
 template<int dim>
-void SolverBase<dim>::solve_linear_system(const bool initial_step)
+void SolverBase<dim>::solve_linear_system(const bool use_homogeneous_constraints)
 {
   if (verbose)
     std::cout << "    Solving linear system..." << std::endl;
@@ -23,7 +23,7 @@ void SolverBase<dim>::solve_linear_system(const bool initial_step)
 
   solution_update = system_rhs;
   const AffineConstraints<double> &constraints_used =
-      (initial_step ? nonzero_constraints: zero_constraints);
+      (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
   constraints_used.distribute(solution_update);
 }
 

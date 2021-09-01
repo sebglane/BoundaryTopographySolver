@@ -65,9 +65,9 @@ protected:
   void apply_periodicity_constraints
   (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs);
 
-  virtual void assemble_system(const bool initial_step) = 0;
+  virtual void assemble_system(const bool use_homogenenous_constraints = false) = 0;
 
-  virtual void assemble_rhs(const bool initial_step) = 0;
+  virtual void assemble_rhs(const bool use_homogenenous_constraints = false) = 0;
 
   virtual void setup_dofs();
 

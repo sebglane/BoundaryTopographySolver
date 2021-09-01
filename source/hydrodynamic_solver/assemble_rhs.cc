@@ -13,18 +13,17 @@
 namespace TopographyProblem {
 
 template <int dim>
-void HydrodynamicSolver<dim>::assemble_rhs(const bool initial_step)
+void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
     std::cout << "    Assemble rhs..." << std::endl;
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble rhs");
 
-  this->system_matrix = 0;
   this->system_rhs = 0;
 
   const AffineConstraints<double> &constraints =
-      (initial_step ? this->nonzero_constraints: this->zero_constraints);
+      (use_homogeneous_constraints? this->zero_constraints: this->nonzero_constraints);
 
   const FEValuesExtractors::Vector  velocity(0);
   const FEValuesExtractors::Scalar  pressure(dim);

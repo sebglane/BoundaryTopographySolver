@@ -119,7 +119,7 @@ void SolverBase<dim>::apply_dirichlet_constraints
     VectorTools::interpolate_boundary_values(mapping,
                                              dof_handler,
                                              function_map,
-                                             zero_constraints,
+                                             nonzero_constraints,
                                              mask);
   }
   else
