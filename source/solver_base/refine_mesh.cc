@@ -29,7 +29,8 @@ void SolverBase<dim>::refine_mesh()
   // error estimation based on temperature
   Vector<float>   estimated_error_per_cell(triangulation.n_active_cells());
 
-  KellyErrorEstimator<dim>::estimate(dof_handler,
+  KellyErrorEstimator<dim>::estimate(*mapping_ptr,
+                                     dof_handler,
                                      QGauss<dim-1>(fe_system->degree + 1),
                                      std::map<types::boundary_id, const Function<dim> *>(),
                                      present_solution,

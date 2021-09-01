@@ -19,6 +19,7 @@ class HydrodynamicSolver: public SolverBase<dim>
 
 public:
   HydrodynamicSolver(Triangulation<dim>  &tria,
+                     const Mapping<dim>  &mapping,
                      const double         reynolds_number,
                      const unsigned int   velocity_fe_degree = 2,
                      const unsigned int   n_refinements = 3,

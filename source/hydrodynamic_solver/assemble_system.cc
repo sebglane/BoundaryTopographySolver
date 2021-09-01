@@ -28,7 +28,8 @@ void HydrodynamicSolver<dim>::assemble_system(const bool initial_step)
 
   const QGauss<dim>   quadrature_formula(velocity_fe_degree + 1);
 
-  FEValues<dim> fe_values(*this->fe_system,
+  FEValues<dim> fe_values(*this->mapping_ptr,
+                          *this->fe_system,
                           quadrature_formula,
                           update_values|
                           update_gradients|

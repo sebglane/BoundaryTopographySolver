@@ -14,11 +14,13 @@ namespace TopographyProblem {
 template <int dim>
 SolverBase<dim>::SolverBase
 (Triangulation<dim>  &tria,
+ const Mapping<dim>  &mapping,
  const unsigned int   n_refinements,
  const double         newton_tolerance,
  const unsigned int   n_maximum_iterations)
 :
 triangulation(tria),
+mapping_ptr(&mapping),
 dof_handler(triangulation),
 computing_timer(std::cout, TimerOutput::summary, TimerOutput::wall_times),
 n_refinements(n_refinements),
@@ -29,7 +31,7 @@ n_maximum_iterations(n_maximum_iterations)
 
 
 template <int dim>
-void SolverBase<dim>::run()
+void SolverBase<dim>::solve()
 {
   bool initial_step = true;
 
@@ -47,11 +49,24 @@ void SolverBase<dim>::run()
 
     this->output_results(cycle);
 
+    this->refine_mesh();
+
     if (cycle == 0)
         initial_step = false;
   }
 }
 
+
+template<int dim>
+void SolverBase<dim>::postprocess_solution(const unsigned int cycle) const
+{
+  postprocessor_ptr->set_cycle(cycle);
+
+  (*postprocessor_ptr)(*mapping_ptr,
+                       *fe_system,
+                       dof_handler,
+                       solution_update);
+}
 
 
 template <int dim>
@@ -121,14 +136,17 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
 
 // explicit instantiations
 template SolverBase<2>::SolverBase
-(Triangulation<2> &, const unsigned int, const double, const unsigned int);
+(Triangulation<2> &, const Mapping<2> &, const unsigned int, const double, const unsigned int);
 template SolverBase<3>::SolverBase
-(Triangulation<3> &, const unsigned int, const double, const unsigned int);
+(Triangulation<3> &, const Mapping<3> &, const unsigned int, const double, const unsigned int);
+
+template void SolverBase<2>::postprocess_solution(const unsigned int) const;
+template void SolverBase<3>::postprocess_solution(const unsigned int) const;
 
 template void SolverBase<2>::newton_iteration(const bool);
 template void SolverBase<3>::newton_iteration(const bool);
 
-template void SolverBase<2>::run();
-template void SolverBase<3>::run();
+template void SolverBase<2>::solve();
+template void SolverBase<3>::solve();
 
 }  // namespace TopographyProblem

@@ -63,7 +63,8 @@ void SolverBase<dim>::apply_dirichlet_constraints
     function_map[boundary_id] = function.get();
   }
 
-  VectorTools::interpolate_boundary_values(dof_handler,
+  VectorTools::interpolate_boundary_values(*mapping_ptr,
+                                           dof_handler,
                                            function_map,
                                            nonzero_constraints,
                                            mask);
@@ -74,7 +75,8 @@ void SolverBase<dim>::apply_dirichlet_constraints
   {
     function_map[boundary_id] = &zero_function;
   }
-  VectorTools::interpolate_boundary_values(dof_handler,
+  VectorTools::interpolate_boundary_values(*mapping_ptr,
+                                           dof_handler,
                                            function_map,
                                            zero_constraints,
                                            mask);
@@ -105,11 +107,13 @@ void SolverBase<dim>::apply_normal_flux_constraints
                                                        first_vector_component,
                                                        boundary_id_set,
                                                        function_map,
-                                                       nonzero_constraints);
+                                                       nonzero_constraints,
+                                                       *mapping_ptr);
   VectorTools::compute_no_normal_flux_constraints(dof_handler,
                                                   first_vector_component,
                                                   boundary_id_set,
-                                                  zero_constraints);
+                                                  zero_constraints,
+                                                  *mapping_ptr);
 }
 
 // explicit instantiations
