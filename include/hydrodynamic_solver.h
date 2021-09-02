@@ -26,6 +26,8 @@ public:
                      const double         newton_tolerance = 1e-9,
                      const unsigned int   n_maximum_iterations = 10);
 
+  void set_body_force(const TensorFunction<1, dim> &body_force);
+
   VectorBoundaryConditions<dim>&  get_velocity_bcs();
   const VectorBoundaryConditions<dim>&  get_velocity_bcs() const;
 
@@ -49,6 +51,8 @@ private:
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;
 
+  const TensorFunction<1, dim>       *body_force_ptr;
+
   const unsigned int  velocity_fe_degree;
 
   const double        reynolds_number;
@@ -56,6 +60,15 @@ private:
 };
 
 // inline functions
+template <int dim>
+inline void HydrodynamicSolver<dim>::set_body_force
+(const TensorFunction<1, dim> &body_force)
+{
+  body_force_ptr = &body_force;
+}
+
+
+
 template <int dim>
 inline VectorBoundaryConditions<dim> &
 HydrodynamicSolver<dim>::get_velocity_bcs()

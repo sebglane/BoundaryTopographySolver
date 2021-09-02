@@ -69,6 +69,10 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
   std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
   std::vector<double>         present_pressure_values(n_q_points);
 
+  std::vector<Tensor<1,dim>>  body_force_values;
+  if (body_force_ptr != nullptr)
+    body_force_values.resize(n_q_points);
+
   const unsigned int n_face_q_points{face_quadrature_formula.size()};
   std::vector<Tensor<1, dim>> boundary_traction_values;
   if (!neumann_bcs.empty())
@@ -90,6 +94,14 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
     fe_values[pressure].get_function_values(this->evaluation_point,
                                             present_pressure_values);
 
+    // Body force
+    if (body_force_ptr != nullptr)
+    {
+      body_force_ptr->value_list(fe_values.get_quadrature_points(),
+                                 body_force_values);
+
+    }
+
     for (const unsigned int q: fe_values.quadrature_point_indices())
     {
       for (const unsigned int i : fe_values.dof_indices())
@@ -103,13 +115,19 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
       const double JxW{fe_values.JxW(q)};
 
       for (const unsigned int i : fe_values.dof_indices())
-        cell_rhs(i) += compute_hydrodynamic_rhs(phi_velocity[i],
-                                                grad_phi_velocity[i],
-                                                present_velocity_values[q],
-                                                present_velocity_gradients[q],
-                                                present_pressure_values[q],
-                                                phi_pressure[i],
-                                                nu) * JxW;
+      {
+        double rhs = compute_hydrodynamic_rhs(phi_velocity[i],
+                                              grad_phi_velocity[i],
+                                              present_velocity_values[q],
+                                              present_velocity_gradients[q],
+                                              present_pressure_values[q],
+                                              phi_pressure[i],
+                                              nu);
+        if (body_force_ptr != nullptr)
+          rhs += body_force_values[q] * phi_velocity[i];
+
+        cell_rhs(i) += rhs * JxW;
+      }
     } // end loop over cell quadrature points
 
     // Loop over the faces of the cell

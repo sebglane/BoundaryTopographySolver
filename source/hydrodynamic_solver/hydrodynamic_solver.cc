@@ -28,6 +28,7 @@ HydrodynamicSolver<dim>::HydrodynamicSolver
 SolverBase<dim>(tria, mapping, n_refinements, newton_tolerance, n_maximum_iterations),
 velocity_boundary_conditions(this->triangulation),
 pressure_boundary_conditions(this->triangulation),
+body_force_ptr(nullptr),
 velocity_fe_degree(velocity_fe_degree),
 reynolds_number(reynolds_number)
 {}
