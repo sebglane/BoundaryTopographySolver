@@ -1,0 +1,25 @@
+Solving cavity problem
+    Make grid...
+    Initialize mapping...
+    Set boundary conditions...
+      Number of active cells: 1024
+      Number of total degrees of freedom: 9539
+Cycle 0:
+Initial residual: 1.129569e+01
+Iteration:    0, Current residual: 8.710530e-03
+Iteration:    1, Current residual: 1.359629e-07
+Iteration:    2, Current residual: 6.055884e-14
+      Number of active cells: 1093
+      Number of total degrees of freedom: 10272
+Cycle 1:
+Initial residual: 9.425184e-01
+Iteration:    0, Current residual: 5.719730e-04
+Iteration:    1, Current residual: 1.095677e-11
+      Number of active cells: 1171
+      Number of total degrees of freedom: 11100
+Cycle 2:
+Initial residual: 9.425456e-01
+Iteration:    0, Current residual: 2.859872e-04
+Iteration:    1, Current residual: 1.381181e-12
+      Number of active cells: 1255
+      Number of total degrees of freedom: 11982

@@ -89,7 +89,7 @@ ADD_SUBDIRECTORY(source)
 ADD_SUBDIRECTORY(applications)
 # ADD_SUBDIRECTORY(convergence_tests)
 # ADD_SUBDIRECTORY(tests/boundary_topography)
-# ADD_SUBDIRECTORY(tests/applications/)
+ADD_SUBDIRECTORY(tests/applications/)
 # ADD_SUBDIRECTORY(tests/convergence_tests/)
 
 MESSAGE("========================================================")

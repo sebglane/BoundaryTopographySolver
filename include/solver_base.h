@@ -123,6 +123,8 @@ private:
 protected:
   bool verbose;
 
+  bool print_timings;
+
 };
 
 // inline methods

@@ -1,5 +1,5 @@
 PROJECT(applications)
-
+ENABLE_TESTING()
 INCLUDE_DIRECTORIES(
     include
     ${CMAKE_SOURCE_DIR}/include
