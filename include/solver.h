@@ -22,7 +22,7 @@
 #include <deal.II/lac/sparse_matrix.h>
 
 #include <assembly_data.h>
-#include <parameters.h>
+#include <parameters__.h>
 
 namespace TopographyProblem {
 

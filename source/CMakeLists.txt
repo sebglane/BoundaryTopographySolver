@@ -3,6 +3,7 @@ SET(TARGET_SRC
     boundary_conditions.cc
     hydrodynamic_postprocessor.cc
     hydrodynamic_problem.cc
+    parameters.cc
     # solver base
     solver_base/apply_constraints.cc
     solver_base/refine_mesh.cc
@@ -24,7 +25,6 @@ SET(TARGET_SRC
     # local_assemble.cc
     # make_grid.cc
     # newton_iteration.cc
-    # parameters.cc
     # postprocessor.cc
     # postprocessing.cc
     # setup.cc

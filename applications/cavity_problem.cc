@@ -17,7 +17,7 @@ template <int dim>
 class CavityProblem : public HydrodynamicProblem<dim>
 {
 public:
-  CavityProblem();
+  CavityProblem(HydrodynamicProblemParameters &parameters);
 
 protected:
   virtual void make_grid() override;
@@ -38,9 +38,9 @@ private:
 
 
 template <int dim>
-CavityProblem<dim>::CavityProblem()
+CavityProblem<dim>::CavityProblem(HydrodynamicProblemParameters &parameters)
 :
-HydrodynamicProblem<dim>(),
+HydrodynamicProblem<dim>(parameters),
 left_bndry_id(0),
 right_bndry_id(1),
 bottom_bndry_id(2),
@@ -100,7 +100,15 @@ int main(int argc, char *argv[])
 {
   try
   {
-    CavityProblem<2> problem;
+    std::string parameter_filename;
+    if (argc >= 2)
+      parameter_filename = argv[1];
+    else
+      parameter_filename = "cavity_problem.prm";
+
+    HydrodynamicProblemParameters parameters(parameter_filename);
+
+    CavityProblem<2> problem(parameters);
     problem.run();
   }
   catch (std::exception &exc)

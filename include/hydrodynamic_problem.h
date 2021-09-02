@@ -14,11 +14,73 @@
 
 namespace TopographyProblem {
 
+/*!
+ * @struct HydrodynamicSolverParameters
+ *
+ * @brief A structure containing all the parameters of the Navier-Stokes
+ * solver.
+ */
+struct HydrodynamicProblemParameters: HydrodynamicSolverParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  HydrodynamicProblemParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  HydrodynamicProblemParameters(const std::string &filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm);
+
+  /*!
+   * @brief The Froude number of the problem.
+   */
+  double                            froude_number;
+
+  /*!
+   * @brief The Reynolds number of the problem.
+   */
+  double                            reynolds_number;
+
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template <typename Stream>
+Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm);
+
+
+
 template <int dim>
 class HydrodynamicProblem
 {
 public:
-  HydrodynamicProblem();
+  HydrodynamicProblem(const HydrodynamicProblemParameters &parameters);
 
   void run();
 

@@ -8,6 +8,7 @@
 #ifndef INCLUDE_SOLVER_BASE_H_
 #define INCLUDE_SOLVER_BASE_H_
 
+#include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/timer.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -23,6 +24,7 @@
 
 #include <boundary_conditions.h>
 #include <evaluation_base.h>
+#include <parameters.h>
 
 #include <memory>
 #include <vector>
@@ -30,6 +32,92 @@
 namespace TopographyProblem {
 
 using namespace dealii;
+
+
+struct SolverBaseParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  SolverBaseParameters();
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template <typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const SolverBaseParameters &prm);
+
+  /*!
+   * @brief Parameters of the adaptive mesh refinement.
+   */
+  RefinementParameters refinement_parameters;
+
+  /*!
+   * @brief The maximum number of Newton iterations.
+   */
+  unsigned int        n_iterations;
+
+  /*!
+   * @brief Absolute tolerance used for the convergence criterion Newton
+   * iteration.
+   */
+  double              absolute_tolerance;
+
+  /*!
+   * @brief Relative tolerance used for the convergence criterion Newton
+   * iteration.
+   */
+  double              relative_tolerance;
+
+  /*!
+   * @brief Polynomial degree of the mapping.
+   */
+  unsigned int         mapping_degree;
+
+  /*!
+   * @brief Boolean indicating whether the mapping should be applied for
+   * the interior cells as well.
+   */
+  bool                 mapping_interior_cells;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool                 verbose;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool                 print_timings;
+
+  /*!
+   * @brief Directory where the graphical output should be written.
+   */
+  std::string          graphical_output_directory;
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template <typename Stream>
+Stream& operator<<(Stream &stream, const SolverBaseParameters &prm);
+
+
 
 /*
  * @class SolverBase
@@ -39,11 +127,9 @@ template <int dim>
 class SolverBase
 {
 public:
-  SolverBase(Triangulation<dim>  &tria,
-             Mapping<dim>        &mapping,
-             const unsigned int   n_refinements = 3,
-             const double         newton_tolerance = 1e-9,
-             const unsigned int   n_maximum_iterations = 10);
+  SolverBase(Triangulation<dim> &tria,
+             Mapping<dim>       &mapping,
+             const SolverBaseParameters &parameters);
 
   void set_postprocessor(EvaluationBase<dim> &postprocessor);
 
@@ -116,15 +202,20 @@ private:
 
   EvaluationBase<dim> *postprocessor_ptr;
 
-  const unsigned int   n_refinements;
-  const double         newton_tolerance;
-  const unsigned int   n_maximum_iterations;
+  const RefinementParameters refinement_parameters;
+
+  const unsigned int  n_maximum_iterations;
+
+  const double        absolute_tolerance;
+
+  const double        relative_tolerance;
+
+  const bool          print_timings;
+
+  const std::string   graphical_output_directory;
 
 protected:
-  bool verbose;
-
-  bool print_timings;
-
+  const bool verbose;
 };
 
 // inline methods
