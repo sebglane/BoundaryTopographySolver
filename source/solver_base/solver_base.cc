@@ -22,16 +22,19 @@ SolverBase<dim>::SolverBase
 triangulation(tria),
 mapping(mapping),
 dof_handler(triangulation),
-print_timings(false),
 computing_timer(std::cout,
-                print_timings? TimerOutput::summary: TimerOutput::never,
+                TimerOutput::summary,
                 TimerOutput::wall_times),
 postprocessor_ptr(nullptr),
 n_refinements(n_refinements),
 newton_tolerance(newton_tolerance),
 n_maximum_iterations(n_maximum_iterations),
-verbose(false)
-{}
+verbose(false),
+print_timings(false)
+{
+  if (print_timings == false)
+    computing_timer.disable_output();
+}
 
 
 

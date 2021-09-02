@@ -8,6 +8,7 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
 
+#include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
 
 namespace TopographyProblem {
@@ -50,7 +51,6 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
   const unsigned int n_q_points = quadrature_formula.size();
   std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
   std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
-  std::vector<double>         present_velocity_divergences(n_q_points);
   std::vector<double>         present_pressure_values(n_q_points);
 
   const double nu{1.0 / reynolds_number};
@@ -65,8 +65,6 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
                                             present_velocity_values);
     fe_values[velocity].get_function_gradients(this->evaluation_point,
                                                present_velocity_gradients);
-    fe_values[velocity].get_function_divergences(this->evaluation_point,
-                                                 present_velocity_divergences);
 
     fe_values[pressure].get_function_values(this->evaluation_point,
                                             present_pressure_values);
@@ -84,17 +82,13 @@ void HydrodynamicSolver<dim>::assemble_rhs(const bool use_homogeneous_constraint
       const double JxW{fe_values.JxW(q)};
 
       for (const unsigned int i : fe_values.dof_indices())
-      {
-        cell_rhs(i) +=
-            (
-              // incompressibility equation
-              present_velocity_divergences[q] * phi_pressure[i]
-              // momentum equation
-              - nu * scalar_product(present_velocity_gradients[q], grad_phi_velocity[i])
-              - (present_velocity_gradients[q] * present_velocity_values[q]) * phi_velocity[i]
-              + present_pressure_values[q] * div_phi_velocity[i]
-            ) * JxW;
-      }
+        cell_rhs(i) += compute_hydrodynamic_rhs(phi_velocity[i],
+                                                grad_phi_velocity[i],
+                                                present_velocity_values[q],
+                                                present_velocity_gradients[q],
+                                                present_pressure_values[q],
+                                                phi_pressure[i],
+                                                nu) * JxW;
     } // end loop over quadrature points
 
     cell->get_dof_indices(local_dof_indices);
