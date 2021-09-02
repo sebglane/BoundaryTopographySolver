@@ -39,6 +39,18 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
                           update_gradients|
                           update_JxW_values);
 
+  const QGauss<dim-1>   face_quadrature_formula(velocity_fe_degree + 1);
+
+  FEFaceValues<dim>     fe_face_values(this->mapping,
+                                       *this->fe_system,
+                                       face_quadrature_formula,
+                                       update_values|
+                                       update_quadrature_points|
+                                       update_JxW_values);
+
+  const typename VectorBoundaryConditions<dim>::NeumannBCMapping
+  &neumann_bcs = velocity_boundary_conditions.neumann_bcs;
+
   const unsigned int dofs_per_cell{this->fe_system->n_dofs_per_cell()};
   FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
   Vector<double>     cell_rhs(dofs_per_cell);
@@ -50,10 +62,19 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
   std::vector<double>         div_phi_velocity(dofs_per_cell);
   std::vector<double>         phi_pressure(dofs_per_cell);
 
+  std::vector<Tensor<1, dim>> phi_face_velocity;
+  if (!neumann_bcs.empty())
+    phi_face_velocity.resize(dofs_per_cell);
+
   const unsigned int n_q_points = quadrature_formula.size();
   std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
   std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
   std::vector<double>         present_pressure_values(n_q_points);
+
+  const unsigned int n_face_q_points{face_quadrature_formula.size()};
+  std::vector<Tensor<1, dim>> boundary_traction_values;
+  if (!neumann_bcs.empty())
+    boundary_traction_values.resize(n_face_q_points);
 
   const double nu{1.0 / reynolds_number};
 
@@ -107,7 +128,39 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
                                                 phi_pressure[i],
                                                 nu) * JxW;
       }
-    } // end loop over quadrature points
+    } // end loop over cell quadrature points
+
+    // Loop over the faces of the cell
+    if (!neumann_bcs.empty())
+      if (cell->at_boundary())
+        for (const auto &face : cell->face_iterators())
+          if (face->at_boundary() &&
+              neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
+          {
+            // Neumann boundary condition
+            fe_face_values.reinit(cell, face);
+
+            const types::boundary_id  boundary_id{face->boundary_id()};
+            neumann_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
+                                                    boundary_traction_values);
+
+            // Loop over face quadrature points
+            for (const unsigned int q: fe_face_values.quadrature_point_indices())
+            {
+              // Extract the test function's values at the face quadrature points
+              for (const unsigned int i : fe_face_values.dof_indices())
+                phi_face_velocity[i] = fe_face_values[velocity].value(i,q);
+
+              const double JxW_face{fe_face_values.JxW(q)};
+
+              // Loop over the degrees of freedom
+              for (const unsigned int i : fe_face_values.dof_indices())
+                cell_rhs(i) += phi_face_velocity[i] *
+                               boundary_traction_values[q] *
+                               JxW_face;
+
+            } // Loop over face quadrature points
+          } // Loop over the faces of the cell
 
     cell->get_dof_indices(local_dof_indices);
 
