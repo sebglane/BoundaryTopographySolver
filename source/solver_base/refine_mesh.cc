@@ -27,20 +27,26 @@ void SolverBase<dim>::refine_mesh()
 
   using VectorType = BlockVector<double>;
 
-  // error estimation based on temperature
-  Vector<float>   estimated_error_per_cell(triangulation.n_active_cells());
 
-  KellyErrorEstimator<dim>::estimate(mapping,
-                                     dof_handler,
-                                     QGauss<dim-1>(fe_system->degree + 1),
-                                     std::map<types::boundary_id, const Function<dim> *>(),
-                                     present_solution,
-                                     estimated_error_per_cell);
-  // set refinement flags
-  GridRefinement::refine_and_coarsen_fixed_fraction(triangulation,
-                                                    estimated_error_per_cell,
-                                                    0.8,
-                                                    0.0);
+  if (refinement_parameters.adaptive_mesh_refinement)
+  {
+    // error estimation
+    Vector<float>   estimated_error_per_cell(triangulation.n_active_cells());
+
+    KellyErrorEstimator<dim>::estimate(mapping,
+                                       dof_handler,
+                                       QGauss<dim-1>(fe_system->degree + 1),
+                                       std::map<types::boundary_id, const Function<dim> *>(),
+                                       present_solution,
+                                       estimated_error_per_cell);
+    // set refinement flags
+    GridRefinement::refine_and_coarsen_fixed_fraction(triangulation,
+                                                      estimated_error_per_cell,
+                                                      refinement_parameters.cell_fraction_to_refine,
+                                                      refinement_parameters.cell_fraction_to_coarsen);
+  }
+  else
+    triangulation.set_all_refine_flags();
 
   // preparing temperature solution transfer
   std::vector<VectorType> x_solution(1);
