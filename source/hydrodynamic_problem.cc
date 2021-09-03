@@ -96,8 +96,6 @@ void HydrodynamicProblemParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm)
 {
-  internal::add_header(stream);
-
   stream << static_cast<const HydrodynamicSolverParameters &>(prm);
 
   internal::add_line(stream, "Reynolds number", prm.reynolds_number);
@@ -117,7 +115,9 @@ HydrodynamicProblem<dim>::HydrodynamicProblem
 :
 mapping(2),
 solver(triangulation, mapping, parameters, parameters.reynolds_number, parameters.froude_number)
-{}
+{
+  std::cout << parameters << std::endl;
+}
 
 
 

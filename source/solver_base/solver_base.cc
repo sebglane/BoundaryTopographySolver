@@ -104,8 +104,6 @@ Stream& operator<<(Stream &stream, const SolverBaseParameters &prm)
   internal::add_line(stream, "Problem parameters");
   internal::add_header(stream);
 
-  stream << prm.refinement_parameters;
-
   internal::add_line(stream,
                      "Max. number of Newton iterations",
                      prm.n_iterations);
@@ -140,6 +138,7 @@ Stream& operator<<(Stream &stream, const SolverBaseParameters &prm)
                      "Graphical output directory",
                      prm.graphical_output_directory);
 
+  stream << prm.refinement_parameters;
 
   return (stream);
 }
@@ -317,9 +316,12 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
     }
 
     // output residual
-    std::cout << "Iteration: " << std::setw(4) << iteration
+    std::cout << "Iteration: " << std::setw(3) << std::right << iteration
               << ", Current residual: "
-              << std::scientific << current_residual
+              << std::scientific << std::setprecision(4) << current_residual
+              << " (Tolerance: "
+              << std::scientific << std::setprecision(4) << tolerance
+              << ")"
               << std::endl
               << std::defaultfloat;
 

@@ -10,6 +10,7 @@
 #include <hydrodynamic_solver.h>
 #include <hydrodynamic_postprocessor.h>
 
+#include <filesystem>
 #include <fstream>
 #include <string>
 
@@ -85,7 +86,6 @@ void HydrodynamicSolverParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const HydrodynamicSolverParameters &prm)
 {
-
   stream << static_cast<const SolverBaseParameters &>(prm);
 
   internal::add_header(stream);
@@ -171,8 +171,11 @@ void HydrodynamicSolver<dim>::output_results(const unsigned int cycle) const
   const std::string filename = ("solution-" +
                                 Utilities::int_to_string(cycle, 2) +
                                 ".vtk");
-  std::ofstream output(filename.c_str());
-  data_out.write_vtk(output);
+  std::filesystem::path output_file(this->graphical_output_directory);
+  output_file /= filename;
+
+  std::ofstream fstream(output_file.c_str());
+  data_out.write_vtk(fstream);
 }
 
 // explicit instantiation

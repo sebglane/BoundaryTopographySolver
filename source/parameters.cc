@@ -182,8 +182,6 @@ Stream& operator<<(Stream &stream, const RefinementParameters &prm)
                      "Number of refinement cycles",
                      prm.n_cycles);
 
-  internal::add_header(stream);
-
   return (stream);
 }
 

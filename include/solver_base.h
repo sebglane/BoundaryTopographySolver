@@ -212,9 +212,9 @@ private:
 
   const bool          print_timings;
 
+protected:
   const std::string   graphical_output_directory;
 
-protected:
   const bool verbose;
 };
 

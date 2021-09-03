@@ -1,0 +1,30 @@
+# Listing of Parameters
+# ---------------------
+set Absolute tolerance                = 1e-12
+set Graphical output directory        = ./ResultsCavityProblem
+set Mapping - Apply to interior cells = false
+set Mapping - Polynomial degree       = 1
+set Max. number of Newton iterations  = 15
+set Print timings                     = false
+set Relative tolerance                = 1e-9
+set Verbose                           = false
+
+
+subsection Hydrodynamic solver parameters
+  set Convective term weak form = standard
+  set Froude number             = 0.0
+  set Reynolds number           = 1.0
+  set Viscous term weak form    = standard
+end
+
+
+subsection Refinement control parameters
+  set Adaptive mesh refinement         = true
+  set Fraction of cells set to coarsen = 0.0
+  set Fraction of cells set to refine  = 0.03
+  set Maximum number of levels         = 10
+  set Minimum number of levels         = 5
+  set Number of refinement cycles      = 2
+end
+
+
