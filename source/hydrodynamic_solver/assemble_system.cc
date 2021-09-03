@@ -19,6 +19,11 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
   if (this->verbose)
     std::cout << "    Assemble linear system..." << std::endl;
 
+  if (body_force_ptr != nullptr)
+    AssertThrow(froude_number > 0.0,
+                ExcMessage("Non-vanishing Froude number is required if the body "
+                           "force is specified."))
+
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 
   this->system_matrix = 0;
@@ -139,7 +144,7 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
                                               phi_pressure[i],
                                               nu);
         if (body_force_ptr != nullptr)
-          rhs += body_force_values[q] * phi_velocity[i];
+          rhs += body_force_values[q] / froude_number * phi_velocity[i];
 
         cell_rhs(i) += rhs * JxW;
       }

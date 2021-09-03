@@ -120,7 +120,7 @@ Stream& operator<<(Stream &stream, const SolverBaseParameters &prm)
  {
     std::stringstream strstream;
 
-    strstream << "MappingQ<dim>" << ">"
+    strstream << "MappingQ<dim>"
               << "(" << std::to_string(prm.mapping_degree) << ")";
     internal::add_line(stream, "Mapping", strstream.str().c_str());
   }

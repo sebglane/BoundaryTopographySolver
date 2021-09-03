@@ -113,7 +113,7 @@ template <int dim>
 HydrodynamicProblem<dim>::HydrodynamicProblem
 (const HydrodynamicProblemParameters &parameters)
 :
-mapping(2),
+mapping(parameters.mapping_degree),
 solver(triangulation, mapping, parameters, parameters.reynolds_number, parameters.froude_number)
 {
   std::cout << parameters << std::endl;
@@ -126,7 +126,7 @@ void HydrodynamicProblem<dim>::initialize_mapping()
 {
   std::cout << "    Initialize mapping..." << std::endl;
 
-  mapping.initialize(triangulation, MappingQGeneric<dim>(2));
+  mapping.initialize(triangulation, MappingQGeneric<dim>(mapping.get_degree()));
 }
 
 
