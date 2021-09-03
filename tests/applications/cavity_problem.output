@@ -4,8 +4,6 @@
 | Max. number of Newton iterations         | 15                   |
 | Absolute tolerance                       | 1e-12                |
 | Relative tolerance                       | 1e-09                |
-| Mapping                                  | MappingQ<dim>(1)    |
-| Mapping - Apply to interior cells        | false                |
 | Verbose                                  | false                |
 | Print timings                            | false                |
 | Graphical output directory               | ./ResultsCavityProblem |
@@ -23,6 +21,7 @@
 +---------+------------+------------------------------------------+
 | Convective term weak form                | standard             |
 | Viscous term weak form                   | Laplacean            |
+| Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 1                    |
 | Froude number                            | 0                    |
 +---------+------------+------------------------------------------+

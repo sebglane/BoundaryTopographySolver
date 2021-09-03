@@ -17,8 +17,6 @@ SolverBaseParameters::SolverBaseParameters()
 refinement_parameters(),
 absolute_tolerance(1e-12),
 relative_tolerance(1e-9),
-mapping_degree(1),
-mapping_interior_cells(false),
 verbose(false),
 print_timings(false),
 graphical_output_directory("./")
@@ -41,14 +39,6 @@ void SolverBaseParameters::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Relative tolerance",
                     "1e-9",
                     Patterns::Double(std::numeric_limits<double>::epsilon()));
-
-  prm.declare_entry("Mapping - Polynomial degree",
-                    "1",
-                    Patterns::Integer(1));
-
-  prm.declare_entry("Mapping - Apply to interior cells",
-                    "false",
-                    Patterns::Bool());
 
   prm.declare_entry("Verbose",
                     "false",
@@ -83,11 +73,6 @@ void SolverBaseParameters::parse_parameters(ParameterHandler &prm)
   AssertThrow(absolute_tolerance < relative_tolerance,
               ExcLowerRangeType<double>(absolute_tolerance, relative_tolerance));
 
-  mapping_degree = prm.get_integer("Mapping - Polynomial degree");
-  AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
-
-  mapping_interior_cells = prm.get_bool("Mapping - Apply to interior cells");
-
   verbose = prm.get_bool("Verbose");
 
   print_timings = prm.get_bool("Print timings");
@@ -116,19 +101,6 @@ Stream& operator<<(Stream &stream, const SolverBaseParameters &prm)
   internal::add_line(stream,
                      "Relative tolerance",
                      prm.relative_tolerance);
-
- {
-    std::stringstream strstream;
-
-    strstream << "MappingQ<dim>"
-              << "(" << std::to_string(prm.mapping_degree) << ")";
-    internal::add_line(stream, "Mapping", strstream.str().c_str());
-  }
-
-  internal::add_line(stream,
-                     "Mapping - Apply to interior cells",
-                     (prm.mapping_interior_cells ? "true" : "false"));
-
 
   internal::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
 

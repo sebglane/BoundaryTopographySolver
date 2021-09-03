@@ -55,14 +55,19 @@ struct HydrodynamicProblemParameters: HydrodynamicSolverParameters
   friend Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm);
 
   /*!
+   * @brief Polynomial degree of the mapping.
+   */
+  unsigned int  mapping_degree;
+
+  /*!
    * @brief The Froude number of the problem.
    */
-  double                            froude_number;
+  double        froude_number;
 
   /*!
    * @brief The Reynolds number of the problem.
    */
-  double                            reynolds_number;
+  double        reynolds_number;
 
 };
 

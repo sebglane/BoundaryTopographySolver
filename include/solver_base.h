@@ -83,17 +83,6 @@ struct SolverBaseParameters
   double              relative_tolerance;
 
   /*!
-   * @brief Polynomial degree of the mapping.
-   */
-  unsigned int         mapping_degree;
-
-  /*!
-   * @brief Boolean indicating whether the mapping should be applied for
-   * the interior cells as well.
-   */
-  bool                 mapping_interior_cells;
-
-  /*!
    * @brief Boolean flag to enable verbose output on the terminal.
    */
   bool                 verbose;
