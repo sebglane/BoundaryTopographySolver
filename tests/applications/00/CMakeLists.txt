@@ -1,0 +1,2 @@
+SET(TEST_TARGET cavity_problem)
+DEAL_II_PICKUP_TESTS()

@@ -7,6 +7,7 @@ INCLUDE_DIRECTORIES(
 
 SET(SOURCE_FILES
     cavity_problem.cc
+    viscous_topography_problem.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})

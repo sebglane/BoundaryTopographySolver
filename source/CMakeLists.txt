@@ -20,7 +20,7 @@ SET(TARGET_SRC
     # assembly_data.cc
     # entropy_viscosity.cc
     # equation_data.cc
-    # grid_factory.cc
+    grid_factory.cc
     # linear_solver.cc
     # local_assemble.cc
     # make_grid.cc
