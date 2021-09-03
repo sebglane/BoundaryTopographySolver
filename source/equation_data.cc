@@ -52,7 +52,7 @@ BackgroundMagneticField<dim>::BackgroundMagneticField()
 :
 Function<dim>(dim)
 {
-    direction_vector[1] = 1.0;
+    direction_vector[dim-1] = 1.0;
 }
 
 template<int dim>

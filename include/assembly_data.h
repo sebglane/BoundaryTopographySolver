@@ -82,6 +82,17 @@ struct CopyData
     CopyData(const CopyData<dim>        &data);
 
     FullMatrix<double>                      local_matrix;
+
+    std::vector<types::global_dof_index>    local_dof_indices;
+};
+
+template <int dim>
+struct CopyDataRightHandSide
+{
+    CopyDataRightHandSide(const FiniteElement<dim>          &finite_element);
+    CopyDataRightHandSide(const CopyDataRightHandSide<dim>  &data);
+
+    FullMatrix<double>                      matrix_for_bc;
     Vector<double>                          local_rhs;
 
     std::vector<types::global_dof_index>    local_dof_indices;
