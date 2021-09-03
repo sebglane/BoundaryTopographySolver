@@ -5,34 +5,64 @@
  *      Author: sg
  */
 
-#include "equation_data.h"
-#include "grid_factory.h"
+#include <deal.II/base/exceptions.h>
+#include <deal.II/grid/grid_generator.h>
+
+#include <algorithm>
+#include <cmath>
+
+#include <equation_data.h>
+#include <grid_factory.h>
 
 namespace GridFactory {
 
 template <int dim>
-SinusoidalManifold<dim>::SinusoidalManifold(const double    wavenumber,
-                                            const double    amplitude,
-                                            const bool      single_wave)
+SinusoidalManifold<dim>::SinusoidalManifold(const double        wavenumber,
+                                            const double        amplitude,
+                                            const unsigned int  normal_direction_,
+                                            const bool          single_wave,
+                                            const unsigned int  wave_direction_)
 :
 ChartManifold<dim,dim,dim-1>(),
 wavenumber(wavenumber),
 amplitude(amplitude),
-single_wave(single_wave)
-{}
+single_wave(single_wave),
+normal_direction(normal_direction_),
+wave_direction(wave_direction_)
+{
+    Assert(normal_direction < dim,
+           ExcLowerRange(normal_direction, dim));
+    Assert(wave_direction < dim,
+               ExcLowerRange(wave_direction, dim));
+}
 
 template <int dim>
 std::unique_ptr<Manifold<dim,dim>> SinusoidalManifold<dim>::clone() const
 {
-  return std::make_unique<SinusoidalManifold<dim>>(wavenumber, amplitude);
+  return std::make_unique<SinusoidalManifold<dim>>(wavenumber,
+                                                   amplitude,
+                                                   normal_direction,
+                                                   single_wave);
 }
 
 template<int dim>
 Point<dim-1> SinusoidalManifold<dim>::pull_back(const Point<dim> &space_point) const
 {
     Point<dim-1> chart_point;
-    for (unsigned int d=0; d<dim-1; ++d)
-        chart_point[d] = space_point[d];
+    if (normal_direction == 0)
+        for (unsigned int d=1; d<dim; ++d)
+            chart_point[d] = space_point[d];
+    else if (normal_direction == dim -1)
+        for (unsigned int d=0; d<dim-1; ++d)
+            chart_point[d] = space_point[d];
+    else if (normal_direction == 1)
+    {
+        chart_point[0] = space_point[0];
+        chart_point[1] = space_point[2];
+    }
+    else
+        Assert(false, ExcNotImplemented());
+
     return chart_point;
 }
 
@@ -40,20 +70,56 @@ template<int dim>
 Point<dim> SinusoidalManifold<dim>::push_forward(const Point<dim-1> &chart_point) const
 {
     Point<dim> space_point;
-    space_point[dim-1] = amplitude;
-    if (!single_wave)
-        for (unsigned int d=0; d<dim-1; ++d)
-        {
-            space_point[d] = chart_point[d];
-            space_point[dim-1] *= std::sin(wavenumber * chart_point[d]);
-        }
-    else
+    if (normal_direction == 0)
     {
-        for (unsigned int d=0; d<dim-1; ++d)
-            space_point[d] = chart_point[d];
-        space_point[dim-1] *= std::sin(wavenumber * chart_point[0]);
+        space_point[0] = amplitude;
+        if (!single_wave)
+            for (unsigned int d=1; d<dim; ++d)
+            {
+                space_point[d] = chart_point[d];
+                space_point[0] *= std::sin(wavenumber * chart_point[d]);
+            }
+        else
+        {
+            for (unsigned int d=1; d<dim; ++d)
+                space_point[d] = chart_point[d];
+            space_point[0] *= std::sin(wavenumber * chart_point[wave_direction]);
+        }
+        space_point[0] += 1.0;
     }
-    space_point[dim-1] += 1.0;
+    else if (normal_direction == dim -1)
+    {
+        space_point[dim-1] = amplitude;
+        if (!single_wave)
+            for (unsigned int d=0; d<dim-1; ++d)
+            {
+                space_point[d] = chart_point[d];
+                space_point[dim-1] *= std::sin(wavenumber * chart_point[d]);
+            }
+        else
+        {
+            for (unsigned int d=0; d<dim-1; ++d)
+                space_point[d] = chart_point[d];
+            space_point[dim-1] *= std::sin(wavenumber * chart_point[wave_direction]);
+        }
+        space_point[dim-1] += 1.0;
+    }
+    else if (normal_direction == 1)
+    {
+        space_point[1] = amplitude;
+
+        space_point[0] = chart_point[0];
+        space_point[2] = chart_point[1];
+
+        if (!single_wave)
+            space_point[1] *= std::sin(wavenumber * chart_point[0]) *
+                              std::sin(wavenumber * chart_point[1]);
+        else
+            space_point[1] *= std::sin(wavenumber * chart_point[wave_direction]);
+        space_point[1] += 1.0;
+    }
+    else
+        Assert(false, ExcNotImplemented());
     return space_point;
 }
 
@@ -74,21 +140,62 @@ DerivativeForm<1, dim-1, dim> SinusoidalManifold<dim>::push_forward_gradient
 
     case 3:
     {
-        gradF[0][0] = 1.0;
-        gradF[0][1] = 0.0;
+        if (normal_direction == 0)
+        {
+            gradF[1][0] = 1.0;
+            gradF[2][1] = 1.0;
 
-        gradF[1][0] = 0.0;
-        gradF[1][1] = 1.0;
+            if (!single_wave)
+                gradF[0][wave_direction] = amplitude * wavenumber *
+                                           cos(wavenumber * chart_point[wave_direction]);
+            else
+            {
+                gradF[0][0] = amplitude * wavenumber *
+                              cos(wavenumber * chart_point[0]) *
+                              sin(wavenumber * chart_point[1]);
+                gradF[0][1] = amplitude * wavenumber *
+                              sin(wavenumber * chart_point[0]) *
+                              cos(wavenumber * chart_point[1]);
+            }
+        }
+        else if (normal_direction == 1)
+        {
+            gradF[0][0] = 1.0;
+            gradF[2][1] = 1.0;
 
-        gradF[2][0] = amplitude * wavenumber *
-                   cos(wavenumber * chart_point[0]) *
-                   sin(wavenumber * chart_point[1]);
-        gradF[2][1] = amplitude * wavenumber *
-                   sin(wavenumber * chart_point[0]) *
-                   cos(wavenumber * chart_point[1]);
+            if (!single_wave)
+                gradF[1][wave_direction] = amplitude * wavenumber *
+                                               cos(wavenumber * chart_point[wave_direction]);
+            else
+            {
+                gradF[1][0] = amplitude * wavenumber *
+                              cos(wavenumber * chart_point[0]) *
+                              sin(wavenumber * chart_point[1]);
+                gradF[1][1] = amplitude * wavenumber *
+                              sin(wavenumber * chart_point[0]) *
+                              cos(wavenumber * chart_point[1]);
+            }
+        }
+        else if (normal_direction == 2)
+        {
+            gradF[0][0] = 1.0;
+            gradF[1][1] = 1.0;
+
+            if (!single_wave)
+                gradF[2][wave_direction] = amplitude * wavenumber *
+                                               cos(wavenumber * chart_point[wave_direction]);
+            else
+            {
+                gradF[2][0] = amplitude * wavenumber *
+                              cos(wavenumber * chart_point[0]) *
+                              sin(wavenumber * chart_point[1]);
+                gradF[2][1] = amplitude * wavenumber *
+                              sin(wavenumber * chart_point[0]) *
+                              cos(wavenumber * chart_point[1]);
+            }
+        }
         break;
     }
-
     default:
         Assert(false, ExcNotImplemented());
     }
@@ -96,14 +203,16 @@ DerivativeForm<1, dim-1, dim> SinusoidalManifold<dim>::push_forward_gradient
 }
 
 template<int dim>
-TopographyBox<dim>::TopographyBox(const double wavenumber,
-                                  const double amplitude,
-                                  const bool   include_exterior,
-                                  const double exterior_length)
+TopographyBox<dim>::TopographyBox(const double  wavenumber,
+                                  const double  amplitude,
+                                  const bool    single_wave,
+                                  const bool    include_exterior,
+                                  const double  exterior_length)
 :
+single_wave(single_wave),
 include_exterior(include_exterior),
 exterior_length(exterior_length),
-sinus_manifold(wavenumber, amplitude)
+sinus_manifold(wavenumber, amplitude, single_wave)
 {
     Assert(amplitude < 1.0, ExcLowerRangeType<double>(amplitude,1.0));
 }
@@ -114,7 +223,25 @@ void TopographyBox<dim>::create_coarse_mesh(Triangulation<dim> &coarse_grid)
 {
     if (!include_exterior)
     {
-        GridGenerator::hyper_cube(coarse_grid);
+        const Point<dim>    origin;
+
+        Point<dim>    corner;
+        std::vector<unsigned int> repetitions(dim);
+        if (!single_wave)
+            for (unsigned int d=0; d<dim; ++d)
+                corner[d] = 1.0;
+        else
+        {
+            for (unsigned int d=0; d<dim; ++d)
+                corner[d] = 1.0;
+            if (dim == 3)
+                corner[1] = 0.1;
+
+        }
+
+        GridGenerator::hyper_rectangle(coarse_grid,
+                                       origin,
+                                       corner);
 
         coarse_grid.set_all_manifold_ids(0);
         coarse_grid.set_all_manifold_ids_on_boundary(0);
@@ -147,9 +274,20 @@ void TopographyBox<dim>::create_coarse_mesh(Triangulation<dim> &coarse_grid)
     else if (include_exterior)
     {
         const Point<dim> origin;
-        Point<dim> corner;
-        for (unsigned int d=0; d<dim-1; ++d)
-            corner[d] = 1.0;
+
+        Point<dim>    corner;
+        std::vector<unsigned int> repetitions(dim);
+        if (!single_wave)
+            for (unsigned int d=0; d<dim; ++d)
+                corner[d] = 1.0;
+        else
+        {
+            for (unsigned int d=0; d<dim; ++d)
+                corner[d] = 1.0;
+
+            if (dim == 3)
+                corner[1] = 0.1;
+        }
         corner[dim-1] = exterior_length + 1.0;
 
         std::vector<std::vector<double>> step_sizes;
@@ -158,11 +296,10 @@ void TopographyBox<dim>::create_coarse_mesh(Triangulation<dim> &coarse_grid)
 
         step_sizes.push_back(std::vector<double>{1.0, exterior_length});
 
-        GridGenerator::subdivided_hyper_rectangle(
-                coarse_grid,
-                step_sizes,
-                origin,
-                corner);
+        GridGenerator::subdivided_hyper_rectangle(coarse_grid,
+                                                  step_sizes,
+                                                  origin,
+                                                  corner);
 
         coarse_grid.set_all_manifold_ids(0);
         coarse_grid.set_all_manifold_ids_on_boundary(0);
@@ -213,7 +350,7 @@ void TopographyBox<dim>::create_coarse_mesh(Triangulation<dim> &coarse_grid)
                     {
                         cell->face(f)->set_boundary_id(DomainIdentifiers::Left);
                     }
-                    // left boundary
+                    // right boundary
                     else if (std::all_of(coord.begin(), coord.end(),
                             [&](double d)->bool{return std::abs(d - 1.0) < tol;}))
                     {
@@ -223,29 +360,35 @@ void TopographyBox<dim>::create_coarse_mesh(Triangulation<dim> &coarse_grid)
                     switch (dim)
                     {
                     case 2:
+                    {
                         // y-coordinates
                         for (unsigned int v=0; v<GeometryInfo<dim>::vertices_per_face; ++v)
                             coord[v] = cell->face(f)->vertex(v)[1];
+                        const double height = (include_exterior ? 1.0 + exterior_length: 1.0);
                         // bottom boundary
                         if (std::all_of(coord.begin(), coord.end(),
                                 [&](double d)->bool{return std::abs(d) < tol;}))
                             cell->face(f)->set_boundary_id(DomainIdentifiers::Bottom);
                         // top boundary
                         else if (std::all_of(coord.begin(), coord.end(),
-                                [&](double d)->bool{return std::abs(d - exterior_length) < tol;}) && include_exterior)
+                                [&](double d)->bool{return std::abs(d - height) < tol;}) && include_exterior)
                             cell->face(f)->set_boundary_id(DomainIdentifiers::FVB);
                         break;
+                    }
                     case 3:
+                    {
                         // y-coordinates
                         for (unsigned int v=0; v<GeometryInfo<dim>::vertices_per_face; ++v)
                             coord[v] = cell->face(f)->vertex(v)[1];
+                        const double height = (include_exterior ? 1.0 + exterior_length: 1.0);
+                        const double depth = (single_wave ? 0.1: 1.0);
                         // front boundary
                         if (std::all_of(coord.begin(), coord.end(),
                                 [&](double d)->bool{return std::abs(d) < tol;}))
                             cell->face(f)->set_boundary_id(DomainIdentifiers::Front);
                         // back boundary
                         else if (std::all_of(coord.begin(), coord.end(),
-                                [&](double d)->bool{return std::abs(d - 1.0) < tol;}))
+                                [&](double d)->bool{return std::abs(d - depth) < tol;}))
                             cell->face(f)->set_boundary_id(DomainIdentifiers::Back);
 
                         // z-coordinates
@@ -257,10 +400,11 @@ void TopographyBox<dim>::create_coarse_mesh(Triangulation<dim> &coarse_grid)
                             cell->face(f)->set_boundary_id(DomainIdentifiers::Bottom);
                         // top boundary
                         else if (std::all_of(coord.begin(), coord.end(),
-                                [&](double d)->bool{return std::abs(d - exterior_length) < tol;}) &&
+                                [&](double d)->bool{return std::abs(d - height) < tol;}) &&
                                 include_exterior)
                             cell->face(f)->set_boundary_id(DomainIdentifiers::FVB);
                         break;
+                    }
                     default:
                         Assert(false, ExcImpossibleInDim(dim));
                         break;

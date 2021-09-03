@@ -7,7 +7,7 @@
 
 #include <deal.II/lac/vector.h>
 
-#include "equation_data.h"
+#include <equation_data.h>
 
 namespace EquationData {
 
@@ -21,7 +21,7 @@ Function<dim>(dim)
 
 template<int dim>
 void VelocityBoundaryValues<dim>::vector_value(const Point<dim>    &/* point */,
-                                                Vector<double>      &value) const
+                                               Vector<double>      &value) const
 {
     Assert(value.size() == this->n_components,
            ExcDimensionMismatch(this->n_components, value.size()));
@@ -39,7 +39,7 @@ Function<dim>(dim)
 
 template<int dim>
 void BackgroundVelocity<dim>::vector_value(const Point<dim>    &/* point */,
-                                                Vector<double>      &value) const
+                                           Vector<double>      &value) const
 {
     Assert(value.size() == this->n_components,
            ExcDimensionMismatch(this->n_components, value.size()));

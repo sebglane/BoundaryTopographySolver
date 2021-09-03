@@ -5,7 +5,7 @@
  *      Author: sg
  */
 
-#include "assembly_data.h"
+#include <assembly_data.h>
 
 namespace Assembly {
 
@@ -170,6 +170,7 @@ present_face_velocity_values(face_quadrature.size()),
 div_phi_field(finite_element.dofs_per_cell),
 phi_field(finite_element.dofs_per_cell),
 curl_phi_field(finite_element.dofs_per_cell),
+grad_phi_field(finite_element.dofs_per_cell),
 phi_scalar(finite_element.dofs_per_cell),
 present_field_divergences(quadrature.size()),
 present_field_curls(quadrature.size()),
@@ -180,7 +181,7 @@ present_face_scalar_values(face_quadrature.size())
 
 
 template<int dim>
-RightHandSideScratch<dim>::RightHandSideScratch(const RightHandSideScratch<dim>  &scratch)
+Scratch<dim>::Scratch(const Scratch<dim>  &scratch)
 :
 fe_values(scratch.fe_values.get_mapping(),
           scratch.fe_values.get_fe(),
@@ -210,20 +211,22 @@ present_face_velocity_values(scratch.present_face_velocity_values),
 div_phi_field(scratch.div_phi_field),
 phi_field(scratch.phi_field),
 curl_phi_field(scratch.curl_phi_field),
+grad_phi_field(scratch.grad_phi_field),
 phi_scalar(scratch.phi_scalar),
 present_field_divergences(scratch.present_field_divergences),
 present_field_curls(scratch.present_field_curls),
 present_scalar_values(scratch.present_scalar_values),
 present_face_field_curls(scratch.present_face_field_curls),
 present_face_scalar_values(scratch.present_face_scalar_values)
-{}
 
+{}
 
 template<int dim>
 CopyData<dim>::CopyData(const FiniteElement<dim>    &finite_element)
 :
 local_matrix(finite_element.dofs_per_cell,
              finite_element.dofs_per_cell),
+local_rhs(finite_element.dofs_per_cell),
 local_dof_indices(finite_element.dofs_per_cell)
 {}
 
@@ -232,38 +235,16 @@ template<int dim>
 CopyData<dim>::CopyData(const CopyData<dim>   &data)
 :
 local_matrix(data.local_matrix),
-local_dof_indices(data.local_dof_indices)
-{}
-
-template<int dim>
-CopyDataRightHandSide<dim>::CopyDataRightHandSide(const FiniteElement<dim>    &finite_element)
-:
-matrix_for_bc(finite_element.dofs_per_cell,
-              finite_element.dofs_per_cell),
-local_rhs(finite_element.dofs_per_cell),
-local_dof_indices(finite_element.dofs_per_cell)
-{}
-
-
-template<int dim>
-CopyDataRightHandSide<dim>::CopyDataRightHandSide(const CopyDataRightHandSide<dim>   &data)
-:
-matrix_for_bc(data.matrix_for_bc),
 local_rhs(data.local_rhs),
 local_dof_indices(data.local_dof_indices)
 {}
 
 }  // namespace Assembly
 
+
 // explicit instantiation
-template struct Assembly::NonLinearScratch<2>;
-template struct Assembly::NonLinearScratch<3>;
-
-template struct Assembly::LinearScratch<2>;
-template struct Assembly::LinearScratch<3>;
-
-template struct Assembly::RightHandSideScratch<2>;
-template struct Assembly::RightHandSideScratch<3>;
+template struct Assembly::Scratch<2>;
+template struct Assembly::Scratch<3>;
 
 template struct Assembly::CopyData<2>;
 template struct Assembly::CopyData<3>;

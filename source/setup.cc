@@ -9,14 +9,13 @@
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/dofs/dof_renumbering.h>
-#include <deal.II/dofs/function_map.h>
 
 #include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
-#include "solver.h"
-#include "equation_data.h"
+#include <solver.h>
+#include <equation_data.h>
 
 namespace TopographyProblem {
 
@@ -33,9 +32,8 @@ void TopographySolver<dim>::setup_dofs()
     DoFRenumbering::block_wise(dof_handler);
 
     // IO
-    std::vector<types::global_dof_index> dofs_per_block(5);
-    DoFTools::count_dofs_per_block(dof_handler,
-                                   dofs_per_block);
+    std::vector<types::global_dof_index> dofs_per_block =
+        DoFTools::count_dofs_per_fe_block(dof_handler);
 
     std::cout << "      Number of active cells: "
               << triangulation.n_active_cells()
@@ -80,7 +78,7 @@ void TopographySolver<dim>::setup_dofs()
         GridTools::collect_periodic_faces(dof_handler,
                 DomainIdentifiers::Front,
                 DomainIdentifiers::Back,
-                1,
+                2,
                 periodicity_vector);
         break;
     default:
@@ -101,19 +99,19 @@ void TopographySolver<dim>::setup_dofs()
          nonzero_constraints);
 
         // constrain normal components of velocity
-        std::set<types::boundary_id> no_normal_flux_boundaries;
+        std::set<types::boundary_id>    no_normal_flux_boundaries;
         no_normal_flux_boundaries.insert(DomainIdentifiers::BoundaryIds::TopoBndry);
 
         const EquationData::VelocityBoundaryValues<dim>    velocity_boundary_values;
-        std::map<types::boundary_id, const Function<dim> *> function_map;
+        std::map<types::boundary_id, const Function<dim> *> function_map_velocity;
         for (const auto it: no_normal_flux_boundaries)
-          function_map[it] = &velocity_boundary_values;
+            function_map_velocity[it] = &velocity_boundary_values;
 
         VectorTools::compute_nonzero_normal_flux_constraints
         (dof_handler,
          1,
          no_normal_flux_boundaries,
-         function_map,
+         function_map_velocity,
          nonzero_constraints);
 
         // zero function
@@ -136,6 +134,18 @@ void TopographySolver<dim>::setup_dofs()
          zero_function,
          nonzero_constraints,
          fe_system.component_mask(velocity));
+
+        // constrain pressure at bottom
+        if (parameters.constrain_pressure)
+        {
+            const FEValuesExtractors::Scalar    pressure(dim+1);
+            VectorTools::interpolate_boundary_values
+            (dof_handler,
+             DomainIdentifiers::Bottom,
+             zero_function,
+             nonzero_constraints,
+             fe_system.component_mask(pressure));
+        }
 
         // constrain magnetic field at bottom
         const FEValuesExtractors::Vector magnetic_field(dim+2);
@@ -161,7 +171,7 @@ void TopographySolver<dim>::setup_dofs()
          zero_constraints);
 
         // constrain normal components of velocity
-        std::set<types::boundary_id> no_normal_flux_boundaries;
+        std::set<types::boundary_id>    no_normal_flux_boundaries;
         no_normal_flux_boundaries.insert(DomainIdentifiers::BoundaryIds::TopoBndry);
 
         VectorTools::compute_no_normal_flux_constraints
@@ -191,6 +201,18 @@ void TopographySolver<dim>::setup_dofs()
          zero_constraints,
          fe_system.component_mask(velocity));
 
+        // constrain pressure at bottom
+        if (parameters.constrain_pressure)
+        {
+            const FEValuesExtractors::Scalar    pressure(dim+1);
+            VectorTools::interpolate_boundary_values
+            (dof_handler,
+             DomainIdentifiers::Bottom,
+             zero_function,
+             zero_constraints,
+             fe_system.component_mask(pressure));
+        }
+
         // constrain magnetic field at bottom
         const FEValuesExtractors::Vector magnetic_field(dim+2);
         VectorTools::interpolate_boundary_values
@@ -217,7 +239,6 @@ void TopographySolver<dim>::setup_system_matrix
 (const std::vector<types::global_dof_index> &dofs_per_block)
 {
     system_matrix.clear();
-    system_matrix_linear_part.clear();
 
     Table<2,DoFTools::Coupling> coupling;
     coupling.reinit(2*dim+3, 2*dim+3);
@@ -270,7 +291,6 @@ void TopographySolver<dim>::setup_system_matrix
     sparsity_pattern.copy_from(dsp);
 
     system_matrix.reinit(sparsity_pattern);
-    system_matrix_linear_part.reinit(sparsity_pattern);
 }
 
 }  // namespace TopographyProblem

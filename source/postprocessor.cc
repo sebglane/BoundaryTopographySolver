@@ -5,7 +5,7 @@
  *      Author: sg
  */
 
-#include "postprocessor.h"
+#include <postprocessor.h>
 
 namespace TopographyProblem {
 

@@ -18,49 +18,55 @@
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include "solver.h"
-#include "postprocessor.h"
+#include <solver.h>
+#include <postprocessor.h>
+
+#include <fstream>
+#include <map>
 
 namespace TopographyProblem {
 
-template<>
-TopographySolver<3>::TopographySolver(Parameters &parameters_)
+template<int dim>
+TopographySolver<dim>::TopographySolver(Parameters &parameters_)
 :
 parameters(parameters_),
 // coefficients
 equation_coefficients{parameters.S,
-                      1./parameters.Rossby,
-                      1. / parameters.Froude / parameters.Froude,
+                      1. / parameters.Rossby,
+                      1. / (parameters.Froude * parameters.Froude),
                       parameters.Alfven * parameters.Alfven,
                       parameters.magReynolds},
 // model parameters
-rotation_vector(Point<3>::unit_vector(3-1)),
-gravity_vector(-Point<3>::unit_vector(3-1)),
-background_density_gradient(-Point<3>::unit_vector(3-1)),
-background_velocity_value(Point<3>::unit_vector(0)),
+rotation_vector((dim == 3? Point<dim>::unit_vector(1): Point<dim>::unit_vector(dim-1))),
+gravity_vector((dim == 3? -Point<dim>::unit_vector(1): Point<dim>::unit_vector(dim-1))),
+background_velocity_value(Point<dim>::unit_vector(0)),
+background_field_value((dim == 3? -Point<dim>::unit_vector(1): Point<dim>::unit_vector(dim-1))),
+background_density_gradient((dim == 3? -Point<dim>::unit_vector(1): Point<dim>::unit_vector(dim-1))),
 background_velocity_gradient(),
-background_field_value(Point<3>::unit_vector(0)),
 background_field_curl(),
 background_field_gradient(),
 // triangulation
-triangulation(),
+triangulation(Triangulation<dim>::maximum_smoothing),
 // finite element part
-fe_system(FE_Q<3>(parameters.density_degree), 1,
-          FESystem<3>(FE_Q<3>(parameters.velocity_degree), 3), 1,
-          FE_Q<3>(parameters.velocity_degree - 1), 1,
-          FESystem<3>(FE_Q<3>(parameters.magnetic_degree), 3), 1,
-          FE_Q<3>(parameters.magnetic_degree), 1),
+fe_system(FE_Q<dim>(parameters.density_degree), 1,
+          FESystem<dim>(FE_Q<dim>(parameters.velocity_degree), dim), 1,
+          FE_Q<dim>(parameters.velocity_degree - 1), 1,
+          FESystem<dim>(FE_Q<dim>(parameters.magnetic_degree), dim), 1,
+          FE_Q<dim>(parameters.magnetic_degree), 1),
 dof_handler(triangulation),
 // monitor
 computing_timer(std::cout, TimerOutput::summary, TimerOutput::wall_times)
 {
     std::cout << "Topography solver by S. Glane\n"
-              << "This program solves inviscid flow over topography in a stratified layer.\n"
-              << "The governing equations are\n\n"
-              << "\t-- Continuity equation:\n\t\t div(rho V) = -S v . grad(rho_0),\n\n"
-              << "\t-- Incompressibility constraint:\n\t\t div(v) = 0,\n\n"
-              << "\t-- Navier-Stokes equation:\n\t\t V . grad(v) + v . grad(V) + v . grad(v) + (2 / Ro)  Omega x v\n"
-              << "\t\t\t\t= - grad(p) + (1 / Fr^2) rho g + \n"
+            << "This program solves inviscid flow over topography in a stratified layer.\n"
+            << "The governing equations are\n\n"
+            << "\t-- Continuity equation:\n\t\t div(rho V) = -S v . grad(rho_0),\n\n"
+            << "\t-- Incompressibility constraint:\n\t\t div(v) = 0,\n\n";
+    if (parameters.include_rotation)
+        std::cout << "\t-- Navier-Stokes equation:\n\t\t V . grad(v) + v . grad(V) + v . grad(v) + 2 / Ro  Omega x v\n";
+    else
+        std::cout << "\t-- Navier-Stokes equation:\n\t\t V . grad(v) + v . grad(V) + v . grad(v)\n";
+    std::cout << "\t\t\t\t= - grad(p) + (1 / Fr^2) rho g + \n"
               << "\t\t\t\t  + Al^2 (B . grad(b) + b . grad(B) + b . grad(b)),\n\n"
               << "\t-- Induction equation:\n\t\t div(grad(b)) + Rm (curl(v x B) + curl(V x b) + curl(v x b)) = 0\n\n"
               << "The stratification parameter, S, the Rossby number, Ro, the Froude number, Fr, the Alfven number, Al,\n"
@@ -68,44 +74,69 @@ computing_timer(std::cout, TimerOutput::summary, TimerOutput::wall_times)
 
     // generate a nice table of the equation coefficients
     std::cout << "+-----------+---------------+---------------+---------------+---------------+\n"
-              << "|    S      |      Ro       |      Fr       |      Al       |      Rm       |\n"
-              << "+-----------+---------------+---------------+---------------+---------------+\n"
-              << "| N^2 l / g | V / (Omega l) | V / sqrt(g l) |     Va / v    |   v l / eta   |\n"
-              << "+-----------+---------------+---------------+---------------+---------------+\n";
+            << "|    S      |      Ro       |      Fr       |      Al       |      Rm       |\n"
+            << "+-----------+---------------+---------------+---------------+---------------+\n"
+            << "| N^2 l / g | V / (Omega l) | V / sqrt(g l) |     Va / v    |   v l / eta   |\n"
+            << "+-----------+---------------+---------------+---------------+---------------+\n";
 
-   std::cout << std::endl << "You have chosen the following parameter set:";
+    std::cout << std::endl << "You have chosen the following parameter set:";
 
-   std::stringstream ss;
-   ss << "+----------+----------+----------+----------+----------+----------+----------+\n"
-      << "|    k     |    h     |    S     |    Ro    |    Fr    |    Al    |    Rm    |\n"
-      << "+----------+----------+----------+----------+----------+----------+----------+\n"
-      << "| "
-      << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.wavelength
-      << " | "
-      << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.amplitude
-      << " | "
-      << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.S
-      << " | "
-      << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.Rossby
-      << " | "
-      << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.Froude
-      << " | "
-      << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.Alfven
-      << " | "
-      << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.magReynolds
-      << " |\n"
-      << "+----------+----------+----------+----------+----------+----------+----------+\n";
+    std::stringstream ss;
+    if (parameters.include_rotation)
+        ss << "+----------+----------+----------+----------+----------+----------+----------+\n"
+           << "|    k     |    h     |    S     |    Ro    |    Fr    |    Al    |    Rm    |\n"
+           << "+----------+----------+----------+----------+----------+----------+----------+\n"
+           << "| "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.wavelength
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.amplitude
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.S
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.Rossby
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.Froude
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.Alfven
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.magReynolds
+           << " |\n"
+           << "+----------+----------+----------+----------+----------+----------+----------+\n";
+    else
+        ss << "+----------+----------+----------+----------+----------+----------+\n"
+           << "|    k     |    h     |    S     |    Fr    |    Al    |    Rm    |\n"
+           << "+----------+----------+----------+----------+----------+----------+\n"
+           << "| "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.wavelength
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.amplitude
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.S
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.Froude
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.Alfven
+           << " | "
+           << std::setw(8) << std::setprecision(1) << std::scientific << std::right << parameters.magReynolds
+           << " |\n"
+           << "+----------+----------+----------+----------+----------+----------+\n";
 
-   std::cout << std::endl << ss.str() << std::endl;
-   std::cout << std::fixed << std::flush;
+    std::cout << std::endl << ss.str() << std::endl;
+    std::cout << std::fixed << std::flush;
 
-   std::cout << "Number of cores: " << MultithreadInfo::n_cores()
-             << ", number of threads: " << MultithreadInfo::n_threads()
-             << std::endl;
+   const double omega = 2. * numbers::PI * parameters.Froude;
+   const double N = std::sqrt(parameters.S);
+
+   if (omega > N)
+       std::cout << "omega^2 > N^2" << std::endl;
+   else if (omega < N)
+       std::cout << "omega^2 < N^2" << std::endl;
 }
 
 template<int dim>
-void TopographySolver<dim>::output_results(const unsigned int level) const
+void TopographySolver<dim>::output_results(
+        const unsigned int level,
+        const bool initial_step) const
 {
     std::cout << "   Output results..." << std::endl;
 
@@ -161,11 +192,12 @@ void TopographySolver<dim>::output_results(const unsigned int level) const
     data_out.add_data_vector(cell_viscosity_velocity,
                              "cell_viscosity_velocity");
 
-    data_out.build_patches(std::min(std::min(parameters.density_degree, parameters.velocity_degree), parameters.magnetic_degree));
+    data_out.build_patches(std::min(parameters.density_degree, parameters.velocity_degree));
 
     // write output to disk
     const std::string filename = ("solution-" +
                                   Utilities::int_to_string(level, 2) +
+                                  (initial_step ? "-initial": "") +
                                   ".vtk");
     std::ofstream output(filename.c_str());
     data_out.write_vtk(output);
@@ -180,14 +212,15 @@ void TopographySolver<dim>::refine_mesh()
 
     // error estimation based on temperature
     Vector<float>   estimated_error_per_cell(triangulation.n_active_cells());
-    const FEValuesExtractors::Vector    velocity(1);
+    const FEValuesExtractors::Vector    velocity();
+
+
 
     KellyErrorEstimator<dim>::estimate(dof_handler,
                                        QGauss<dim-1>(parameters.velocity_degree + 1),
-                                       typename FunctionMap<dim>::type(),
+                                       std::map<types::boundary_id, const Function<dim> *>(),
                                        present_solution,
-                                       estimated_error_per_cell,
-                                       fe_system.component_mask(velocity));
+                                       estimated_error_per_cell);
     // set refinement flags
     GridRefinement::refine_and_coarsen_fixed_fraction(triangulation,
                                                       estimated_error_per_cell,
@@ -239,7 +272,8 @@ void TopographySolver<dim>::run()
 
         newton_iteration(parameters.tolerance,
                          parameters.max_iter,
-                         initial_step);
+                         initial_step,
+                         cycle);
 
 
         const Tensor<1,dim> average_boundary_traction

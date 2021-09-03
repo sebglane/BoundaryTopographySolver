@@ -10,7 +10,7 @@
 
 #include <deal.II/numerics/data_postprocessor.h>
 
-#include "equation_data.h"
+#include <equation_data.h>
 
 namespace TopographyProblem {
 
@@ -34,8 +34,8 @@ public:
     virtual UpdateFlags get_needed_update_flags() const;
 
 private:
-    const EquationData::BackgroundVelocity<dim>   background_velocity;
-    const EquationData::BackgroundMagneticField<dim>   background_field;
+    const EquationData::BackgroundVelocity<dim>         background_velocity;
+    const EquationData::BackgroundMagneticField<dim>    background_field;
 };
 
 }  // namespace TopographyProblem

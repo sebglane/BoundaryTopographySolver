@@ -9,8 +9,8 @@
 
 #include <deal.II/fe/fe_values.h>
 
-#include "equation_data.h"
-#include "solver.h"
+#include <equation_data.h>
+#include <solver.h>
 
 namespace TopographyProblem {
 
@@ -64,16 +64,10 @@ double TopographySolver<dim>::compute_velocity_viscosity(
 
 
 // explicit instantiation
-template double TopographyProblem::TopographySolver<2>::compute_density_viscosity(
-        const std::vector<dealii::Tensor<1,2>>  &,
-        const double                            ) const;
 template double TopographyProblem::TopographySolver<3>::compute_density_viscosity(
         const std::vector<dealii::Tensor<1,3>>  &,
         const double                            ) const;
 
-template double TopographyProblem::TopographySolver<2>::compute_velocity_viscosity(
-        const std::vector<dealii::Tensor<1,2>>  &,
-        const double                            ) const;
 template double TopographyProblem::TopographySolver<3>::compute_velocity_viscosity(
         const std::vector<dealii::Tensor<1,3>>  &,
         const double                            ) const;

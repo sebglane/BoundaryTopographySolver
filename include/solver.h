@@ -18,12 +18,11 @@
 
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/block_sparse_matrix.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/sparse_matrix.h>
-#include <deal.II/lac/trilinos_precondition.h>
 
-#include "assembly_data.h"
-#include "parameters.h"
+#include <assembly_data.h>
+#include <parameters__.h>
 
 namespace TopographyProblem {
 
@@ -55,9 +54,11 @@ private:
 
     void newton_iteration(const double tolerance,
                           const unsigned int max_iteration,
-                          const bool is_initial_step);
+                          const bool is_initial_step,
+                          const unsigned int level);
 
-    void output_results(const unsigned int level = 0) const;
+    void output_results(const unsigned int level = 0,
+                        const bool  initial_step = false) const;
 
     void refine_mesh();
 
@@ -77,13 +78,10 @@ private:
 
     const Tensor<1,dim>         rotation_vector;
     const Tensor<1,dim>         gravity_vector;
-
-    const Tensor<1,dim>         background_density_gradient;
-
     const Tensor<1,dim>         background_velocity_value;
-    const Tensor<2,dim>         background_velocity_gradient;
-
     const Tensor<1,dim>         background_field_value;
+    const Tensor<1,dim>         background_density_gradient;
+    const Tensor<2,dim>         background_velocity_gradient;
     const Tensor<1,dim>         background_field_curl;
     const Tensor<2,dim>         background_field_gradient;
 
@@ -94,13 +92,12 @@ private:
     DoFHandler<dim>             dof_handler;
 
     // constraints
-    ConstraintMatrix            nonzero_constraints;
-    ConstraintMatrix            zero_constraints;
+    AffineConstraints<double>   nonzero_constraints;
+    AffineConstraints<double>   zero_constraints;
 
     // system matrix
     BlockSparsityPattern        sparsity_pattern;
     BlockSparseMatrix<double>   system_matrix;
-    BlockSparseMatrix<double>   system_matrix_linear_part;
 
     // vectors
     BlockVector<double>         evaluation_point;
@@ -112,36 +109,17 @@ private:
     TimerOutput                 computing_timer;
 
 private:
-    // assembly flag
-    bool assemble_linear_matrix;
-
-    void local_assemble_nonlinear_matrix(
+    void local_assemble(
             const typename DoFHandler<dim>::active_cell_iterator   &cell,
-            Assembly::NonLinearScratch<dim>                                 &scratch,
-            Assembly::CopyData<dim>                                &data);
-
-    void local_assemble_linear_matrix(
-            const typename DoFHandler<dim>::active_cell_iterator   &cell,
-            Assembly::LinearScratch<dim>                           &scratch,
-            Assembly::CopyData<dim>                                &data);
-
-    void local_assemble_rhs(
-            const typename DoFHandler<dim>::active_cell_iterator   &cell,
-            Assembly::RightHandSideScratch<dim>                    &scratch,
-            Assembly::CopyDataRightHandSide<dim>                   &data,
+            Assembly::Scratch<dim>                                 &scratch,
+            Assembly::CopyData<dim>                                &data,
+            const bool                                              assemble_matrix,
             const bool                                              initial_step);
 
-    void copy_local_to_global_nonlinear_matrix(
+    void copy_local_to_global(
             const Assembly::CopyData<dim>  &data,
+            const bool                      assemble_matrix,
             const bool                      initial_step);
-
-    void copy_local_to_global_linear_matrix(
-            const Assembly::CopyData<dim>  &data,
-            const bool                      initial_step);
-
-    void copy_local_to_global_rhs(
-            const Assembly::CopyDataRightHandSide<dim> &data,
-            const bool                                  initial_step);
 };
 
 }  // namespace BouyantFluid

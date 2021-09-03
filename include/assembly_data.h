@@ -26,91 +26,15 @@ namespace Assembly {
 using namespace dealii;
 
 template<int dim>
-struct LinearScratch
+struct Scratch
 {
-    LinearScratch(const FiniteElement<dim>   &finite_element,
+    Scratch(const FiniteElement<dim>   &finite_element,
             const Quadrature<dim>      &quadrature,
             const Quadrature<dim-1>    &face_squadrature,
             const UpdateFlags           update_flags,
             const UpdateFlags           face_update_flags);
 
-    LinearScratch(const LinearScratch<dim>    &scratch);
-
-    FEValues<dim>               fe_values;
-    FEFaceValues<dim>           fe_face_values;
-
-    // density part
-    std::vector<double>         phi_density;
-    std::vector<Tensor<1,dim>>  grad_phi_density;
-
-    // momentum part
-    std::vector<double>         div_phi_velocity;
-    std::vector<Tensor<1,dim>>  phi_velocity;
-    std::vector<Tensor<2,dim>>  grad_phi_velocity;
-    std::vector<double>         phi_pressure;
-
-    // magnetic part
-    std::vector<double>         div_phi_field;
-    std::vector<Tensor<1,dim>>  phi_field;
-    std::vector<Tensor<1,dim>>  curl_phi_field;
-    std::vector<double>         phi_scalar;
-};
-
-template<int dim>
-struct NonLinearScratch
-{
-    NonLinearScratch(const FiniteElement<dim>   &finite_element,
-                     const Quadrature<dim>      &quadrature,
-                     const Quadrature<dim-1>    &face_squadrature,
-                     const UpdateFlags           update_flags,
-                     const UpdateFlags           face_update_flags);
-
-    NonLinearScratch(const NonLinearScratch<dim>    &scratch);
-
-    FEValues<dim>               fe_values;
-    FEFaceValues<dim>           fe_face_values;
-
-    // density part
-    std::vector<double>         phi_density;
-    std::vector<Tensor<1,dim>>  grad_phi_density;
-
-    std::vector<double>         present_density_values;
-    std::vector<Tensor<1,dim>>  present_density_gradients;
-    std::vector<double>         present_face_density_values;
-
-    // momentum part
-    std::vector<Tensor<1,dim>>  phi_velocity;
-    std::vector<Tensor<2,dim>>  grad_phi_velocity;
-
-    std::vector<double>         present_velocity_divergences;
-    std::vector<Tensor<1,dim>>  present_velocity_values;
-    std::vector<Tensor<2,dim>>  present_velocity_gradients;
-    std::vector<double>         present_pressure_values;
-
-    std::vector<Tensor<1,dim>>  present_face_velocity_values;
-
-    // magnetic part
-    std::vector<Tensor<1,dim>>  phi_field;
-    std::vector<Tensor<1,dim>>  curl_phi_field;
-
-    std::vector<double>         present_field_divergences;
-    std::vector<Tensor<1,dim>>  present_field_curls;
-    std::vector<double>         present_scalar_values;
-
-    std::vector<Tensor<1,dim>>  present_face_field_curls;
-    std::vector<double>         present_face_scalar_values;
-};
-
-template<int dim>
-struct RightHandSideScratch
-{
-    RightHandSideScratch(const FiniteElement<dim>   &finite_element,
-                         const Quadrature<dim>      &quadrature,
-                         const Quadrature<dim-1>    &face_squadrature,
-                         const UpdateFlags           update_flags,
-                         const UpdateFlags           face_update_flags);
-
-    RightHandSideScratch(const RightHandSideScratch<dim>    &scratch);
+    Scratch(const Scratch<dim>    &scratch);
 
     FEValues<dim>               fe_values;
     FEFaceValues<dim>           fe_face_values;
@@ -140,6 +64,7 @@ struct RightHandSideScratch
     std::vector<double>         div_phi_field;
     std::vector<Tensor<1,dim>>  phi_field;
     std::vector<Tensor<1,dim>>  curl_phi_field;
+    std::vector<Tensor<2,dim>>  grad_phi_field;
     std::vector<double>         phi_scalar;
 
     std::vector<double>         present_field_divergences;

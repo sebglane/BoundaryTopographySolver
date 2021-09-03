@@ -8,17 +8,10 @@
 #ifndef INCLUDE_GRID_FACTORY_H_
 #define INCLUDE_GRID_FACTORY_H_
 
-#include <deal.II/base/exceptions.h>
-#include <deal.II/base/function.h>
 #include <deal.II/base/point.h>
 
 #include <deal.II/grid/tria.h>
-#include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/manifold_lib.h>
-
-#include <algorithm>
-#include <cmath>
 
 namespace GridFactory {
 
@@ -29,9 +22,11 @@ class SinusoidalManifold: public ChartManifold<dim,dim,dim-1>
 {
 public:
 
-    SinusoidalManifold(const double wavenumber = 2. * numbers::PI,
-                       const double amplitude = 0.1,
-                       const bool   single_wave = true);
+    SinusoidalManifold(const double         wavenumber = 2. * numbers::PI,
+                       const double         amplitude = 0.1,
+                       const unsigned int   normal_direction = 1,
+                       const bool           single_wave = true,
+                       const unsigned int   wave_direction = 0);
 
     virtual std::unique_ptr<Manifold<dim,dim>> clone() const;
 
@@ -49,6 +44,9 @@ private:
     const double    amplitude;
 
     const bool      single_wave;
+
+    const unsigned int  normal_direction;
+    const unsigned int  wave_direction;
 };
 
 
@@ -56,18 +54,20 @@ template<int dim>
 class TopographyBox
 {
 public:
-    TopographyBox(const double wavenumber,
-                  const double amplitude,
-                  const bool   include_exterior = false,
-                  const double exterior_length = 2.0);
+    TopographyBox(const double  wavenumber,
+                  const double  amplitude,
+                  const bool    single_wave = true,
+                  const bool    include_exterior = false,
+                  const double  exterior_length = 2.0);
 
     void create_coarse_mesh(Triangulation<dim> &coarse_grid);
 
 private:
+    const bool      single_wave;
     const bool      include_exterior;
     const double    exterior_length;
 
-    SinusoidalManifold<dim>  sinus_manifold;
+    SinusoidalManifold<dim>     sinus_manifold;
 
     TransfiniteInterpolationManifold<dim> interpolation_manifold;
 
