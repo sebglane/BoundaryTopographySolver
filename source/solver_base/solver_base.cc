@@ -10,9 +10,9 @@
 #include <iostream>
 #include <filesystem>
 
-namespace TopographyProblem {
+namespace SolverBase {
 
-SolverBaseParameters::SolverBaseParameters()
+Parameters::Parameters()
 :
 refinement_parameters(),
 absolute_tolerance(1e-12),
@@ -24,9 +24,9 @@ graphical_output_directory("./")
 
 
 
-void SolverBaseParameters::declare_parameters(ParameterHandler &prm)
+void Parameters::declare_parameters(ParameterHandler &prm)
 {
-  RefinementParameters::declare_parameters(prm);
+  Utility::RefinementParameters::declare_parameters(prm);
 
   prm.declare_entry("Max. number of Newton iterations",
                     "15",
@@ -55,7 +55,7 @@ void SolverBaseParameters::declare_parameters(ParameterHandler &prm)
 
 
 
-void SolverBaseParameters::parse_parameters(ParameterHandler &prm)
+void Parameters::parse_parameters(ParameterHandler &prm)
 {
   refinement_parameters.parse_parameters(prm);
 
@@ -83,31 +83,31 @@ void SolverBaseParameters::parse_parameters(ParameterHandler &prm)
 
 
 template <typename Stream>
-Stream& operator<<(Stream &stream, const SolverBaseParameters &prm)
+Stream& operator<<(Stream &stream, const Parameters &prm)
 {
-  internal::add_header(stream);
-  internal::add_line(stream, "Problem parameters");
-  internal::add_header(stream);
+  Utility::add_header(stream);
+  Utility::add_line(stream, "Problem parameters");
+  Utility::add_header(stream);
 
-  internal::add_line(stream,
-                     "Max. number of Newton iterations",
-                     prm.n_iterations);
+  Utility::add_line(stream,
+           "Max. number of Newton iterations",
+           prm.n_iterations);
 
 
-  internal::add_line(stream,
-                     "Absolute tolerance",
-                     prm.absolute_tolerance);
+  Utility::add_line(stream,
+           "Absolute tolerance",
+           prm.absolute_tolerance);
 
-  internal::add_line(stream,
-                     "Relative tolerance",
-                     prm.relative_tolerance);
+  Utility::add_line(stream,
+           "Relative tolerance",
+           prm.relative_tolerance);
 
-  internal::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
+  Utility::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
 
-  internal::add_line(stream, "Print timings", (prm.print_timings? "true": "false"));
+  Utility::add_line(stream, "Print timings", (prm.print_timings? "true": "false"));
 
-  internal::add_line(stream,
-                     "Graphical output directory",
+  Utility::add_line(stream,
+           "Graphical output directory",
                      prm.graphical_output_directory);
 
   stream << prm.refinement_parameters;
@@ -118,10 +118,10 @@ Stream& operator<<(Stream &stream, const SolverBaseParameters &prm)
 
 
 template <int dim>
-SolverBase<dim>::SolverBase
+Solver<dim>::Solver
 (Triangulation<dim>  &tria,
  Mapping<dim>        &mapping,
- const SolverBaseParameters &parameters)
+ const Parameters &parameters)
 :
 triangulation(tria),
 mapping(mapping),
@@ -179,7 +179,7 @@ verbose(parameters.verbose)
 
 
 template <int dim>
-void SolverBase<dim>::solve()
+void Solver<dim>::solve()
 {
   this->setup_fe_system();
 
@@ -204,7 +204,7 @@ void SolverBase<dim>::solve()
 
 
 template<int dim>
-void SolverBase<dim>::postprocess_solution(const unsigned int cycle) const
+void Solver<dim>::postprocess_solution(const unsigned int cycle) const
 {
   if (postprocessor_ptr == nullptr)
     return;
@@ -221,7 +221,7 @@ void SolverBase<dim>::postprocess_solution(const unsigned int cycle) const
 
 
 template <int dim>
-void SolverBase<dim>::newton_iteration(const bool is_initial_step)
+void Solver<dim>::newton_iteration(const bool is_initial_step)
 {
   auto compute_residual = [this](const double alpha = 0.0,
                                  const bool use_homogeneous_constraints = true)
@@ -309,20 +309,20 @@ void SolverBase<dim>::newton_iteration(const bool is_initial_step)
 }
 
 // explicit instantiations
-template std::ostream & operator<<(std::ostream &, const SolverBaseParameters &);
+template std::ostream & operator<<(std::ostream &, const Parameters &);
 
-template SolverBase<2>::SolverBase
-(Triangulation<2> &, Mapping<2> &, const SolverBaseParameters &);
-template SolverBase<3>::SolverBase
-(Triangulation<3> &, Mapping<3> &, const SolverBaseParameters &);
+template Solver<2>::Solver
+(Triangulation<2> &, Mapping<2> &, const Parameters &);
+template Solver<3>::Solver
+(Triangulation<3> &, Mapping<3> &, const Parameters &);
 
-template void SolverBase<2>::postprocess_solution(const unsigned int) const;
-template void SolverBase<3>::postprocess_solution(const unsigned int) const;
+template void Solver<2>::postprocess_solution(const unsigned int) const;
+template void Solver<3>::postprocess_solution(const unsigned int) const;
 
-template void SolverBase<2>::newton_iteration(const bool);
-template void SolverBase<3>::newton_iteration(const bool);
+template void Solver<2>::newton_iteration(const bool);
+template void Solver<3>::newton_iteration(const bool);
 
-template void SolverBase<2>::solve();
-template void SolverBase<3>::solve();
+template void Solver<2>::solve();
+template void Solver<3>::solve();
 
-}  // namespace TopographyProblem
+}  // namespace SolverBase

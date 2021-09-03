@@ -11,7 +11,7 @@
 #include <deal.II/base/function_time.h>
 #include <deal.II/fe/fe_values.h>
 
-namespace TopographyProblem
+namespace Utility
 {
 
 template <int dim>
@@ -25,7 +25,7 @@ public:
   virtual value_type value() const;
 };
 
-}  // namespace TopographyProblem
+}  // namespace Utility
 
 
 

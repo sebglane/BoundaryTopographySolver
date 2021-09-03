@@ -10,16 +10,16 @@
 
 #include <deal.II/numerics/data_postprocessor.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 using namespace dealii;
 
 template<int dim>
-class HydrodynamicPostprocessor : public DataPostprocessor<dim>
+class Postprocessor : public DataPostprocessor<dim>
 {
 public:
-  HydrodynamicPostprocessor(const unsigned int velocity_start_index,
-                            const unsigned int pressure_index);
+  Postprocessor(const unsigned int velocity_start_index,
+                const unsigned int pressure_index);
 
   virtual void evaluate_vector_field
   (const DataPostprocessorInputs::Vector<dim> &inputs,
@@ -38,6 +38,6 @@ private:
   const unsigned int pressure_index;
 };
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
 
 #endif /* INCLUDE_HYDRODYNAMIC_POSTPROCESSOR_H_ */

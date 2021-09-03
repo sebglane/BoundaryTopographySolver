@@ -11,10 +11,10 @@
 #include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 template <int dim>
-void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constraints)
+void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
     std::cout << "    Assemble linear system..." << std::endl;
@@ -193,8 +193,8 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
 }
 
 // explicit instantiation
-template void HydrodynamicSolver<2>::assemble_system(const bool);
-template void HydrodynamicSolver<3>::assemble_system(const bool);
+template void Solver<2>::assemble_system(const bool);
+template void Solver<3>::assemble_system(const bool);
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
 

@@ -7,7 +7,7 @@
 
 #include <angular_velocity.h>
 
-namespace TopographyProblem
+namespace Utility
 {
 
 template <int dim>
@@ -30,4 +30,4 @@ AngularVelocity<dim>::value() const
 template class AngularVelocity<2>;
 template class AngularVelocity<3>;
 
-}  // namespace TopographyProblem
+}  // namespace Utility

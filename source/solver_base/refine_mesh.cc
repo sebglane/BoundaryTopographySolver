@@ -15,10 +15,10 @@
 
 #include <vector>
 
-namespace TopographyProblem {
+namespace SolverBase {
 
 template <int dim>
-void SolverBase<dim>::refine_mesh()
+void Solver<dim>::refine_mesh()
 {
   std::cout << "Mesh refinement..." << std::endl;
 
@@ -96,9 +96,9 @@ void SolverBase<dim>::refine_mesh()
 }
 
 // explicit instantiations
-template void SolverBase<2>::refine_mesh();
-template void SolverBase<3>::refine_mesh();
+template void Solver<2>::refine_mesh();
+template void Solver<3>::refine_mesh();
 
-}  // namespace TopographyProblem
+}  // namespace SolverBase
 
 

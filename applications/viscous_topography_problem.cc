@@ -11,14 +11,15 @@
 #include <grid_factory.h>
 #include <hydrodynamic_problem.h>
 
+namespace TopographyProblem {
 
-using namespace TopographyProblem;
+using namespace Hydrodynamic;
 
 template <int dim>
-class VisousTopographyProblem : public HydrodynamicProblem<dim>
+class ViscousProblem : public HydrodynamicProblem<dim>
 {
 public:
-  VisousTopographyProblem(HydrodynamicProblemParameters &parameters);
+  ViscousProblem(ProblemParameters &parameters);
 
 protected:
   virtual void make_grid() override;
@@ -38,7 +39,7 @@ private:
 
 
 template <int dim>
-VisousTopographyProblem<dim>::VisousTopographyProblem(HydrodynamicProblemParameters &parameters)
+ViscousProblem<dim>::ViscousProblem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters)
 {
@@ -48,7 +49,7 @@ HydrodynamicProblem<dim>(parameters)
 
 
 template <int dim>
-void VisousTopographyProblem<dim>::make_grid()
+void ViscousProblem<dim>::make_grid()
 {
   std::cout << "    Make grid..." << std::endl;
 
@@ -88,7 +89,7 @@ void VisousTopographyProblem<dim>::make_grid()
 
 
 template <int dim>
-void VisousTopographyProblem<dim>::set_boundary_conditions()
+void ViscousProblem<dim>::set_boundary_conditions()
 {
   std::cout << "    Set boundary conditions..." << std::endl;
 
@@ -127,7 +128,7 @@ void VisousTopographyProblem<dim>::set_boundary_conditions()
   pressure_bcs.close();
 }
 
-
+}  // namespace TopographyProblem
 
 int main(int argc, char *argv[])
 {
@@ -139,9 +140,9 @@ int main(int argc, char *argv[])
     else
       parameter_filename = "viscous_topography_problem.prm";
 
-    HydrodynamicProblemParameters parameters(parameter_filename);
+    TopographyProblem::ProblemParameters parameters(parameter_filename);
 
-    VisousTopographyProblem<2> problem(parameters);
+    TopographyProblem::ViscousProblem<2> problem(parameters);
     problem.run();
   }
   catch (std::exception &exc)

@@ -10,127 +10,29 @@
 
 #include <deal.II/base/parameter_handler.h>
 
-namespace TopographyProblem {
+namespace Utility {
 
 using namespace dealii;
 
-namespace internal
-{
-  /*!
-   * @brief Prints a table row consisting of a single column with a fixed width
-   * and `|` delimiters.
-   */
-  template<typename Stream, typename A>
-  void add_line(Stream  &stream, const A line);
-
-  /*!
-   * @brief Prints a table row consisting of a two columns with a fixed width
-   * and `|` delimiters.
-   */
-  template<typename Stream, typename A, typename B>
-  void add_line(Stream  &stream, const A first_column, const B second_column);
-
-  /*!
-   * @brief Prints a table header with a fixed width and `|` delimiters.
-   */
-  template<typename Stream>
-  void add_header(Stream  &stream);
-
-} // internal
-
-
-
+/*!
+ * @brief Prints a table row consisting of a single column with a fixed width
+ * and `|` delimiters.
+ */
+template<typename Stream, typename A>
+void add_line(Stream  &stream, const A line);
 
 /*!
- * @brief Enumeration for the weak form of the convective term.
- *
- * @attention These definitions are the ones I see the most in the literature.
- * Nonetheless Volker John and Helene Dallmann define the skew-symmetric
- * and the divergence form differently.
+ * @brief Prints a table row consisting of a two columns with a fixed width
+ * and `|` delimiters.
  */
-enum class ConvectiveTermWeakForm
-{
-  /*!
-   * @brief The standard form.
-   * @details Given by
-   * \f[
-   * \int_\Omega \bs{w} \cdot [ \bs{v} \cdot ( \nabla \otimes \bs{v})] \dint{v}
-   * \f]
-   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
-   * test function respectively.
-   */
-  standard,
-
-  /*!
-   * @brief The skew-symmetric form.
-   * @details Given by
-   * \f[
-   * \int_\Omega \bs{w} \cdot [ \bs{v} \cdot ( \nabla \otimes \bs{v}) +
-   * (\nabla \cdot \bs{v}) \bs{v}] \dint{v}
-   * \f]
-   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
-   * test function respectively.
-   */
-  skewsymmetric,
-
-  /*!
-   * @brief The divergence form.
-   * @details Given by
-   * \f[
-   * \int_\Omega \bs{w} \cdot [ \bs{v} \cdot ( \nabla \otimes \bs{v}) +
-   * \frac{1}{2}(\nabla \cdot \bs{v}) \bs{v}] \dint{v}
-   * \f]
-   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
-   * test function respectively.
-   */
-  divergence,
-
-  /*!
-   * @brief The rotational form.
-   * @details Given by
-   * \f[
-   * \int_\Omega \bs{w} \cdot [ ( \nabla \times\bs{v}) \times \bs{v}] \dint{v}
-   * \f]
-   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
-   * test function respectively.
-   * @note This form modifies the pressure, *i. e.*,
-   * \f[
-   * \bar{p} = p + \frac{1}{2} \bs{v} \cdot \bs{v}.
-   * \f]
-   */
-  rotational
-};
-
-
+template<typename Stream, typename A, typename B>
+void add_line(Stream  &stream, const A first_column, const B second_column);
 
 /*!
- * @brief Enumeration for the weak form of the non-linear convective term.
- * @attention These definitions are the ones I see the most in the literature.
- * Nonetheless Volker John and Helene Dallmann define the skew-symmetric
- * and the divergence form differently.
+ * @brief Prints a table header with a fixed width and `|` delimiters.
  */
-enum class ViscousTermWeakForm
-{
-  /*!
-   * @brief The Laplacean form.
-   * @details Given by
-   * \f[
-   * \int_\Omega (\nabla\otimes\bs{w}) \cdott (\nabla\otimes\bs{v}) \dint{v}
-   * \f]
-   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
-   * test function respectively.
-   */
-  laplacean,
-
-  /*!
-   * @brief The stress form.
-   * \f[
-   * \int_\Omega (\nabla\otimes\bs{w} + \bs{w}\otimes\nabla)
-   *              \cdott (\nabla\otimes\bs{v} + \bs{v}\otimes\nabla) \dint{v}
-   * \f]
-   */
-  stress,
-};
+template<typename Stream>
+void add_header(Stream  &stream);
 
 
 
@@ -215,7 +117,7 @@ template <typename Stream>
 Stream& operator<<(Stream &stream, const RefinementParameters &prm);
 
 
-}  // namespace TopographyProblem
+}  // namespace Utility
 
 
 #endif /* INCLUDE_PARAMETERS_H_ */

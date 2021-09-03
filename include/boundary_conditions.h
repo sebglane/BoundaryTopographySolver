@@ -12,7 +12,7 @@
 #include <map>
 #include <memory>
 
-namespace TopographyProblem
+namespace BoundaryConditions
 {
 
 using namespace dealii;
@@ -529,6 +529,6 @@ private:
 
 };
 
-} // namespace TopographyProblem
+} // namespace BoundaryConditions
 
 #endif /* INCLUDE_ROTATINGMHD_BOUNDARY_CONDITIONS_H_ */

@@ -10,7 +10,7 @@
 
 #include <deal.II/base/tensor.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 using namespace dealii;
 
@@ -65,7 +65,7 @@ inline double compute_hydrodynamic_rhs
           );
 }
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
 
 
 

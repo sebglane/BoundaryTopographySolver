@@ -7,9 +7,9 @@
 
 #include <parameters.h>
 
-namespace TopographyProblem {
+namespace Utility {
 
-namespace internal
+namespace
 {
 
 constexpr char header[] = "+------------------------------------------+"
@@ -19,6 +19,10 @@ constexpr size_t column_width[2] ={ 40, 20 };
 
 constexpr size_t line_width = 63;
 
+}
+
+
+
 template<typename Stream, typename A>
 void add_line(Stream  &stream, const A line)
 {
@@ -27,7 +31,10 @@ void add_line(Stream  &stream, const A line)
          << line
          << " |"
          << std::endl;
+  return;
 }
+
+
 
 template<typename Stream, typename A, typename B>
 void add_line(Stream  &stream, const A first_column, const B second_column)
@@ -38,33 +45,18 @@ void add_line(Stream  &stream, const A first_column, const B second_column)
          << std::setw(column_width[1]) << second_column
          << " |"
          << std::endl;
+  return;
 }
+
+
 
 template<typename Stream>
 void add_header(Stream  &stream)
 {
   stream << std::left << header << std::endl;
+  return;
 }
 
-// explicit instantiations
-template void add_header(std::ostream &);
-
-template void add_line(std::ostream &, const char[]);
-template void add_line(std::ostream &, std::string);
-
-template void add_line(std::ostream &, const char[], const double);
-template void add_line(std::ostream &, const char[], const unsigned int);
-template void add_line(std::ostream &, const char[], const int);
-template void add_line(std::ostream &, const char[], const std::string);
-template void add_line(std::ostream &, const char[], const char[]);
-
-template void add_line(std::ostream &, const std::string, const double);
-template void add_line(std::ostream &, const std::string, const unsigned int);
-template void add_line(std::ostream &, const std::string, const int);
-template void add_line(std::ostream &, const std::string, const std::string);
-template void add_line(std::ostream &, const std::string, const char[]);
-
-} // namespace internal
 
 
 RefinementParameters::RefinementParameters()
@@ -158,34 +150,51 @@ void RefinementParameters::parse_parameters(ParameterHandler &prm)
 template <typename Stream>
 Stream& operator<<(Stream &stream, const RefinementParameters &prm)
 {
-  internal::add_header(stream);
-  internal::add_line(stream, "Refinement control parameters");
-  internal::add_header(stream);
+  add_header(stream);
+  add_line(stream, "Refinement control parameters");
+  add_header(stream);
 
-  internal::add_line(stream,
+  add_line(stream,
                      "Adaptive mesh refinement",
                      (prm.adaptive_mesh_refinement ? "True": "False"));
   if (prm.adaptive_mesh_refinement)
   {
-    internal::add_line(stream,
-                       "Fraction of cells set to coarsen", prm.cell_fraction_to_coarsen);
-    internal::add_line(stream,
-                       "Fraction of cells set to refine",
-                       prm.cell_fraction_to_refine);
-    internal::add_line(stream,
-                       "Maximum number of levels", prm.n_maximum_levels);
-    internal::add_line(stream,
-                       "Minimum number of levels", prm.n_minimum_levels);
+    add_line(stream,
+             "Fraction of cells set to coarsen", prm.cell_fraction_to_coarsen);
+    add_line(stream,
+             "Fraction of cells set to refine",
+             prm.cell_fraction_to_refine);
+    add_line(stream,
+             "Maximum number of levels", prm.n_maximum_levels);
+    add_line(stream,
+             "Minimum number of levels", prm.n_minimum_levels);
   }
 
-  internal::add_line(stream,
-                     "Number of refinement cycles",
-                     prm.n_cycles);
+  add_line(stream,
+           "Number of refinement cycles",
+           prm.n_cycles);
 
   return (stream);
 }
 
 // explicit instantiations
+template void add_header(std::ostream &);
+
+template void add_line(std::ostream &, const char[]);
+template void add_line(std::ostream &, std::string);
+
+template void add_line(std::ostream &, const char[], const double);
+template void add_line(std::ostream &, const char[], const unsigned int);
+template void add_line(std::ostream &, const char[], const int);
+template void add_line(std::ostream &, const char[], const std::string);
+template void add_line(std::ostream &, const char[], const char[]);
+
+template void add_line(std::ostream &, const std::string, const double);
+template void add_line(std::ostream &, const std::string, const unsigned int);
+template void add_line(std::ostream &, const std::string, const int);
+template void add_line(std::ostream &, const std::string, const std::string);
+template void add_line(std::ostream &, const std::string, const char[]);
+
 template std::ostream & operator<<(std::ostream &, const RefinementParameters &);
 
-}  // namespace TopographyProblem
+}  // namespace Utility

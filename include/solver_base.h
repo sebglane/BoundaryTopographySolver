@@ -5,8 +5,8 @@
  *      Author: sg
  */
 
-#ifndef INCLUDE_SOLVER_BASE_H_
-#define INCLUDE_SOLVER_BASE_H_
+#ifndef INCLUDE_SOLVER_H_
+#define INCLUDE_SOLVER_H_
 
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/timer.h>
@@ -29,17 +29,18 @@
 #include <memory>
 #include <vector>
 
-namespace TopographyProblem {
+namespace SolverBase {
 
 using namespace dealii;
 
+using namespace BoundaryConditions;
 
-struct SolverBaseParameters
+struct Parameters
 {
   /*!
    * @brief Constructor which sets up the parameters with default values.
    */
-  SolverBaseParameters();
+  Parameters();
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -58,12 +59,12 @@ struct SolverBaseParameters
    */
   template <typename Stream>
   friend Stream& operator<<(Stream &stream,
-                            const SolverBaseParameters &prm);
+                            const Parameters &prm);
 
   /*!
    * @brief Parameters of the adaptive mesh refinement.
    */
-  RefinementParameters refinement_parameters;
+  Utility::RefinementParameters refinement_parameters;
 
   /*!
    * @brief The maximum number of Newton iterations.
@@ -104,21 +105,21 @@ struct SolverBaseParameters
  * @brief Method forwarding parameters to a stream object.
  */
 template <typename Stream>
-Stream& operator<<(Stream &stream, const SolverBaseParameters &prm);
+Stream& operator<<(Stream &stream, const Parameters &prm);
 
 
 
 /*
- * @class SolverBase
+ * @class Solver
  *
  */
 template <int dim>
-class SolverBase
+class Solver
 {
 public:
-  SolverBase(Triangulation<dim> &tria,
-             Mapping<dim>       &mapping,
-             const SolverBaseParameters &parameters);
+  Solver(Triangulation<dim> &tria,
+         Mapping<dim>       &mapping,
+         const Parameters &parameters);
 
   void set_postprocessor(EvaluationBase<dim> &postprocessor);
 
@@ -191,7 +192,7 @@ private:
 
   EvaluationBase<dim> *postprocessor_ptr;
 
-  const RefinementParameters refinement_parameters;
+  const Utility::RefinementParameters refinement_parameters;
 
   const unsigned int  n_maximum_iterations;
 
@@ -209,12 +210,12 @@ protected:
 
 // inline methods
 template <int dim>
-void SolverBase<dim>::set_postprocessor(EvaluationBase<dim> &postprocessor)
+void Solver<dim>::set_postprocessor(EvaluationBase<dim> &postprocessor)
 {
   postprocessor_ptr = &postprocessor;
 }
 
 
-}  // namespace TopographyProblem
+}  // namespace SolverBase
 
-#endif /* INCLUDE_SOLVER_BASE_H_ */
+#endif /* INCLUDE_SOLVER_H_ */

@@ -9,10 +9,10 @@
 
 #include <hydrodynamic_solver.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 template <int dim>
-void HydrodynamicSolver<dim>::setup_fe_system()
+void Solver<dim>::setup_fe_system()
 {
   if (this->verbose)
     std::cout << "    Setup FE system..." << std::endl;
@@ -25,14 +25,14 @@ void HydrodynamicSolver<dim>::setup_fe_system()
 
 
 template <int dim>
-void HydrodynamicSolver<dim>::setup_dofs()
+void Solver<dim>::setup_dofs()
 {
   TimerOutput::Scope timer_section(this->computing_timer, "Setup dofs");
 
   if (this->verbose)
     std::cout << "    Setup dofs..." << std::endl;
 
-  SolverBase<dim>::setup_dofs();
+  SolverBase:: Solver<dim>::setup_dofs();
 
   std::vector<types::global_dof_index> dofs_per_block =
       DoFTools::count_dofs_per_fe_block(this->dof_handler);
@@ -57,10 +57,10 @@ void HydrodynamicSolver<dim>::setup_dofs()
 }
 
 // explicit instantiation
-template void HydrodynamicSolver<2>::setup_fe_system();
-template void HydrodynamicSolver<3>::setup_fe_system();
+template void Solver<2>::setup_fe_system();
+template void Solver<3>::setup_fe_system();
 
-template void HydrodynamicSolver<2>::setup_dofs();
-template void HydrodynamicSolver<3>::setup_dofs();
+template void Solver<2>::setup_dofs();
+template void Solver<3>::setup_dofs();
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic

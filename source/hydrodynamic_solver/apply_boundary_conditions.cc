@@ -9,10 +9,10 @@
 
 #include <hydrodynamic_solver.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 template <int dim>
-void HydrodynamicSolver<dim>::apply_boundary_conditions()
+void Solver<dim>::apply_boundary_conditions()
 {
   if (this->verbose)
     std::cout << "    Apply boundary conditions..." << std::endl;
@@ -88,7 +88,7 @@ void HydrodynamicSolver<dim>::apply_boundary_conditions()
 }
 
 // explicit instantiation
-template void HydrodynamicSolver<2>::apply_boundary_conditions();
-template void HydrodynamicSolver<3>::apply_boundary_conditions();
+template void Solver<2>::apply_boundary_conditions();
+template void Solver<3>::apply_boundary_conditions();
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
