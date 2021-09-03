@@ -1,5 +1,6 @@
 # Set the source files to be compiled
 SET(TARGET_SRC
+    angular_velocity.cc
     boundary_conditions.cc
     grid_factory.cc
     hydrodynamic_postprocessor.cc
