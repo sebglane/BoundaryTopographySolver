@@ -171,7 +171,6 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 template <int dim>
 class Solver: public SolverBase::Solver<dim>
 {
-
 public:
   Solver(Triangulation<dim>  &tria,
          Mapping<dim>        &mapping,
@@ -208,7 +207,7 @@ private:
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;
 
-  const TensorFunction<1, dim>       *body_force_ptr;
+  const TensorFunction<1, dim> *body_force_ptr;
 
   ConvectiveTermWeakForm     convective_term_weak_form;
 
@@ -219,7 +218,6 @@ private:
   const double        reynolds_number;
 
   const double        froude_number;
-
 };
 
 // inline functions
