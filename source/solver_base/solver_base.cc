@@ -195,6 +195,8 @@ void SolverBase<dim>::solve()
 
     this->output_results(cycle);
 
+    std::cout << "End cycle " << cycle << std::endl;
+
     this->refine_mesh();
   }
 }

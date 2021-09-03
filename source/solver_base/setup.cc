@@ -21,10 +21,10 @@ void SolverBase<dim>::setup_dofs()
 
   DoFRenumbering::block_wise(dof_handler);
 
-  std::cout << "      Number of active cells: "
+  std::cout << "    Number of active cells: "
             << triangulation.n_active_cells()
             << std::endl
-            << "      Number of total degrees of freedom: "
+            << "    Number of total degrees of freedom: "
             << dof_handler.n_dofs()
             << std::endl;
 

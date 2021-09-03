@@ -20,8 +20,7 @@ namespace TopographyProblem {
 template <int dim>
 void SolverBase<dim>::refine_mesh()
 {
-  if (verbose)
-    std::cout << "    Mesh refinement..." << std::endl;
+  std::cout << "Mesh refinement..." << std::endl;
 
   TimerOutput::Scope timer_section(computing_timer, "Refine mesh");
 
@@ -44,6 +43,27 @@ void SolverBase<dim>::refine_mesh()
                                                       estimated_error_per_cell,
                                                       refinement_parameters.cell_fraction_to_refine,
                                                       refinement_parameters.cell_fraction_to_coarsen);
+
+    // Clear refinement flags if refinement level exceeds maximum
+    if (triangulation.n_levels() > refinement_parameters.n_maximum_levels)
+      for (const auto &cell: triangulation.active_cell_iterators_on_level(refinement_parameters.n_maximum_levels))
+        cell->clear_refine_flag();
+
+    // Clear coarsen flags if level decreases minimum
+    for (const auto &cell: triangulation.active_cell_iterators_on_level(refinement_parameters.n_minimum_levels))
+      cell->clear_coarsen_flag();
+
+    // Count number of cells to be refined and coarsened
+    unsigned int cell_counts[2] = {0, 0};
+    for (const auto &cell: triangulation.active_cell_iterators())
+        if (cell->is_locally_owned() && cell->refine_flag_set())
+          cell_counts[0] += 1;
+        else if (cell->is_locally_owned() && cell->coarsen_flag_set())
+          cell_counts[1] += 1;
+
+    std::cout << "    Number of cells set for refinement: " << cell_counts[0] << std::endl
+              << "    Number of cells set for coarsening: " << cell_counts[1] << std::endl;
+
   }
   else
     triangulation.set_all_refine_flags();

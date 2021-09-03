@@ -1,6 +1,7 @@
 # Set the source files to be compiled
 SET(TARGET_SRC
     boundary_conditions.cc
+    grid_factory.cc
     hydrodynamic_postprocessor.cc
     hydrodynamic_problem.cc
     parameters.cc
@@ -20,7 +21,6 @@ SET(TARGET_SRC
     # assembly_data.cc
     # entropy_viscosity.cc
     # equation_data.cc
-    grid_factory.cc
     # linear_solver.cc
     # local_assemble.cc
     # make_grid.cc
