@@ -67,6 +67,57 @@ inline double compute_hydrodynamic_rhs
 
 }  // namespace Hydrodynamic
 
+namespace BuoyantHydrodynamic {
+
+using namespace dealii;
+
+template <int dim>
+inline double compute_density_matrix
+(const Tensor<1, dim> &density_trial_function_gradient,
+ const Tensor<1, dim> &density_test_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<1, dim> &present_density_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<1, dim> &reference_density_gradient,
+ const double          density_test_function_value,
+ const double          stratification_parameter,
+ const double          nu)
+{
+  return (
+          (// density equation
+            stratification_parameter * reference_density_gradient * velocity_trial_function_value
+            + velocity_trial_function_value * present_density_gradient
+            + present_velocity_value * density_trial_function_gradient)
+          * density_test_function_value
+          // stabilization term
+          + nu * density_trial_function_gradient * density_test_function_gradient
+          );
+}
+
+
+
+template <int dim>
+inline double compute_density_rhs
+(const Tensor<1, dim> &density_test_function_gradient,
+ const Tensor<1, dim> &present_density_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<1, dim> &reference_density_gradient,
+ const double          density_test_function_value,
+ const double          stratification_parameter,
+ const double          nu)
+{
+  return (
+          -(// density equation
+            stratification_parameter * reference_density_gradient * present_velocity_value
+            + present_velocity_value * present_density_gradient)
+          * density_test_function_value
+          // stabilization term
+          - nu * present_density_gradient * density_test_function_gradient
+          );
+}
+
+}  // namespace BuoyantHydrodynamic
+
 
 
 #endif /* INCLUDE_ASSEMBLY_FUNCTIONS_H_ */

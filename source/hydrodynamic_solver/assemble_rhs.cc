@@ -22,7 +22,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   if (body_force_ptr != nullptr)
     AssertThrow(froude_number > 0.0,
                 ExcMessage("Non-vanishing Froude number is required if the body "
-                           "force is specified."))
+                           "force is specified."));
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble rhs");
 
@@ -129,7 +129,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                                               phi_pressure[i],
                                               nu);
         if (body_force_ptr != nullptr)
-          rhs += body_force_values[q] / froude_number * phi_velocity[i];
+          rhs += body_force_values[q] * phi_velocity[i] / std::pow(froude_number, 2);
 
         cell_rhs(i) += rhs * JxW;
       }
