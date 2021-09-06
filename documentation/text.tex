@@ -43,7 +43,7 @@
 	\draw (.375*\b,\h-\a) to[in=135,out=-60] (0.4*\b,-0.2*\h) node[draw,rounded corners,text width=10em,anchor=north west,text centered]{topography of core-mantle boundary};
 	\draw[fill] (0.6*\b+\e+0.25*\e,0.5*\h) circle[radius=2pt];
 	\draw (0.6*\b+\e+0.25*\e,0.5*\h) to[out=0,in=225] (0.7*\b+1.5*\e,\h) node[right]{$\bar{\rho}(\bm{x})$};
-	\draw[->,thick] (-0.3*\b,\d) --node[midway,left]{$\bm{\Omega}$} (-0.3*\b,\e+\d);
+	\draw[->,thick] (-0.3*\b,\d) --node[midway,left]{$\bm{\varOmega}$} (-0.3*\b,\e+\d);
 	\draw[->,thick] (-0.4*\b,\d) --node[midway,left]{$\bm{B}$} (-0.4*\b,\e+\d);
 	\draw[<-,thick] (-0.2*\b,\d) --node[midway,left]{$\bm{g}$} (-0.2*\b,\e+\d);
 	\draw[->,thick] (-0.5*\e,-\a) --node[midway,below]{$\bm{v}$} (0.5*\e,-\a);
@@ -51,63 +51,21 @@
 \caption{Sketch of the stratified fluid layer at the core-mantle boundary. }
 \end{figure}
 
-The basic equations describing the problem are given by the \textsc{Navier}-\textsc{Stokes} equations using the \textsc{Boussinesq} approximation accompanied by the magnetic induction equation. The system is considered in rotating reference frame and the constant angular velocity is given by $\bm{\Omega}=\Omega\ez$ and its magnitude is the angular velocity of the Earth. Furthermore, the gravitational acceleration is given by $\bm{g}=-g\ez$. This system reads:
+The basic equations describing the problem are given by the \textsc{Navier}-\textsc{Stokes} equations using the \textsc{Boussinesq} approximation accompanied by the magnetic induction equation. The system is considered in rotating reference frame and the constant angular velocity is given by $\bm{\varOmega}=\varOmega\ez$ whose magnitude is the angular velocity of the Earth. Furthermore, the gravitational acceleration is given by $\bm{g}=-g\ez$. The corresponding dimensionless system reads:
 \begin{gather}
-	\nabla\cdot\bm{v}=0\,, \qquad
-	\rho_0\Big(\bm{v}\cdot(\nabla\otimes\bm{v})+2\bm{\Omega}\times\bm{v}\Big)=-\nabla P+\rho\bm{g}+\frac{1}{\gmu_0}\bm{B}\cdot\nabla\otimes\bm{B}\,,\\
+	\nabla\cdot(\rho\bm{v})=0\,, \qquad
+	\Big(\bm{v}\cdot(\nabla\otimes\bm{v})+\frac{2}{\Rossby}\bm{\varOmega}\times\bm{v}\Big)=-\nabla P+\frac{1}{\Froude^2}\rho\bm{g}+\frac{1}{\Alfven^2}\bm{B}\cdot\nabla\otimes\bm{B}\,,\\
 	\nabla\cdot\bm{B}=0\,, \qquad
-	\nabla\times\left(\bm{v}\times\bm{B}\right)+\eta\laplace\bm{B}=\bm{0}\,.
+	\MagneticReynolds\nabla\times\left(\bm{v}\times\bm{B}\right)+\nabla^2\bm{B}=\bm{0}\,,
 \end{gather}
-The perturbation of the system is given by
+$\Rossby$ denotes the \textsc{Rossby}, $\Froude$ the \textsc{Froude}, $\Alfven$ the \textsc{Alfv\'en} number and $\MagneticReynolds$ the magnetic \textsc{Reynolds} number. The relations of these dimensionless number to the reference quantities are given by
 \begin{equation}
-	\rho=\bar{\rho}+\rho'\,,\qquad
-	\bm{v}=\bar{\bm{V}}+\bm{v}'\,,\qquad 
-	P=\bar{P}+p'\,,\qquad
-	\bm{B}=\bar{\bm{B}}+\bm{b}'\,,
-\end{equation}
-Substitution and neglecting the non-linear terms gives the system
-\begin{subequations}
-\begin{gather}
-	\nabla\cdot\bm{v}'=0\,,\qquad \nabla\cdot\bm{b}'=0\,,\\
-	\begin{multlined}
-	\rho_0\Big(\bar{\bm{V}}\cdot(\nabla\otimes\bm{v}')+\bm{v}'\cdot(\nabla\otimes\bar{\bm{V}})+\bm{v}'\cdot(\nabla\otimes\bm{v}')+2\bm{\Omega}\times\bm{v}'\Big)\\
-	\hspace{3cm}=-\nabla p'+\rho'\bm{g}+\frac{1}{\gmu_0}\left(\bar{\bm{B}}\cdot(\nabla\otimes\bm{b}')+\bm{b}'\cdot(\nabla\otimes\bar{\bm{B}})+\bm{b}'\cdot(\nabla\otimes\bm{b}')\right)\,,
-	\end{multlined}\\
-	\nabla\times\big(\bm{v}'\times\bar{\bm{B}}\big)+\nabla\times\left(\bar{\bm{V}}\times\bm{b}'\right)+\nabla\times\left(\bm{v}'\times\bm{b}'\right)+\eta\laplace\bm{b}'=\bm{0}\,,\\
-	\bar{\bm{V}}\cdot\nabla\rho'+\bm{v}'\cdot\nabla\bar{\rho}+\bm{v}'\cdot\nabla\rho'=0\,.
-\end{gather}
-\end{subequations}
-The reference scales are chosen as $\lref=\lambda_x$, $\rhoref=\rho_0$, $\vref=\norm{\bar{\bm{V}}}$, $\Bref=\norm{\bar{\bm{B}}}$, $\gref=\norm{\bm{g}}$. With
-\begin{equation}
-	\hat{\bm{x}}=\frac{\bm{x}}{\lref}\,,\quad
-	\hat{\rho}=\frac{\rho'}{\rhoref}\,,\quad
-	\hat{\bm{v}}=\frac{\bm{v}'}{\vref}\,,\quad 
-	\hat{p}=\frac{p'}{\rhoref\vref^2}\,,\quad
-	\hat{\bm{b}}=\frac{\bm{b}'}{\Bref}\,,\quad
-	\hat{\bm{g}}=\frac{\bm{g}}{\gref}\,,
-\end{equation}
-the dimensionless form is given by
-\begin{subequations}
-\begin{gather}
-	\hat{\nabla}\cdot\hat{\bm{v}}=0\,,\qquad \hat{\nabla}\cdot\hat{\bm{b}}=0\,,\\
-	\begin{multlined}
-	\hat{\bm{V}}\cdot(\hat{\nabla}\otimes\hat{\bm{v}})+\hat{\bm{v}}\cdot(\hat{\nabla}\otimes\hat{\bm{V}})+\hat {\bm{v}}\cdot(\hat{\nabla}\otimes\hat{\bm{v}})+\frac{1}{\Rossby} 2\hat{\bm{\Omega}}\times\hat{\bm{v}}\\
-	\hspace{2.75cm}=-\hat{\nabla} \hat{p}+\frac{1}{\Froude^2}\hat{\rho}\hat{\bm{g}}+\Alfven^2\left(\hat{\bm{B}}\cdot(\hat{\nabla}\otimes\hat{\bm{b}})+\hat{\bm{b}}\cdot(\hat{\nabla}\otimes\hat{\bm{B}})+\hat{\bm{b}}\cdot(\hat{\nabla}\otimes\hat{\bm{b}})\right)\,,
-	\end{multlined}\\
-	\MagneticReynolds\left[\hat{\nabla}\times(\hat{\bm{v}}\times\hat{\bm{B}})+\hat{\nabla}\times(\hat{\bm{V}}\times\hat{\bm{b}})+\hat{\nabla}\times(\hat{\bm{v}}\times\hat{\bm{b}})\right]+\hat{\laplace}\hat{\bm{b}}=\bm{0}\,,\\
-	\hat{\bm{V}}\cdot\hat{\nabla}\hat{\rho}-\frac{N^2\lref}{\gref}\hat{\bm{v}}\cdot\bm{e}_z+\hat{\bm{v}}\cdot\hat{\nabla}\hat{\rho}=0\,.
-\end{gather}
-\end{subequations}
-The dimensionless number are given by
-\begin{equation}
-	\Rossby=\frac{\vref}{\Omega\lref}\,,\quad
+	\Rossby=\frac{\vref}{\varOmega\lref}\,,\quad
 	\Froude=\frac{\vref}{\sqrt{\gref\lref}}\,,\quad
-	\Alfven=\frac{V_\mathrm{A}}{\vref}\,,\quad 
+	\Alfven=\frac{\vref}{v_\mathrm{A}}\,,\quad 
 	\MagneticReynolds=\frac{\vref\lref}{\eta}\,,
 \end{equation}
-where $V_\mathrm{A}=\Bref/\sqrt{\rhoref\mu}$ is the Alfv\'en velocity.
-
-From now on, we omit the circumflex to indicate a dimensionless quantity.
+where $v_\mathrm{A}=\Bref/\sqrt{\rhoref\mu}$ is the \textsc{Alfv\'en} velocity. In this problem, the reference scales are chosen as $\lref=\lambda_x$, $\rhoref=\rho_0$, $\vref=\norm{\bar{\bm{V}}}$, $\Bref=\norm{\bar{\bm{B}}}$, $\gref=\norm{\bm{g}}$. The pressure is normalized by the dynamic pressure, \ie $p_\mathrm{ref.}=\rho_0\vref^2$.
 
 We introduce the following short-hand notations for volume and surface integrals
 \begin{equation*}
@@ -123,80 +81,70 @@ where $\bm A \star \bm B$ represents the contraction of two tensors $\bm A$ and 
 \end{aligned}
 \end{align*}
 
-\section{Weak form of the continuity equation}
-Because $\nabla\cdot\bm{V}=0$ and  $\nabla\cdot\bm{v}'=0$, the continuity can be written in conservative form:
+\section{Weak form of the hydrodynamic part}
+
 \begin{equation}
-	\nabla\cdot(\rho'(\bm{V}+\bm{v}'))=\frac{N^2\lref}{\gref}\bm{v}'\cdot\ez\,.
-\end{equation}
-Multiplication with a test function~$r$ and integration by parts gives:
-\begin{equation}
-	-\inner{\rho'(\bm{V}+\bm{v}')}{\nabla r}+\innerSurf{\bm{n}\cdot\rho(\bm{V}+\bm{v})}{r}=\frac{N^2\lref}{\gref}\inner{\bm{v}\cdot\ez}{r}\,.
-\end{equation}
-The weak form augmented with the entropy viscosity~$\nu_\mathrm{E}$ is given by
-\begin{equation}
-	\inner{\nu_\mathrm{E}\nabla\rho'}{\nabla r}-\inner{\rho'(\bm{V}+\bm{v}')}{\nabla r}+\innerSurf{\bm{n}\cdot\rho(\bm{V}+\bm{v})}{r}=\frac{N^2\lref}{\gref}\inner{\bm{v}\cdot\ez}{r}\,.
+	F(\bm{v},P,\rho)=
+	\begin{bmatrix}
+		-\nabla\cdot\bm{v}\\
+		\bm{v}\cdot\nabla\otimes\bm{v}+\frac{2}{\Rossby}\bm{\varOmega}\times\bm{v}+\nabla P-\nu\nabla^2\bm{v}
+	\end{bmatrix}
 \end{equation}
 
-\section{Weak form of the momentum equation}
-If the compressibility and momentum equations are multiplied by testfunctions~$q$ and $\bm{w}$. After integrating the pressure by parts, the weak form reads:
+\begin{equation}
+	DF(\bm{v},P;\bm{\d{v}},\d{P})
+	=
+	\begin{bmatrix}
+		-\nabla\cdot\bm{\d{v}}\\
+		\bm{\d{v}}\cdot\nabla\otimes\bm{v}+\bm{v}\cdot\nabla\otimes\bm{\d{v}}+\frac{2}{\Rossby}\bm{\varOmega}\times\bm{\d{v}}+\nabla\d{P}-\nu\nabla^2\bm{v}
+	\end{bmatrix}
+\end{equation}
+
+The two steps of Newton's method read
+\begin{enumerate}
+	\item Determine $\bm{\d{v}}^k$ and $d{P}^k$ such that
+	\begin{equation}
+		DF(\bm{v}^k,P^k;\bm{\d{v}}^k,\d{P}^k)=-F(\bm{v}^k,P^k)\,.
+	\end{equation}
+	\item Compute the updated solution according to
+	\begin{equation}
+		\bm{v}^{k+1}=\bm{v}^k+\bm{\d{v}}^k\,,\quad
+		P^{k+1}=P^k+\d{P}^k\,.
+	\end{equation}
+\end{enumerate}
+
+Weak form of the first step
+
+
+If the compressibility and momentum equations are multiplied by test functions~$q$ and $\bm{w}$. After integrating the pressure by parts, the weak form reads:
 \begin{gather}
-	\saddle{\bm{v}'}{q}=0\,,\label{eqn:WeakIncompressibility} \\
-	\begin{multlined}
-	\convec{\bm{V}}{\bm{v}'}{\bm{w}}+\convec{\bm{v}'}{\bm{V}}{\bm{w}}+\convec{\bm{v}'}{\bm{v}'}{\bm{w}}+\frac{1}{\Rossby}\inner{2\bm{\Omega}\times\bm{v}'}{\bm{w}}\\
-	=\saddle{\bm{w}}{p'}-\innerSurf{p'\bm{n}}{\bm{w}}+\frac{1}{\Froude^2}\inner{\rho'\bm{g}}{\bm{w}}+{}\\
-	{}+\Alfven\left(\convec{\bm{B}}{\bm{b}'}{\bm{w}}+\convec{\bm{b}'}{\bm{B}}{\bm{w}}+\convec{\bm{b}'}{\bm{b}'}{\bm{w}}\right)\,,
-	\end{multlined}\label{eqn:WeakMomentum}
+-\saddle{\bm{\d{v}}^k}{q}=\saddle{\bm{v}^k}{q}\,,\label{eqn:WeakIncompressibility} \\
+\begin{multlined}
+	-\saddle{\bm{w}}{\d{P}^k}+\convec{\bm{\d{v}}^k}{\bm{v}}{\bm{w}}+\convec{\bm{v}}{\bm{\d{v}}^k}{\bm{w}}+\frac{2}{\Rossby}\inner{\bm{\varOmega}\times\bm{\d{v}}^k}{\bm{w}}+\nu\elliptic{\bm{\d{v}}^k}{\bm{w}}\\
+	=\saddle{\bm{w}}{P^k}-\convec{\bm{v}^k}{\bm{v}^k}{\bm{w}}-\frac{2}{\Rossby}\inner{\bm{\varOmega}\times\bm{v}^k}{\bm{w}}-\nu\elliptic{\bm{v}^k}{\bm{w}}\,,
+\end{multlined}\label{eqn:WeakMomentum}
 \end{gather}
 
-As outlined below, we will introduce a vector potential for the magnetic field, \ie $\bm{b}'=\nabla\times\bm{A}$. This causes problems in the Lorentz force term because a second derivative appears:
+\section{Weak form of the continuity equation}
+
 \begin{equation}
-	\bm{b}'\cdot(\nabla\otimes\bm{b}')\cdot\bm{w}=(\nabla\times\bm{A})\cdot[\nabla\otimes(\nabla\times\bm{A})]\cdot\bm{w}\,.
+	S\nabla\bar{\rho}\cdot\bm{v}+\nabla\rho'\cdot\bm{v}-\nu\nabla^2\rho=0
 \end{equation}
-This derivative is not properly defined and therefore this term must also be integrated by parts. Note that
+$S=\Stratification^2\Froude^2/\Rossby^2$
 \begin{equation}
-	\nabla\cdot((\bm{b}\cdot\bm{c})\bm{a})=(\nabla\cdot\bm{a})(\bm{b}\cdot\bm{c})+\bm{a}\cdot(\nabla\otimes\bm{b})\cdot\bm{c}+\bm{a}\cdot(\nabla\otimes\bm{c})\cdot\bm{b}\,.
+	F_\rho(\bm{v},\rho')=S\nabla\bar{\rho}\cdot\bm{v}+\nabla\rho'\cdot\bm{v}-\nu\nabla^2\rho'
 \end{equation}
-By substituting $\bm{a},\bm{b}\rightarrow\bm{b}'$ and $\bm{c}\rightarrow\bm{w}$ and applying $\nabla\cdot\bm{b}'=0$, we obtain the following expression for the Lorentz force:
+
 \begin{equation}
-	\bm{b}'\cdot(\nabla\otimes\bm{b}')\cdot\bm{w}=\nabla\cdot((\bm{b}\cdot\bm{c})\bm{a})-\bm{b}'\cdot(\nabla\otimes\bm{w})\cdot\bm{b}'\,,
+	DF_\rho(\bm{v},\rho;\bm{\d{v}},\d{\rho'})=S\nabla\bar{\rho}\cdot\bm{\d{v}}+\nabla\rho'\cdot\bm{\d{v}}+\nabla\d{\rho'}\cdot\bm{v}-\nu\nabla^2\d{\rho'}
 \end{equation}
-which eliminates the derivative on the magnetic field. Substituting the magnetic vector potential and applying the divergence theorem gives:
-\begin{equation}
-	\convec{\bm{b}'}{\bm{b}'}{\bm{w}}=\innerSurf{\bm{n}\cdot(\nabla\times\bm{A})}{(\nabla\times\bm{A})\cdot\bm{w}}-\convec{\nabla\times\bm{A}}{\bm{w}}{\nabla\times\bm{A}}
-\end{equation}
-Hence, the weak of the momentum equation reads
+
+Weak form
+
 \begin{multline}
-	\convec{\bm{V}}{\bm{v}'}{\bm{w}}+\convec{\bm{v}'}{\bm{V}}{\bm{w}}+\convec{\bm{v}'}{\bm{v}'}{\bm{w}}+\frac{1}{\Rossby}\inner{2\bm{\Omega}\times\bm{v}'}{\bm{w}}\\
-	=\saddle{\bm{w}}{p'}-\innerSurf{p'\bm{n}}{\bm{w}}+\frac{1}{\Froude^2}\inner{\rho'\bm{g}}{\bm{w}}-\Alfven\left(\convec{\bm{B}}{\bm{w}}{\bm{b}'}+\convec{\bm{b}'}{\bm{w}}{\bm{B}}+\convec{\bm{b}'}{\bm{w}}{\bm{b}'}\right)+{}\\
-	{}+\Alfven\left(\innerSurf{\bm{n}\cdot\bm{B}}{\bm{b}'\cdot\bm{w}}+\innerSurf{\bm{n}\cdot\bm{b}'}{\bm{B}\cdot\bm{w}}+\innerSurf{\bm{n}\cdot\bm{b}'}{\bm{b}'\cdot\bm{w}}\right)\,,
+	S\inner{\nabla\bar{\rho}\cdot\bm{\d{v}}^k}{r}+\inner{\nabla{\rho'}^k\cdot\bm{\d{v}}^k}{r}+\inner{\nabla{\d{\rho'}}^k\cdot\bm{v}^k}{r}+\nu\elliptic{{\d{\rho'}}^k}{r}=\\
+	-S\inner{\nabla\bar{\rho}\cdot\bm{v}^k}{r}-\inner{\nabla{\rho'}^k\cdot\bm{v}^k}{r}-\nu\elliptic{{\rho'}^k}{r}
 \end{multline}
 
-\section{Weak form of the induction equation}
-The magnetic field is expressed through a vector potential~$\bm{A}$. We derive the weak from the stationary Maxwell equations:
-\begin{equation}
-	\nabla\cdot\bm{B}=0\,,\qquad
-	\nabla\times\bm{E}=0\,,\qquad
-	-\nabla\times\bm{H}=\sigma(\bm{E}+\bm{v}\times\bm{B})
-\end{equation}
-The electric field and the magnetic are through: $\bm{E}=-\nabla\varphi$ and $\bm{B}=\nabla\times\bm{A}$. Hence, Amp\`ere's law reads:
-\begin{equation}
-	\frac{1}{\mu\sigma}\nabla\times(\nabla\times\bm{A})=-\nabla\varphi+\bm{v}\times(\nabla\times\bm{A})
-\end{equation}
-Substituting the perturbations for the potentials
-\begin{equation}
-	\varphi=\bar{\varphi}+\varphi'\,,\qquad
-	\bm{A}=\bar{\bm{A}}+\bm{a}'\,,
-\end{equation}
-gives the following dimensional equation:
-\begin{equation}
-	\frac{1}{\mu\sigma}\nabla\times(\nabla\times\bm{a}')=-\nabla\varphi'+\bar{\bm{V}}\times(\nabla\times\bm{a}')+\bm{v}'\times(\nabla\times\bar{\bm{A}})+\bm{v}'\times(\nabla\times\bm{a}')\,.
-\end{equation}
-In order to obtain a dimensionless form, the potentials are normalized by $\hat{\bm{A}}=\bm{A}/(\lref\Bref)$ and $\hat{\varphi}=\varphi/(\eta\Bref)$. Then the dimensionless equation reads:
-\begin{equation}
-	\nabla\times\nabla\times\bm{a}'=-\nabla\varphi'+\MagneticReynolds\left(\bar{\bm{V}}\times(\nabla\times\bm{a}')+\bm{v}'\times(\nabla\times\bar{\bm{A}})+\bm{v}'\times(\nabla\times\bm{a}')\right)\,.
-\end{equation}
-In order to obtain the weak form, we multiply this equation by the testfunction~$\bm{c}$. Integration by parts gives:
-\begin{multline}
-	-\inner{\nabla\times\bm{a}}{\nabla\times\bm{c}}-\innerSurf{\bm{n}\times(\nabla\times\bm{a})}{\bm{c}}+\saddle{\bm{c}}{\varphi}-\innerSurf{\varphi\bm{n}}{\bm{c}}+{}\\
-	{}+\MagneticReynolds\left(\inner{\bm{V}\times(\nabla\times\bm{a})}{\bm{c}}+\inner{\bm{v}\times(\nabla\times\bm{A})}{\bm{c}}+\inner{\bm{v}\times(\nabla\times\bm{a})}{\bm{c}}\right)=0\,.
-\end{multline}
+
+

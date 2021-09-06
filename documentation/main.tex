@@ -344,7 +344,7 @@ citestyle=numeric
 %------------------------------------------------------------------------------%
 % >> abbreviations
 \newcommand{\viz}{\textit{viz.}, }
-\newcommand{\ie}{\textit{i.e.}\ }
+\newcommand{\ie}{\textit{i.e.}, }
 \newcommand{\eg}{\textit{e.g.}, }
 \newcommand{\cf}{\textit{cf.}\ }
 \newcommand{\wrt}{w.r.t.\ }
@@ -387,6 +387,7 @@ citestyle=numeric
 \newcommand{\Froude}{\mathit{Fr}}
 \newcommand{\Ekman}{\mathit{E}}
 \newcommand{\Alfven}{\mathit{Al}}
+\newcommand{\Stratification}{\mathit{St}}
 % >> wave vector
 \newcommand{\kw}{\bm{k}}
 \newcommand{\kperp}{\bm{k}_{\perp}}
@@ -452,9 +453,8 @@ citestyle=numeric
 \newcommand{\sinPhi}{\sin(\varphi)}
 \newcommand{\cosPhi}{\cos(\varphi)}
 % >> weak form operators
-\newcommand*{\inner}[2]{\left(#1, #2\right)_{\!{\Omega}}}
-\newcommand*{\innerSurf}[2]{\left\langle#1, #2\right\rangle_{\!{\Gamma}}}
-\newcommand*{\innerSurfCustom}[3]{\left\langle#1, #2\right\rangle_{\!{#3}}}
+\newcommand*{\inner}[2]{\left(#1, #2\right)_{\Omega}}
+\newcommand*{\innerSurf}[2]{\left\langle#1, #2\right\rangle_{\Gamma}}
 \newcommand*{\elliptic}[2]{\mathcal{A}(#1, #2)}
 \newcommand*{\saddle}[2]{\mathcal{B}(#1, #2)}
 \newcommand*{\convec}[3]{\mathcal{C}(#1, #2, #3)}
