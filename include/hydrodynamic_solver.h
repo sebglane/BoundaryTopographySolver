@@ -203,6 +203,7 @@ private:
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
+protected:
   VectorBoundaryConditions<dim> velocity_boundary_conditions;
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;

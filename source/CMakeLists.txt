@@ -18,6 +18,12 @@ SET(TARGET_SRC
     hydrodynamic_solver/assemble_rhs.cc
     hydrodynamic_solver/hydrodynamic_solver.cc
     hydrodynamic_solver/setup.cc
+    # buoyant hydrodynamic solver
+    buoyant_hydrodynamic_solver/apply_boundary_conditions.cc
+    buoyant_hydrodynamic_solver/assemble_system.cc
+    buoyant_hydrodynamic_solver/assemble_rhs.cc
+    buoyant_hydrodynamic_solver/buoyant_hydrodynamic_solver.cc
+    buoyant_hydrodynamic_solver/setup.cc
     # assemble_system.cc
     # assembly_data.cc
     # entropy_viscosity.cc

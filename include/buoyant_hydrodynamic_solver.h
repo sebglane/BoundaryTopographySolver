@@ -1,5 +1,5 @@
 /*
- * stratified_hydrodynamic_solver.h
+ * buoyant_hydrodynamic_solver.h
  *
  *  Created on: Aug 30, 2021
  *      Author: sg
@@ -22,11 +22,12 @@ class Solver: public Hydrodynamic::Solver<dim>
 public:
   Solver(Triangulation<dim>  &tria,
          Mapping<dim>        &mapping,
-         const SolverParameters &parameters,
+         const Hydrodynamic::SolverParameters &parameters,
          const double         reynolds_number = 1.0,
-         const double         froude_number = 0.0);
+         const double         froude_number = 0.0,
+         const double         stratification_number = 1.0);
 
-  void set_reference_density(const Function<1, dim> &reference_density);
+  void set_reference_density(const Function<dim> &reference_density);
 
   ScalarBoundaryConditions<dim>&  get_density_bcs();
 
@@ -49,13 +50,16 @@ private:
 
   ScalarBoundaryConditions<dim> density_boundary_conditions;
 
-  const TensorFunction<1, dim> *reference_density_ptr;
+  const Function<dim>          *reference_density_ptr;
+
+  const TensorFunction<1, dim> *gravity_field_ptr;
 
   const double        stratification_number;
+
+  const unsigned int  density_fe_degree;
 };
 
 // inline functions
-
 template <int dim>
 inline const ScalarBoundaryConditions<dim> &
 Solver<dim>::get_density_bcs() const
