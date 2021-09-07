@@ -116,6 +116,47 @@ inline double compute_density_rhs
           );
 }
 
+
+
+template<int dim>
+inline double compute_entropy_viscosity
+(const std::vector<Tensor<1, dim>> &present_velocity_values,
+ const std::vector<Tensor<1, dim>> &present_density_gradients,
+ const std::vector<double>         &present_density_values,
+ const double                       cell_diameter,
+ const double                       entropy_variation,
+ const double                       c_max,
+ const double                       c_entropy)
+{
+  AssertDimension(present_velocity_values.size(),
+                  present_density_gradients.size());
+  AssertDimension(present_velocity_values.size(),
+                  present_density_values.size());
+
+  Assert(entropy_variation > 0, ExcLowerRangeType<double>(0, entropy_variation));
+  Assert(c_max > 0, ExcLowerRangeType<double>(0, c_max));
+  Assert(c_entropy > 0, ExcLowerRangeType<double>(0, c_entropy));
+
+  double max_residual = 0;
+  double max_velocity = 0;
+
+  for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+  {
+    max_velocity = std::max(present_velocity_values[q].norm(), max_velocity);
+
+    double residual = std::abs(present_density_gradients[q] * present_velocity_values[q]);
+    residual *= std::abs(present_density_values[q]);
+    max_residual = std::max(residual, max_residual);
+  }
+
+  const double max_viscosity = c_max * cell_diameter * max_velocity;
+
+  const double entropy_viscosity = (c_entropy * cell_diameter * cell_diameter *
+                                    max_residual / entropy_variation);
+
+  return (std::min(max_viscosity, entropy_viscosity));
+}
+
 }  // namespace BuoyantHydrodynamic
 
 

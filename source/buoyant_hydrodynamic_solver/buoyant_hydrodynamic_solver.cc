@@ -30,7 +30,10 @@ density_boundary_conditions(this->triangulation),
 reference_density_ptr(nullptr),
 gravity_field_ptr(nullptr),
 stratification_number(stratification),
-density_fe_degree(1)
+density_fe_degree(1),
+c_max(0.1),
+c_entropy(0.1),
+global_entropy_variation{0.0}
 {}
 
 

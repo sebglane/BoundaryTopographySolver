@@ -135,6 +135,14 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
     gravity_field_ptr->value_list(fe_values.get_quadrature_points(),
                                   gravity_field_values);
 
+    // entropy viscosity
+    const double nu_density = compute_entropy_viscosity(present_velocity_values,
+                                                        present_density_gradients,
+                                                        present_density_values,
+                                                        cell->diameter(),
+                                                        global_entropy_variation,
+                                                        c_max,
+                                                        c_entropy);
 
     for (const unsigned int q: fe_values.quadrature_point_indices())
     {
@@ -172,7 +180,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                            present_velocity_values[q],
                                            reference_density_gradients[q],
                                            phi_density[i],
-                                           nu,
+                                           nu_density,
                                            stratification_number);
 
           matrix += -phi_density[j] * gravity_field_values[q] *
@@ -196,7 +204,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                    reference_density_gradients[q],
                                    phi_density[i],
                                    stratification_number,
-                                   nu);
+                                   nu_density);
 
         rhs += present_density_values[q] * gravity_field_values[q] *
                phi_velocity[i] / std::pow(this->froude_number, 2);
