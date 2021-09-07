@@ -253,6 +253,9 @@ void Solver<dim>::newton_iteration(const bool is_initial_step)
   while ((current_residual > tolerance) &&
          iteration < n_maximum_iterations)
   {
+
+    this->preprocess_newton_iteration();
+
     if (first_step)
     {
       // solve problem
