@@ -111,7 +111,7 @@ enum class ViscousTermWeakForm
 
 
 /*!
- * @struct HydrodynamicSolverParameters
+ * @struct SolverParameters
  *
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.

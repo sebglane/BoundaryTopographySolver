@@ -24,6 +24,9 @@ void Solver<dim>::preprocess_newton_iteration()
 template<int dim>
 double Solver<dim>::compute_entropy_variation() const
 {
+  if (this->verbose)
+    std::cout << "    Compute entropy variation..." << std::endl;
+
   const QGauss<dim> quadrature_formula(this->velocity_fe_degree + 1);
 
   FEValues<dim> fe_values(this->mapping,
@@ -31,6 +34,8 @@ double Solver<dim>::compute_entropy_variation() const
                           quadrature_formula,
                           update_values|
                           update_JxW_values);
+
+  const FEValuesExtractors::Scalar  density(dim+1);
 
   std::vector<double> density_values(quadrature_formula.size());
 
@@ -43,8 +48,8 @@ double Solver<dim>::compute_entropy_variation() const
   {
     fe_values.reinit(cell);
 
-    fe_values.get_function_values(this->present_solution,
-                                  density_values);
+    fe_values[density].get_function_values(this->present_solution,
+                                           density_values);
 
     for (const unsigned int q: fe_values.quadrature_point_indices())
     {

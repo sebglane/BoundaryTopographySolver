@@ -26,15 +26,15 @@ void Solver<dim>::apply_boundary_conditions()
       !this->pressure_boundary_conditions.periodic_bcs.empty() ||
       !density_boundary_conditions.periodic_bcs.empty())
   {
-    AssertThrow(this->velocity_boundary_conditions.periodic_bcs.empty(),
+    AssertThrow(!this->velocity_boundary_conditions.periodic_bcs.empty(),
                 ExcMessage("No periodic boundary conditions were specified for "
                            "the velocity."));
 
-    AssertThrow(this->pressure_boundary_conditions.periodic_bcs.empty(),
+    AssertThrow(!this->pressure_boundary_conditions.periodic_bcs.empty(),
                 ExcMessage("No periodic boundary conditions were specified for "
                            "the pressure."));
 
-    AssertThrow(density_boundary_conditions.periodic_bcs.empty(),
+    AssertThrow(!density_boundary_conditions.periodic_bcs.empty(),
                 ExcMessage("No periodic boundary conditions were specified for "
                            "the density."));
 

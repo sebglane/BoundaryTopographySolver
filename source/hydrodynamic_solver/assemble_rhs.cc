@@ -23,6 +23,9 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
     AssertThrow(froude_number > 0.0,
                 ExcMessage("Non-vanishing Froude number is required if the body "
                            "force is specified."));
+  AssertThrow(reynolds_number != 0.0,
+              ExcMessage("The Reynolds must not vanish (stabilization is not "
+                         "implemented yet)."));
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble rhs");
 
@@ -36,12 +39,17 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
   const QGauss<dim>   quadrature_formula(velocity_fe_degree + 1);
 
+  UpdateFlags update_flags = update_values|
+                             update_gradients|
+                             update_JxW_values;
+  if (body_force_ptr != nullptr)
+    update_flags |= update_quadrature_points;
+
+
   FEValues<dim> fe_values(this->mapping,
                           *this->fe_system,
                           quadrature_formula,
-                          update_values|
-                          update_gradients|
-                          update_JxW_values);
+                          update_flags);
 
   const QGauss<dim-1>   face_quadrature_formula(velocity_fe_degree + 1);
 

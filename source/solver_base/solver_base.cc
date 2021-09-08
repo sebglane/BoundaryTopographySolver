@@ -234,6 +234,7 @@ void Solver<dim>::newton_iteration(const bool is_initial_step)
         return this->system_rhs.l2_norm();
       };
 
+  this->preprocess_newton_iteration();
   const double initial_residual{compute_residual(0.0, false)};
 
   std::cout << "Initial residual: "

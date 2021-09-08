@@ -15,6 +15,63 @@ namespace BuoyantHydrodynamic {
 
 using namespace BoundaryConditions;
 
+
+/*!
+ * @struct SolverParameters
+ *
+ * @brief A structure containing all the parameters of the Navier-Stokes
+ * solver.
+ */
+struct SolverParameters: Hydrodynamic::SolverParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  SolverParameters();
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const SolverParameters &prm);
+
+  /*!
+   * @brief Stabilization parameter used to compute the maximum viscosity.
+   */
+  double  c_max;
+
+  /*!
+   * @brief Stabilization parameter used to compute the entropy viscosity.
+   */
+  double  c_entropy;
+
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template <typename Stream>
+Stream& operator<<(Stream &stream, const SolverParameters &prm);
+
+
+
 template <int dim>
 class Solver: public Hydrodynamic::Solver<dim>
 {
@@ -22,7 +79,7 @@ class Solver: public Hydrodynamic::Solver<dim>
 public:
   Solver(Triangulation<dim>  &tria,
          Mapping<dim>        &mapping,
-         const Hydrodynamic::SolverParameters &parameters,
+         const SolverParameters &parameters,
          const double         reynolds_number = 1.0,
          const double         froude_number = 0.0,
          const double         stratification_number = 1.0);
@@ -65,11 +122,11 @@ private:
 
   const unsigned int  density_fe_degree;
 
-  double              global_entropy_variation;
-
   const double        c_max;
 
   const double        c_entropy;
+
+  double              global_entropy_variation;
 };
 
 // inline functions
