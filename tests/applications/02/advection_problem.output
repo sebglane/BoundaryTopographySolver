@@ -27,15 +27,15 @@ Solving viscous buoyant topography problem
     Number of active cells: 256
     Number of total degrees of freedom: 289
 Cycle 0:
-Initial residual: 1.662042e-02
-Iteration:   0, Current residual: 5.7335e-18 (Tolerance: 1.6620e-11)
+Initial residual: 1.839325e-02
+Iteration:   0, Current residual: 1.1873e-17 (Tolerance: 1.8393e-11)
 End cycle 0
 Mesh refinement...
     Number of active cells: 1024
     Number of total degrees of freedom: 1089
 Cycle 1:
-Initial residual: 3.1335e-04
-Iteration:   0, Current residual: 2.4431e-18 (Tolerance: 1.0000e-12)
+Initial residual: 1.1835e-03
+Iteration:   0, Current residual: 5.2937e-18 (Tolerance: 1.1835e-12)
 End cycle 1
 Mesh refinement...
     Number of active cells: 4096

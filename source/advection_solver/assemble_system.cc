@@ -109,8 +109,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
     // advection field
     advection_field_ptr->value_list(fe_values.get_quadrature_points(),
                                     advection_field_values);
-    // entropy viscosity
-    const double delta = 0.1 * cell->diameter();
+    // stabilization parameter
+    const double delta = compute_stabilization_parameter(advection_field_values,
+                                                         cell->diameter());
     Assert(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
 
     for (const auto q: fe_values.quadrature_point_indices())
