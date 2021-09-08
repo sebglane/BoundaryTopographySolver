@@ -1,18 +1,18 @@
 /*
- * hydrodynamic_problem.h
+ * buoyant_hydrodynamic_problem.h
  *
- *  Created on: Sep 1, 2021
+ *  Created on: Sep 8, 2021
  *      Author: sg
  */
 
-#ifndef INCLUDE_HYDRODYNAMIC_PROBLEM_H_
-#define INCLUDE_HYDRODYNAMIC_PROBLEM_H_
+#ifndef INCLUDE_BUOYANT_HYDRODYNAMIC_PROBLEM_H_
+#define INCLUDE_BUOYANT_HYDRODYNAMIC_PROBLEM_H_
 
 #include <deal.II/fe/mapping_q_cache.h>
 
-#include <hydrodynamic_solver.h>
+#include <buoyant_hydrodynamic_solver.h>
 
-namespace Hydrodynamic {
+namespace BuoyantHydrodynamic {
 
 /*!
  * @struct ProblemParameters
@@ -69,6 +69,11 @@ struct ProblemParameters: SolverParameters
    */
   double        reynolds_number;
 
+  /*!
+   * @brief The stratification number of the problem.
+   */
+  double        stratification_number;
+
 };
 
 
@@ -82,10 +87,10 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
 template <int dim>
-class HydrodynamicProblem
+class BuoyantHydrodynamicProblem
 {
 public:
-  HydrodynamicProblem(const ProblemParameters &parameters);
+  BuoyantHydrodynamicProblem(const ProblemParameters &parameters);
 
   void run();
 
@@ -98,6 +103,10 @@ protected:
 
   virtual void set_body_force_term();
 
+  virtual void set_gravity_field() = 0;
+
+  virtual void set_reference_density() = 0;
+
   Triangulation<dim>       triangulation;
 
   MappingQCache<dim>       mapping;
@@ -108,13 +117,14 @@ protected:
 
 // inline functions
 template <int dim>
-void HydrodynamicProblem<dim>::set_body_force_term()
+void BuoyantHydrodynamicProblem<dim>::set_body_force_term()
 {
   return;
 }
 
-}  // namespace Hydrodynamic
+
+}  // namespace BuoyantHydrodynamic
 
 
 
-#endif /* INCLUDE_HYDRODYNAMIC_PROBLEM_H_ */
+#endif /* INCLUDE_BUOYANT_HYDRODYNAMIC_PROBLEM_H_ */
