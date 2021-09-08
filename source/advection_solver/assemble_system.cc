@@ -73,14 +73,12 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
     source_term_values.resize(n_q_points);
 
   const unsigned int n_face_q_points{face_quadrature_formula.size()};
-  std::vector<double> phi_face;
   std::vector<double> present_face_values;
   std::vector<double> boundary_values;
   std::vector<Tensor<1, dim>> face_normal_vectors;
   std::vector<Tensor<1, dim>> face_advection_field_values;
   if (!dirichlet_bcs.empty())
   {
-    phi_face.resize(dofs_per_cell);
     present_face_values.resize(n_face_q_points);
     boundary_values.resize(n_face_q_points);
     face_normal_vectors.resize(n_face_q_points);
@@ -181,7 +179,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
               {
                 // Extract the test function's values at the face quadrature points
                 for (const auto i: fe_face_values.dof_indices())
-                  phi_face[i] = fe_face_values[field].value(i,q);
+                  phi[i] = fe_face_values[field].value(i,q);
 
                 const double JxW_face{fe_face_values.JxW(q)};
                 // Loop over the degrees of freedom
@@ -190,12 +188,12 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                   for (const auto j: fe_face_values.dof_indices())
                     cell_matrix(i, j) -= face_normal_vectors[q] *
                                          face_advection_field_values[q] *
-                                         phi_face[i] *
-                                         phi_face[j] *
+                                         phi[i] *
+                                         phi[j] *
                                          JxW_face;
                   cell_rhs(i) += face_advection_field_values[q] *
                                  face_normal_vectors[q] *
-                                 phi_face[i] *
+                                 phi[i] *
                                  (present_face_values[q] - boundary_values[q]) *
                                  JxW_face;
                 }
