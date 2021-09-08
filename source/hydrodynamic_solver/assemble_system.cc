@@ -74,10 +74,6 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   std::vector<double>         div_phi_velocity(dofs_per_cell);
   std::vector<double>         phi_pressure(dofs_per_cell);
 
-  std::vector<Tensor<1, dim>> phi_face_velocity;
-  if (!neumann_bcs.empty())
-    phi_face_velocity.resize(dofs_per_cell);
-
   const unsigned int n_q_points = quadrature_formula.size();
   std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
   std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
@@ -117,9 +113,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
 
     }
 
-    for (const unsigned int q: fe_values.quadrature_point_indices())
+    for (const auto q: fe_values.quadrature_point_indices())
     {
-      for (const unsigned int i : fe_values.dof_indices())
+      for (const auto i: fe_values.dof_indices())
       {
         phi_velocity[i] = fe_values[velocity].value(i, q);
         grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
@@ -129,14 +125,14 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
 
       const double JxW{fe_values.JxW(q)};
 
-      for (const unsigned int i : fe_values.dof_indices())
+      for (const auto i: fe_values.dof_indices())
       {
         const Tensor<1, dim> &velocity_test_function = phi_velocity[i];
         const Tensor<2, dim> &velocity_test_function_gradient = grad_phi_velocity[i];
 
         const double          pressure_test_function = phi_pressure[i];
 
-        for (const unsigned int j : fe_values.dof_indices())
+        for (const auto j: fe_values.dof_indices())
         {
           cell_matrix(i, j) += compute_hydrodynamic_matrix(phi_velocity[j],
                                                            grad_phi_velocity[j],
@@ -177,17 +173,17 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                                     boundary_traction_values);
 
             // Loop over face quadrature points
-            for (const unsigned int q: fe_face_values.quadrature_point_indices())
+            for (const auto q: fe_face_values.quadrature_point_indices())
             {
               // Extract the test function's values at the face quadrature points
-              for (const unsigned int i : fe_face_values.dof_indices())
-                phi_face_velocity[i] = fe_face_values[velocity].value(i,q);
+              for (const auto i: fe_face_values.dof_indices())
+                phi_velocity[i] = fe_face_values[velocity].value(i,q);
 
               const double JxW_face{fe_face_values.JxW(q)};
 
               // Loop over the degrees of freedom
-              for (const unsigned int i : fe_face_values.dof_indices())
-                cell_rhs(i) += phi_face_velocity[i] *
+              for (const auto i: fe_face_values.dof_indices())
+                cell_rhs(i) += phi_velocity[i] *
                                boundary_traction_values[q] *
                                JxW_face;
 
