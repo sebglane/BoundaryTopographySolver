@@ -83,14 +83,14 @@ inline double compute_density_matrix
  const double          stratification_parameter,
  const double          nu)
 {
-  return (
-          (// density equation
-            stratification_parameter * reference_density_gradient * velocity_trial_function_value
-            + velocity_trial_function_value * present_density_gradient
-            + present_velocity_value * density_trial_function_gradient)
-          * density_test_function_value
+  return (// density equation
+          (stratification_parameter *
+           velocity_trial_function_value * reference_density_gradient +
+           velocity_trial_function_value * present_density_gradient +
+           present_velocity_value * density_trial_function_gradient
+          ) * density_test_function_value +
           // stabilization term
-          + nu * density_trial_function_gradient * density_test_function_gradient
+          nu * density_trial_function_gradient * density_test_function_gradient
           );
 }
 
@@ -106,14 +106,13 @@ inline double compute_density_rhs
  const double          stratification_parameter,
  const double          nu)
 {
-  return (
-          -(// density equation
-            stratification_parameter * reference_density_gradient * present_velocity_value
-            + present_velocity_value * present_density_gradient)
-          * density_test_function_value
-          // stabilization term
-          - nu * present_density_gradient * density_test_function_gradient
-          );
+  return -(// density equation
+           (stratification_parameter *
+            present_velocity_value * reference_density_gradient +
+            present_velocity_value * present_density_gradient
+           ) * density_test_function_value +
+           // stabilization term
+           nu * present_density_gradient * density_test_function_gradient);
 }
 
 
@@ -132,6 +131,8 @@ inline double compute_entropy_viscosity
                   present_density_gradients.size());
   AssertDimension(present_velocity_values.size(),
                   present_density_values.size());
+
+  AssertIsFinite(entropy_variation);
 
   Assert(entropy_variation > 0, ExcLowerRangeType<double>(0, entropy_variation));
   Assert(c_max > 0, ExcLowerRangeType<double>(0, c_max));
@@ -154,11 +155,51 @@ inline double compute_entropy_viscosity
   const double entropy_viscosity = (c_entropy * cell_diameter * cell_diameter *
                                     max_residual / entropy_variation);
 
-  return (std::min(max_viscosity, entropy_viscosity));
+  if (entropy_viscosity == 0.0)
+  {
+    if (max_viscosity > 0.0)
+      return max_viscosity;
+    else
+      return 0.1;
+  }
+  else
+    return (std::min(max_viscosity, entropy_viscosity));
 }
 
 }  // namespace BuoyantHydrodynamic
 
+namespace Advection {
 
+using namespace dealii;
+
+template <int dim>
+inline double compute_matrix
+(const Tensor<1, dim> &trial_function_gradient,
+ const Tensor<1, dim> &test_function_gradient,
+ const Tensor<1, dim> &advection_field_value,
+ const double          test_function_value,
+ const double          delta)
+{
+  return (advection_field_value * trial_function_gradient) *
+         (test_function_value +
+          delta * advection_field_value * test_function_gradient);
+}
+
+
+
+template <int dim>
+inline double compute_rhs
+(const Tensor<1, dim> &test_function_gradient,
+ const Tensor<1, dim> &present_gradient,
+ const Tensor<1, dim> &advection_field_value,
+ const double          test_function_value,
+ const double          delta)
+{
+  return -(advection_field_value * present_gradient) *
+          (test_function_value +
+           delta * advection_field_value * test_function_gradient);
+}
+
+}  // namespace Advection
 
 #endif /* INCLUDE_ASSEMBLY_FUNCTIONS_H_ */

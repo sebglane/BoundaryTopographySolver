@@ -199,13 +199,13 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
             {
               // Extract the test function's values at the face quadrature points
               for (const auto i : fe_face_values.dof_indices())
-                phi_face_velocity[i] = fe_face_values[velocity].value(i,q);
+                phi_velocity[i] = fe_face_values[velocity].value(i,q);
 
               const double JxW_face{fe_face_values.JxW(q)};
 
               // Loop over the degrees of freedom
               for (const auto i : fe_face_values.dof_indices())
-                cell_rhs(i) += phi_face_velocity[i] *
+                cell_rhs(i) += phi_velocity[i] *
                                boundary_traction_values[q] *
                                JxW_face;
 
