@@ -131,24 +131,29 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
 
       for (const unsigned int i : fe_values.dof_indices())
       {
+        const Tensor<1, dim> &velocity_test_function = phi_velocity[i];
+        const Tensor<2, dim> &velocity_test_function_gradient = grad_phi_velocity[i];
+
+        const double          pressure_test_function = phi_pressure[i];
+
         for (const unsigned int j : fe_values.dof_indices())
         {
           cell_matrix(i, j) += compute_hydrodynamic_matrix(phi_velocity[j],
                                                            grad_phi_velocity[j],
-                                                           phi_velocity[i],
-                                                           grad_phi_velocity[i],
+                                                           velocity_test_function,
+                                                           velocity_test_function_gradient,
                                                            present_velocity_values[q],
                                                            present_velocity_gradients[q],
                                                            phi_pressure[j],
-                                                           phi_pressure[i],
+                                                           pressure_test_function,
                                                            nu) * JxW;
         }
-        double rhs = compute_hydrodynamic_rhs(phi_velocity[i],
-                                              grad_phi_velocity[i],
+        double rhs = compute_hydrodynamic_rhs(velocity_test_function,
+                                              velocity_test_function_gradient,
                                               present_velocity_values[q],
                                               present_velocity_gradients[q],
                                               present_pressure_values[q],
-                                              phi_pressure[i],
+                                              pressure_test_function,
                                               nu);
         if (body_force_ptr != nullptr)
           rhs += body_force_values[q] * phi_velocity[i] / std::pow(this->froude_number, 2);
