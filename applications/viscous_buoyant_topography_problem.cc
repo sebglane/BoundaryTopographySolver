@@ -22,6 +22,9 @@ class ReferenceDensity : public Function<dim>
 public:
   ReferenceDensity();
 
+  virtual Tensor<1, dim> gradient(const Point<dim>   &point,
+                                  const unsigned int  component = 0) const;
+
   virtual void gradient_list(const std::vector<Point<dim>> &points,
                              std::vector<Tensor<1, dim>>   &gradients,
                              const unsigned int    component = 0) const;
@@ -34,6 +37,20 @@ ReferenceDensity<dim>::ReferenceDensity()
 :
 Function<dim>(1)
 {}
+
+
+
+
+template <int dim>
+Tensor<1, dim> ReferenceDensity<dim>::gradient
+(const Point<dim>   &/* point */,
+ const unsigned int  /* component */) const
+{
+  Tensor<1, dim> gradient_value;
+  gradient_value[dim-1] = -1.0;
+
+  return gradient_value;
+}
 
 
 
@@ -93,6 +110,10 @@ gravity_field(Tensor<1, 2>({0.0, -1.0})),
 reference_density()
 {
   std::cout << "Solving viscous buoyant topography problem" << std::endl;
+
+  Point<2> point;
+  Assert(reference_density.gradient(point) * gravity_field.value(point) > 0.0,
+         ExcMessage("Density gradient and gravity field are not co-linear."));
 }
 
 
@@ -105,6 +126,10 @@ gravity_field(Tensor<1, 3>({0.0, 0.0, -1.0})),
 reference_density()
 {
   std::cout << "Solving viscous buoyant topography problem" << std::endl;
+
+  Point<3> point;
+  Assert(reference_density.gradient(point) * gravity_field.value(point) > 0.0,
+         ExcMessage("Density gradient and gravity field are not co-linear."));
 }
 
 

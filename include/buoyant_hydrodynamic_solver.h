@@ -95,9 +95,6 @@ public:
   double get_stratification_number() const;
 
 private:
-
-  double compute_entropy_variation() const;
-
   virtual void setup_fe_system();
 
   virtual void setup_dofs();
@@ -107,8 +104,6 @@ private:
   virtual void assemble_system(const bool initial_step);
 
   virtual void assemble_rhs(const bool initial_step);
-
-  virtual void preprocess_newton_iteration();
 
   virtual void output_results(const unsigned int cycle = 0) const;
 

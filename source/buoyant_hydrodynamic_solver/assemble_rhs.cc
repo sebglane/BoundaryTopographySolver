@@ -24,11 +24,11 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                          "gravity field."));
   AssertThrow(gravity_field_ptr != nullptr,
               ExcMessage("For a buoyant fluid, the gravity field must be specified."));
+  AssertThrow(reference_density_ptr != nullptr,
+              ExcMessage("For a buoyant fluid, the reference density field must be specified."));
+
   AssertThrow(this->froude_number != 0.0,
               ExcMessage("For a buoyant fluid, the Froude number must be specified."));
-  AssertThrow(stratification_number != 0.0,
-              ExcMessage("For a buoyant fluid, the stratification number must "
-                         "be specified."));
   AssertThrow(this->reynolds_number != 0.0,
               ExcMessage("The Reynolds must not vanish (stabilization is not "
                          "implemented yet)."));
@@ -131,14 +131,9 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                                   gravity_field_values);
 
     // entropy viscosity
-    const double nu_density = compute_entropy_viscosity(present_velocity_values,
-                                                        present_density_gradients,
-                                                        present_density_values,
-                                                        cell->diameter(),
-                                                        global_entropy_variation,
-                                                        c_max,
-                                                        c_entropy);
-    Assert(nu_density > 0.0, ExcLowerRangeType<double>(0.0, nu_density));
+    const std::pair<const double, bool> stabilization =
+        compute_stabilization_parameter(present_velocity_values, cell->diameter());
+    Assert(stabilization.first > 0.0, ExcLowerRangeType<double>(0.0, stabilization.first));
 
     for (const auto q: fe_values.quadrature_point_indices())
     {
@@ -171,10 +166,10 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                                    reference_density_gradients[q],
                                    phi_density[i],
                                    stratification_number,
-                                   nu_density);
+                                   stabilization.first);
 
-//        rhs += present_density_values[q] * gravity_field_values[q] *
-//               phi_velocity[i] / std::pow(this->froude_number, 2);
+        rhs += present_density_values[q] * gravity_field_values[q] *
+               phi_velocity[i] / std::pow(this->froude_number, 2);
 
         cell_rhs(i) += rhs * JxW;
       }

@@ -77,7 +77,7 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
 
     prm.declare_entry("Stratification number",
                       "1.0",
-                      Patterns::Double(std::numeric_limits<double>::epsilon()));
+                      Patterns::Double());
   }
   prm.leave_subsection();
 }
@@ -102,7 +102,7 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
     AssertIsFinite(reynolds_number);
 
     stratification_number = prm.get_double("Stratification number");
-    AssertThrow(stratification_number > 0.0, ExcLowerRangeType<double>(0.0, stratification_number));
+    AssertThrow(stratification_number >= 0.0, ExcLowerRangeType<double>(0.0, stratification_number));
     AssertIsFinite(stratification_number);
   }
   prm.leave_subsection();

@@ -24,11 +24,14 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                          "gravity field."));
   AssertThrow(gravity_field_ptr != nullptr,
               ExcMessage("For a buoyant fluid, the gravity field must be specified."));
+  AssertThrow(reference_density_ptr != nullptr,
+              ExcMessage("For a buoyant fluid, the reference density field must be specified."));
+
   AssertThrow(this->froude_number != 0.0,
               ExcMessage("For a buoyant fluid, the Froude number must be specified."));
-  AssertThrow(stratification_number != 0.0,
-              ExcMessage("For a buoyant fluid, the stratification number must "
-                         "be specified."));
+//  AssertThrow(stratification_number != 0.0,
+//              ExcMessage("For a buoyant fluid, the stratification number must "
+//                         "be specified."));
   AssertThrow(this->reynolds_number != 0.0,
               ExcMessage("The Reynolds must not vanish (stabilization is not "
                          "implemented yet)."));
@@ -61,11 +64,15 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                        *this->fe_system,
                                        face_quadrature_formula,
                                        update_values|
+                                       update_normal_vectors|
                                        update_quadrature_points|
                                        update_JxW_values);
 
   const typename VectorBoundaryConditions<dim>::NeumannBCMapping
   &neumann_bcs = this->velocity_boundary_conditions.neumann_bcs;
+
+  const typename ScalarBoundaryConditions<dim>::BCMapping
+  &dirichlet_bcs = density_boundary_conditions.dirichlet_bcs;
 
   const unsigned int dofs_per_cell{this->fe_system->n_dofs_per_cell()};
   FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
@@ -99,6 +106,18 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   std::vector<Tensor<1, dim>> boundary_traction_values;
   if (!neumann_bcs.empty())
     boundary_traction_values.resize(n_face_q_points);
+  std::vector<double> present_density_face_values;
+  std::vector<double> boundary_values;
+  std::vector<Tensor<1, dim>> face_normal_vectors;
+  std::vector<Tensor<1, dim>> present_velocity_face_values;
+  if (!dirichlet_bcs.empty())
+  {
+    present_density_face_values.resize(n_face_q_points);
+    boundary_values.resize(n_face_q_points);
+    face_normal_vectors.resize(n_face_q_points);
+    present_velocity_face_values.resize(n_face_q_points);
+  }
+
 
   const double nu{1.0 / this->reynolds_number};
 
@@ -139,14 +158,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                   gravity_field_values);
 
     // entropy viscosity
-    const double nu_density = compute_entropy_viscosity(present_velocity_values,
-                                                        present_density_gradients,
-                                                        present_density_values,
-                                                        cell->diameter(),
-                                                        global_entropy_variation,
-                                                        c_max,
-                                                        c_entropy);
-    Assert(nu_density > 0.0, ExcLowerRangeType<double>(0.0, nu_density));
+    const std::pair<const double, bool> stabilization =
+        compute_stabilization_parameter(present_velocity_values, cell->diameter());
+    Assert(stabilization.first > 0.0, ExcLowerRangeType<double>(0.0, stabilization.first));
 
     for (const auto q: fe_values.quadrature_point_indices())
     {
@@ -194,10 +208,11 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                            reference_density_gradients[q],
                                            density_test_function,
                                            stratification_number,
-                                           nu_density);
+                                           stabilization.first,
+                                           stabilization.second);
 
-//          matrix += -phi_density[j] * gravity_field_values[q] *
-//                    phi_velocity[i] / std::pow(this->froude_number, 2);
+          matrix += -phi_density[j] * gravity_field_values[q] *
+                    velocity_test_function / std::pow(this->froude_number, 2);
 
           cell_matrix(i, j) += matrix * JxW;
 
@@ -217,46 +232,92 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                    reference_density_gradients[q],
                                    density_test_function,
                                    stratification_number,
-                                   nu_density);
+                                   stabilization.first);
 
-//        rhs += present_density_values[q] * gravity_field_values[q] *
-//               phi_velocity[i] / std::pow(this->froude_number, 2);
+        rhs += present_density_values[q] * gravity_field_values[q] *
+               velocity_test_function / std::pow(this->froude_number, 2);
 
         cell_rhs(i) += rhs * JxW;
       }
     } // end loop over cell quadrature points
 
     // Loop over the faces of the cell
-    if (!neumann_bcs.empty())
+    if (!neumann_bcs.empty() || !dirichlet_bcs.empty())
       if (cell->at_boundary())
         for (const auto &face : cell->face_iterators())
+        {
           if (face->at_boundary() &&
-              neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
+              (neumann_bcs.find(face->boundary_id()) != neumann_bcs.end() ||
+               dirichlet_bcs.find(face->boundary_id()) != dirichlet_bcs.end()))
           {
-            // Neumann boundary condition
             fe_face_values.reinit(cell, face);
 
             const types::boundary_id  boundary_id{face->boundary_id()};
-            neumann_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
-                                                    boundary_traction_values);
 
-            // Loop over face quadrature points
-            for (const auto q: fe_face_values.quadrature_point_indices())
+            // Neumann boundary condition
+            if (neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
             {
-              // Extract the test function's values at the face quadrature points
-              for (const auto i: fe_face_values.dof_indices())
-                phi_velocity[i] = fe_face_values[velocity].value(i,q);
+              neumann_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
+                                                      boundary_traction_values);
+              // Loop over face quadrature points
+              for (const auto q: fe_face_values.quadrature_point_indices())
+              {
+                // Extract the test function's values at the face quadrature points
+                for (const auto i: fe_face_values.dof_indices())
+                  phi_velocity[i] = fe_face_values[velocity].value(i,q);
 
-              const double JxW_face{fe_face_values.JxW(q)};
+                const double JxW_face{fe_face_values.JxW(q)};
 
-              // Loop over the degrees of freedom
-              for (const auto i: fe_face_values.dof_indices())
-                cell_rhs(i) += phi_velocity[i] *
-                               boundary_traction_values[q] *
-                               JxW_face;
+                // Loop over the degrees of freedom
+                for (const auto i: fe_face_values.dof_indices())
+                  cell_rhs(i) += phi_velocity[i] *
+                                 boundary_traction_values[q] *
+                                 JxW_face;
 
-            } // Loop over face quadrature points
-          } // Loop over the faces of the cell
+              } // Loop over face quadrature points
+            }
+
+            // Dirichlet boundary condition
+            if (dirichlet_bcs.find(face->boundary_id()) != dirichlet_bcs.end())
+            {
+              dirichlet_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
+                                                        boundary_values);
+              // evaluate solution
+              fe_face_values[density].get_function_values(this->evaluation_point,
+                                                          present_density_face_values);
+              fe_face_values[velocity].get_function_values(this->evaluation_point,
+                                                           present_velocity_face_values);
+              // normal vectors
+              face_normal_vectors = fe_face_values.get_normal_vectors();
+
+              // Loop over face quadrature points
+              for (const auto q: fe_face_values.quadrature_point_indices())
+                if (face_normal_vectors[q] * present_velocity_face_values[q] < 0.)
+                {
+                  // Extract the test function's values at the face quadrature points
+                  for (const auto i: fe_face_values.dof_indices())
+                    phi_density[i] = fe_face_values[density].value(i,q);
+
+                  const double JxW_face{fe_face_values.JxW(q)};
+                  // Loop over the degrees of freedom
+                  for (const auto i: fe_face_values.dof_indices())
+                  {
+                    for (const auto j: fe_face_values.dof_indices())
+                      cell_matrix(i, j) -= face_normal_vectors[q] *
+                                           present_velocity_face_values[q] *
+                                           phi_density[i] *
+                                           phi_density[j] *
+                                           JxW_face;
+                    cell_rhs(i) += present_velocity_face_values[q] *
+                                   face_normal_vectors[q] *
+                                   phi_density[i] *
+                                   (present_density_face_values[q] - boundary_values[q]) *
+                                   JxW_face;
+                  }
+                } // Loop over face quadrature points
+            }
+          }
+        } // Loop over the faces of the cell
 
     cell->get_dof_indices(local_dof_indices);
 

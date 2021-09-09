@@ -81,17 +81,27 @@ inline double compute_density_matrix
  const Tensor<1, dim> &reference_density_gradient,
  const double          density_test_function_value,
  const double          stratification_parameter,
- const double          nu)
+ const double          delta,
+ const bool            vanishing_velocity)
 {
-  return (// density equation
-          (stratification_parameter *
-           velocity_trial_function_value * reference_density_gradient +
-           velocity_trial_function_value * present_density_gradient +
-           present_velocity_value * density_trial_function_gradient
-          ) * density_test_function_value +
-          // stabilization term
-          nu * density_trial_function_gradient * density_test_function_gradient
-          );
+  if (vanishing_velocity)
+    return (stratification_parameter * velocity_trial_function_value * reference_density_gradient +
+            velocity_trial_function_value * present_density_gradient +
+            present_velocity_value * density_trial_function_gradient) *
+           (density_test_function_value +
+            delta * present_velocity_value * density_test_function_gradient) +
+            delta * density_trial_function_gradient * density_test_function_gradient +
+           (stratification_parameter * present_velocity_value * reference_density_gradient +
+            present_velocity_value * present_density_gradient) *
+           (delta * velocity_trial_function_value * density_trial_function_gradient);
+  else
+    return (stratification_parameter * velocity_trial_function_value * reference_density_gradient +
+            velocity_trial_function_value * present_density_gradient +
+            present_velocity_value * density_trial_function_gradient) *
+           (density_test_function_value +
+            delta * present_velocity_value * density_test_function_gradient) +
+           (present_velocity_value * present_density_gradient) *
+           (delta * velocity_trial_function_value * density_trial_function_gradient);
 }
 
 
@@ -104,66 +114,30 @@ inline double compute_density_rhs
  const Tensor<1, dim> &reference_density_gradient,
  const double          density_test_function_value,
  const double          stratification_parameter,
- const double          nu)
+ const double          delta)
 {
-  return -(// density equation
-           (stratification_parameter *
-            present_velocity_value * reference_density_gradient +
-            present_velocity_value * present_density_gradient
-           ) * density_test_function_value +
-           // stabilization term
-           nu * present_density_gradient * density_test_function_gradient);
+  return -(stratification_parameter * present_velocity_value * reference_density_gradient +
+           present_velocity_value * present_density_gradient) *
+          (density_test_function_value +
+           delta * present_velocity_value * density_test_function_gradient);
 }
 
 
 
 template<int dim>
-inline double compute_entropy_viscosity
+inline std::pair<const double, bool> compute_stabilization_parameter
 (const std::vector<Tensor<1, dim>> &present_velocity_values,
- const std::vector<Tensor<1, dim>> &present_density_gradients,
- const std::vector<double>         &present_density_values,
- const double                       cell_diameter,
- const double                       entropy_variation,
- const double                       c_max,
- const double                       c_entropy)
+ const double                       cell_diameter)
 {
-  AssertDimension(present_velocity_values.size(),
-                  present_density_gradients.size());
-  AssertDimension(present_velocity_values.size(),
-                  present_density_values.size());
-
-  AssertIsFinite(entropy_variation);
-
-  Assert(entropy_variation > 0, ExcLowerRangeType<double>(0, entropy_variation));
-  Assert(c_max > 0, ExcLowerRangeType<double>(0, c_max));
-  Assert(c_entropy > 0, ExcLowerRangeType<double>(0, c_entropy));
-
-  double max_residual = 0;
   double max_velocity = 0;
 
   for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-  {
     max_velocity = std::max(present_velocity_values[q].norm(), max_velocity);
 
-    double residual = std::abs(present_density_gradients[q] * present_velocity_values[q]);
-    residual *= std::abs(present_density_values[q]);
-    max_residual = std::max(residual, max_residual);
-  }
-
-  const double max_viscosity = c_max * cell_diameter * max_velocity;
-
-  const double entropy_viscosity = (c_entropy * cell_diameter * cell_diameter *
-                                    max_residual / entropy_variation);
-
-  if (entropy_viscosity == 0.0)
-  {
-    if (max_viscosity > 0.0)
-      return max_viscosity;
-    else
-      return 0.1;
-  }
+  if (max_velocity > 0.0)
+    return std::pair<const double, bool>(0.5 * cell_diameter / max_velocity, false);
   else
-    return (std::min(max_viscosity, entropy_viscosity));
+    return std::pair<const double, bool>(0.1 * cell_diameter, true);
 }
 
 }  // namespace BuoyantHydrodynamic
