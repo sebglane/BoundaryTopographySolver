@@ -1,53 +1,66 @@
-+---------+------------+------------------------------------------+
++------------------------------------------+----------------------+
 | Problem parameters                                              |
-+---------+------------+------------------------------------------+
++------------------------------------------+----------------------+
 | Max. number of Newton iterations         | 15                   |
 | Absolute tolerance                       | 1e-12                |
 | Relative tolerance                       | 1e-09                |
 | Verbose                                  | false                |
 | Print timings                            | false                |
 | Graphical output directory               | ./ResultsCavityProblem |
-+---------+------------+------------------------------------------+
++------------------------------------------+----------------------+
 | Refinement control parameters                                   |
-+---------+------------+------------------------------------------+
++------------------------------------------+----------------------+
 | Adaptive mesh refinement                 | True                 |
 | Fraction of cells set to coarsen         | 0                    |
 | Fraction of cells set to refine          | 0.8                  |
 | Maximum number of levels                 | 10                   |
 | Minimum number of levels                 | 5                    |
 | Number of refinement cycles              | 3                    |
-+---------+------------+------------------------------------------+
++------------------------------------------+----------------------+
 | Hydrodynamic solver parameters                                  |
-+---------+------------+------------------------------------------+
++------------------------------------------+----------------------+
 | Convective term weak form                | standard             |
 | Viscous term weak form                   | Laplacean            |
 | Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 1                    |
 | Froude number                            | 0                    |
-+---------+------------+------------------------------------------+
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
 
 Solving cavity problem
     Make grid...
     Initialize mapping...
     Set boundary conditions...
-      Number of active cells: 1024
-      Number of total degrees of freedom: 9539
+    Number of active cells: 1024
+    Number of total degrees of freedom: 9539
 Cycle 0:
 Initial residual: 1.129569e+01
 Iteration:   0, Current residual: 8.7105e-03 (Tolerance: 1.1296e-08)
 Iteration:   1, Current residual: 1.3596e-07 (Tolerance: 1.1296e-08)
-Iteration:   2, Current residual: 5.4951e-14 (Tolerance: 1.1296e-08)
-      Number of active cells: 1093
-      Number of total degrees of freedom: 10272
+Iteration:   2, Current residual: 2.1003e-14 (Tolerance: 1.1296e-08)
+End cycle 0
+Mesh refinement...
+    Number of cells set for refinement: 23
+    Number of cells set for coarsening: 0
+    Number of active cells: 1093
+    Number of total degrees of freedom: 10272
 Cycle 1:
 Initial residual: 9.4252e-01
 Iteration:   0, Current residual: 5.7197e-04 (Tolerance: 9.4252e-10)
-Iteration:   1, Current residual: 1.0952e-11 (Tolerance: 9.4252e-10)
-      Number of active cells: 1171
-      Number of total degrees of freedom: 11100
+Iteration:   1, Current residual: 1.0950e-11 (Tolerance: 9.4252e-10)
+End cycle 1
+Mesh refinement...
+    Number of cells set for refinement: 26
+    Number of cells set for coarsening: 0
+    Number of active cells: 1171
+    Number of total degrees of freedom: 11100
 Cycle 2:
 Initial residual: 9.4255e-01
 Iteration:   0, Current residual: 2.8599e-04 (Tolerance: 9.4255e-10)
-Iteration:   1, Current residual: 1.3797e-12 (Tolerance: 9.4255e-10)
-      Number of active cells: 1255
-      Number of total degrees of freedom: 11982
+Iteration:   1, Current residual: 1.3701e-12 (Tolerance: 9.4255e-10)
+End cycle 2
+Mesh refinement...
+    Number of cells set for refinement: 28
+    Number of cells set for coarsening: 0
+    Number of active cells: 1255
+    Number of total degrees of freedom: 11982

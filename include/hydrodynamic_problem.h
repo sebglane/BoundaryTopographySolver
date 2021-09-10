@@ -12,26 +12,26 @@
 
 #include <hydrodynamic_solver.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 /*!
- * @struct HydrodynamicSolverParameters
+ * @struct ProblemParameters
  *
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.
  */
-struct HydrodynamicProblemParameters: HydrodynamicSolverParameters
+struct ProblemParameters: SolverParameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
    */
-  HydrodynamicProblemParameters();
+  ProblemParameters();
 
   /*!
    * @brief Constructor which sets up the parameters as specified in the
    * parameter file with the filename @p parameter_filename.
    */
-  HydrodynamicProblemParameters(const std::string &filename);
+  ProblemParameters(const std::string &filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -52,7 +52,7 @@ struct HydrodynamicProblemParameters: HydrodynamicSolverParameters
    *
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm);
+  friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
   /*!
    * @brief Polynomial degree of the mapping.
@@ -77,7 +77,7 @@ struct HydrodynamicProblemParameters: HydrodynamicSolverParameters
  * @brief Method forwarding parameters to a stream object.
  */
 template <typename Stream>
-Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm);
+Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
 
@@ -85,7 +85,7 @@ template <int dim>
 class HydrodynamicProblem
 {
 public:
-  HydrodynamicProblem(const HydrodynamicProblemParameters &parameters);
+  HydrodynamicProblem(const ProblemParameters &parameters);
 
   void run();
 
@@ -102,7 +102,7 @@ protected:
 
   MappingQCache<dim>       mapping;
 
-  HydrodynamicSolver<dim>  solver;
+  Solver<dim>  solver;
 
 };
 
@@ -113,7 +113,7 @@ void HydrodynamicProblem<dim>::set_body_force_term()
   return;
 }
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
 
 
 

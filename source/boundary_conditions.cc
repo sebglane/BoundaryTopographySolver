@@ -1,6 +1,7 @@
-#include <boundary_conditions.h>
 
 #include <deal.II/lac/identity_matrix.h>
+
+#include <boundary_conditions.h>
 
 #include <boost/core/demangle.hpp>
 
@@ -8,7 +9,7 @@
 #include <iostream>
 #include <string>
 
-namespace TopographyProblem
+namespace BoundaryConditions
 {
 
 using namespace dealii;
@@ -668,4 +669,4 @@ template class ScalarBoundaryConditions<3>;
 template class VectorBoundaryConditions<2>;
 template class VectorBoundaryConditions<3>;
 
-} // namespace TopographyProblem
+} // namespace BoundaryConditions

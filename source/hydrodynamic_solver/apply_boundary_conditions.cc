@@ -9,10 +9,10 @@
 
 #include <hydrodynamic_solver.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 template <int dim>
-void HydrodynamicSolver<dim>::apply_boundary_conditions()
+void Solver<dim>::apply_boundary_conditions()
 {
   if (this->verbose)
     std::cout << "    Apply boundary conditions..." << std::endl;
@@ -25,36 +25,34 @@ void HydrodynamicSolver<dim>::apply_boundary_conditions()
   if (!velocity_boundary_conditions.periodic_bcs.empty() ||
       !pressure_boundary_conditions.periodic_bcs.empty())
   {
-    if (!velocity_boundary_conditions.periodic_bcs.empty())
-    {
-      AssertThrow(!pressure_boundary_conditions.periodic_bcs.empty(),
-                  ExcMessage("No periodic boundary conditions were specified for "
-                             "the pressure."));
-    }
-    else if (!pressure_boundary_conditions.periodic_bcs.empty())
-      AssertThrow(!velocity_boundary_conditions.periodic_bcs.empty(),
-                  ExcMessage("No periodic boundary conditions were specified for "
-                             "the velocity."));
+    AssertThrow(!pressure_boundary_conditions.periodic_bcs.empty(),
+                ExcMessage("No periodic boundary conditions were specified for "
+                           "the pressure."));
+
+    AssertThrow(!velocity_boundary_conditions.periodic_bcs.empty(),
+                ExcMessage("No periodic boundary conditions were specified for "
+                           "the velocity."));
+
     AssertDimension(velocity_boundary_conditions.periodic_bcs.size(),
                     pressure_boundary_conditions.periodic_bcs.size());
 
     for (std::size_t i=0; i<velocity_boundary_conditions.periodic_bcs.size(); ++i)
     {
-      PeriodicBoundaryData<dim> &velocity_bc =
-          pressure_boundary_conditions.periodic_bcs[i];
+      const PeriodicBoundaryData<dim> &velocity_bc =
+          velocity_boundary_conditions.periodic_bcs[i];
 
       bool matching_bc_found = false;
 
       for (std::size_t j=0; j<pressure_boundary_conditions.periodic_bcs.size(); ++j)
       {
-        PeriodicBoundaryData<dim> &pressure_bc =
+        const PeriodicBoundaryData<dim> &pressure_bc =
             pressure_boundary_conditions.periodic_bcs[j];
 
         if (velocity_bc.direction != pressure_bc.direction)
           continue;
-        if (velocity_bc.boundary_pair.first != velocity_bc.boundary_pair.first)
+        if (velocity_bc.boundary_pair.first != pressure_bc.boundary_pair.first)
           continue;
-        if (velocity_bc.boundary_pair.second != velocity_bc.boundary_pair.second)
+        if (velocity_bc.boundary_pair.second != pressure_bc.boundary_pair.second)
           continue;
 
         matching_bc_found = true;
@@ -88,7 +86,7 @@ void HydrodynamicSolver<dim>::apply_boundary_conditions()
 }
 
 // explicit instantiation
-template void HydrodynamicSolver<2>::apply_boundary_conditions();
-template void HydrodynamicSolver<3>::apply_boundary_conditions();
+template void Solver<2>::apply_boundary_conditions();
+template void Solver<3>::apply_boundary_conditions();
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic

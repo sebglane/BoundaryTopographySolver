@@ -10,42 +10,6 @@
 
 #include <deal.II/base/function.h>
 
-namespace DomainIdentifiers {
-/*
- *
- * enumeration for boundary identifiers
- *
- */
-enum BoundaryIds
-{
-    // topographic boundary
-    TopoBndry,
-    // inner core boundary
-    ICB,
-    // core mantle boundary
-    CMB,
-    // fictitious vacuum boundary
-    FVB,
-    // other boundaries
-    Left,
-    Right,
-    Bottom,
-    Front,
-    Back
-};
-
-/*
- *
- * enumeration for material identifiers
- *
- */
-enum MaterialIds
-{
-    Fluid,
-    Vacuum,
-    Solid
-};
-}  // namespace DomainIdentifiers
 
 namespace EquationData {
 

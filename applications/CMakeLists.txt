@@ -6,7 +6,10 @@ INCLUDE_DIRECTORIES(
     )
 
 SET(SOURCE_FILES
+    advection_problem.cc
     cavity_problem.cc
+    viscous_topography_problem.cc
+    viscous_buoyant_topography_problem.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})

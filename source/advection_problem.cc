@@ -1,0 +1,155 @@
+/*
+ * buoyant_hydrodynamic_problem.cc
+ *
+ *  Created on: Sep 8, 2021
+ *      Author: sg
+ */
+
+#include <advection_problem.h>
+
+#include <fstream>
+
+namespace Advection {
+
+ProblemParameters::ProblemParameters()
+:
+SolverParameters(),
+mapping_degree(1)
+{}
+
+
+
+ProblemParameters::ProblemParameters
+(const std::string &filename)
+:
+ProblemParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+
+
+void ProblemParameters::declare_parameters(ParameterHandler &prm)
+{
+  SolverParameters::declare_parameters(prm);
+
+  prm.declare_entry("Mapping - Polynomial degree",
+                    "1",
+                    Patterns::Integer(1));
+}
+
+
+
+void ProblemParameters::parse_parameters(ParameterHandler &prm)
+{
+  SolverParameters::parse_parameters(prm);
+
+  mapping_degree = prm.get_integer("Mapping - Polynomial degree");
+  AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
+
+}
+
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ProblemParameters &prm)
+{
+  stream << static_cast<const SolverParameters &>(prm);
+
+  {
+     std::stringstream strstream;
+
+     strstream << "MappingQ<dim>"
+               << "(" << std::to_string(prm.mapping_degree) << ")";
+     Utility::add_line(stream, "Mapping", strstream.str().c_str());
+   }
+
+  Utility::add_header(stream);
+
+  return (stream);
+}
+
+
+
+template <int dim>
+AdvectionProblem<dim>::AdvectionProblem(const ProblemParameters &parameters)
+:
+mapping(parameters.mapping_degree),
+solver(triangulation, mapping, parameters)
+{
+  std::cout << parameters << std::endl;
+}
+
+
+
+template <int dim>
+void AdvectionProblem<dim>::initialize_mapping()
+{
+  std::cout << "    Initialize mapping..." << std::endl;
+
+  mapping.initialize(triangulation, MappingQGeneric<dim>(mapping.get_degree()));
+}
+
+
+
+template <int dim>
+void AdvectionProblem<dim>::run()
+{
+  this->make_grid();
+
+  initialize_mapping();
+
+  this->set_boundary_conditions();
+
+  this->set_advection_field();
+
+  this->set_source_term();
+
+  solver.solve();
+}
+
+// explicit instantiations
+template std::ostream & operator<<(std::ostream &, const ProblemParameters &);
+
+template AdvectionProblem<2>::AdvectionProblem(const ProblemParameters &);
+template AdvectionProblem<3>::AdvectionProblem(const ProblemParameters &);
+
+template void AdvectionProblem<2>::initialize_mapping();
+template void AdvectionProblem<3>::initialize_mapping();
+
+template void AdvectionProblem<2>::run();
+template void AdvectionProblem<3>::run();
+
+template class AdvectionProblem<2>;
+template class AdvectionProblem<3>;
+
+
+}  // namespace Advection
+
+
+

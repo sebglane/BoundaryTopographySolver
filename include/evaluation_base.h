@@ -16,7 +16,7 @@
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/block_vector.h>
 
-namespace TopographyProblem {
+namespace SolverBase {
 
 using namespace dealii;
 
@@ -48,6 +48,6 @@ void EvaluationBase<dim>::set_cycle(const unsigned int current_cycle)
   cycle = current_cycle;
 }
 
-}  // namespace TopographyProblem
+}  // namespace SolverBase
 
 #endif /* INCLUDE_EVALUATION_BASE_H_ */

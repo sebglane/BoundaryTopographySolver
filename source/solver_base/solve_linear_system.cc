@@ -8,10 +8,10 @@
 
 #include <solver_base.h>
 
-namespace TopographyProblem {
+namespace SolverBase {
 
 template<int dim>
-void SolverBase<dim>::solve_linear_system(const bool use_homogeneous_constraints)
+void Solver<dim>::solve_linear_system(const bool use_homogeneous_constraints)
 {
   if (verbose)
     std::cout << "    Solving linear system..." << std::endl;
@@ -28,8 +28,8 @@ void SolverBase<dim>::solve_linear_system(const bool use_homogeneous_constraints
 }
 
 // explicit instantiations
-template void SolverBase<2>::solve_linear_system(const bool);
-template void SolverBase<3>::solve_linear_system(const bool);
+template void Solver<2>::solve_linear_system(const bool);
+template void Solver<3>::solve_linear_system(const bool);
 
-}  // namespace TopographyProblem
+}  // namespace SolverBase
 

@@ -11,10 +11,10 @@
 #include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 template <int dim>
-void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constraints)
+void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
     std::cout << "    Assemble linear system..." << std::endl;
@@ -22,7 +22,10 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
   if (body_force_ptr != nullptr)
     AssertThrow(froude_number > 0.0,
                 ExcMessage("Non-vanishing Froude number is required if the body "
-                           "force is specified."))
+                           "force is specified."));
+  AssertThrow(reynolds_number != 0.0,
+              ExcMessage("The Reynolds must not vanish (stabilization is not "
+                         "implemented yet)."));
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 
@@ -37,12 +40,16 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
 
   const QGauss<dim>   quadrature_formula(velocity_fe_degree + 1);
 
+  UpdateFlags update_flags = update_values|
+                             update_gradients|
+                             update_JxW_values;
+  if (body_force_ptr != nullptr)
+    update_flags |= update_quadrature_points;
+
   FEValues<dim> fe_values(this->mapping,
                           *this->fe_system,
                           quadrature_formula,
-                          update_values|
-                          update_gradients|
-                          update_JxW_values);
+                          update_flags);
 
   const QGauss<dim-1>   face_quadrature_formula(velocity_fe_degree + 1);
 
@@ -66,10 +73,6 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
   std::vector<Tensor<2, dim>> grad_phi_velocity(dofs_per_cell);
   std::vector<double>         div_phi_velocity(dofs_per_cell);
   std::vector<double>         phi_pressure(dofs_per_cell);
-
-  std::vector<Tensor<1, dim>> phi_face_velocity;
-  if (!neumann_bcs.empty())
-    phi_face_velocity.resize(dofs_per_cell);
 
   const unsigned int n_q_points = quadrature_formula.size();
   std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
@@ -110,9 +113,9 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
 
     }
 
-    for (const unsigned int q: fe_values.quadrature_point_indices())
+    for (const auto q: fe_values.quadrature_point_indices())
     {
-      for (const unsigned int i : fe_values.dof_indices())
+      for (const auto i: fe_values.dof_indices())
       {
         phi_velocity[i] = fe_values[velocity].value(i, q);
         grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
@@ -122,29 +125,34 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
 
       const double JxW{fe_values.JxW(q)};
 
-      for (const unsigned int i : fe_values.dof_indices())
+      for (const auto i: fe_values.dof_indices())
       {
-        for (const unsigned int j : fe_values.dof_indices())
+        const Tensor<1, dim> &velocity_test_function = phi_velocity[i];
+        const Tensor<2, dim> &velocity_test_function_gradient = grad_phi_velocity[i];
+
+        const double          pressure_test_function = phi_pressure[i];
+
+        for (const auto j: fe_values.dof_indices())
         {
           cell_matrix(i, j) += compute_hydrodynamic_matrix(phi_velocity[j],
                                                            grad_phi_velocity[j],
-                                                           phi_velocity[i],
-                                                           grad_phi_velocity[i],
+                                                           velocity_test_function,
+                                                           velocity_test_function_gradient,
                                                            present_velocity_values[q],
                                                            present_velocity_gradients[q],
                                                            phi_pressure[j],
-                                                           phi_pressure[i],
+                                                           pressure_test_function,
                                                            nu) * JxW;
         }
-        double rhs = compute_hydrodynamic_rhs(phi_velocity[i],
-                                              grad_phi_velocity[i],
+        double rhs = compute_hydrodynamic_rhs(velocity_test_function,
+                                              velocity_test_function_gradient,
                                               present_velocity_values[q],
                                               present_velocity_gradients[q],
                                               present_pressure_values[q],
-                                              phi_pressure[i],
+                                              pressure_test_function,
                                               nu);
         if (body_force_ptr != nullptr)
-          rhs += body_force_values[q] / froude_number * phi_velocity[i];
+          rhs += body_force_values[q] * phi_velocity[i] / std::pow(this->froude_number, 2);
 
         cell_rhs(i) += rhs * JxW;
       }
@@ -165,17 +173,17 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
                                                     boundary_traction_values);
 
             // Loop over face quadrature points
-            for (const unsigned int q: fe_face_values.quadrature_point_indices())
+            for (const auto q: fe_face_values.quadrature_point_indices())
             {
               // Extract the test function's values at the face quadrature points
-              for (const unsigned int i : fe_face_values.dof_indices())
-                phi_face_velocity[i] = fe_face_values[velocity].value(i,q);
+              for (const auto i: fe_face_values.dof_indices())
+                phi_velocity[i] = fe_face_values[velocity].value(i,q);
 
               const double JxW_face{fe_face_values.JxW(q)};
 
               // Loop over the degrees of freedom
-              for (const unsigned int i : fe_face_values.dof_indices())
-                cell_rhs(i) += phi_face_velocity[i] *
+              for (const auto i: fe_face_values.dof_indices())
+                cell_rhs(i) += phi_velocity[i] *
                                boundary_traction_values[q] *
                                JxW_face;
 
@@ -193,8 +201,8 @@ void HydrodynamicSolver<dim>::assemble_system(const bool use_homogeneous_constra
 }
 
 // explicit instantiation
-template void HydrodynamicSolver<2>::assemble_system(const bool);
-template void HydrodynamicSolver<3>::assemble_system(const bool);
+template void Solver<2>::assemble_system(const bool);
+template void Solver<3>::assemble_system(const bool);
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
 

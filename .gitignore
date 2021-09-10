@@ -62,6 +62,7 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 /build/
+tests/*/*/*.debug/
 
 # pdf files
 *.pdf

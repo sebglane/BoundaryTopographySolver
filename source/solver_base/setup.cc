@@ -11,20 +11,20 @@
 
 #include <solver_base.h>
 
-namespace TopographyProblem {
+namespace SolverBase {
 
 template <int dim>
-void SolverBase<dim>::setup_dofs()
+void Solver<dim>::setup_dofs()
 {
   // distribute and renumber block-wise
   dof_handler.distribute_dofs(*fe_system);
 
   DoFRenumbering::block_wise(dof_handler);
 
-  std::cout << "      Number of active cells: "
+  std::cout << "    Number of active cells: "
             << triangulation.n_active_cells()
             << std::endl
-            << "      Number of total degrees of freedom: "
+            << "    Number of total degrees of freedom: "
             << dof_handler.n_dofs()
             << std::endl;
 
@@ -52,7 +52,7 @@ void SolverBase<dim>::setup_dofs()
 
 
 template<int dim>
-void SolverBase<dim>::setup_system_matrix
+void Solver<dim>::setup_system_matrix
 (const std::vector<types::global_dof_index> &dofs_per_block,
  const Table<2, DoFTools::Coupling> &coupling_table)
 {
@@ -73,7 +73,7 @@ void SolverBase<dim>::setup_system_matrix
 
 
 template<int dim>
-void SolverBase<dim>::setup_vectors
+void Solver<dim>::setup_vectors
 (const std::vector<types::global_dof_index> &dofs_per_block)
 {
   evaluation_point.reinit(dofs_per_block);
@@ -83,22 +83,22 @@ void SolverBase<dim>::setup_vectors
 }
 
 // explicit instantiations
-template void SolverBase<2>::setup_dofs();
-template void SolverBase<3>::setup_dofs();
+template void Solver<2>::setup_dofs();
+template void Solver<3>::setup_dofs();
 
-template void SolverBase<2>::setup_system_matrix
+template void Solver<2>::setup_system_matrix
 (const std::vector<types::global_dof_index> &,
  const Table<2, DoFTools::Coupling> &);
-template void SolverBase<3>::setup_system_matrix
+template void Solver<3>::setup_system_matrix
 (const std::vector<types::global_dof_index> &,
  const Table<2, DoFTools::Coupling> &);
 
-template void SolverBase<2>::setup_vectors
+template void Solver<2>::setup_vectors
 (const std::vector<types::global_dof_index> &);
-template void SolverBase<3>::setup_vectors
+template void Solver<3>::setup_vectors
 (const std::vector<types::global_dof_index> &);
 
-template class SolverBase<2>;
-template class SolverBase<3>;
+template class Solver<2>;
+template class Solver<3>;
 
-}  // namespace TopographyProblem
+}  // namespace SolverBase

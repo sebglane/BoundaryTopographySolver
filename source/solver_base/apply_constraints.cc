@@ -7,15 +7,14 @@
 #include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/numerics/vector_tools.h>
-
 #include <solver_base.h>
 
 #include <functional>
 
-namespace TopographyProblem {
+namespace SolverBase {
 
 template <int dim>
-void SolverBase<dim>::apply_hanging_node_constraints()
+void Solver<dim>::apply_hanging_node_constraints()
 {
   DoFTools::make_hanging_node_constraints(dof_handler,
                                           nonzero_constraints);
@@ -27,7 +26,7 @@ void SolverBase<dim>::apply_hanging_node_constraints()
 
 
 template <int dim>
-void SolverBase<dim>::apply_periodicity_constraints
+void Solver<dim>::apply_periodicity_constraints
 (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs)
 {
   std::vector<GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
@@ -51,7 +50,7 @@ void SolverBase<dim>::apply_periodicity_constraints
 
 
 template <int dim>
-void SolverBase<dim>::apply_dirichlet_constraints
+void Solver<dim>::apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<dim>::BCMapping &dirichlet_bcs,
  const ComponentMask                                   &mask)
 {
@@ -155,7 +154,7 @@ void SolverBase<dim>::apply_dirichlet_constraints
 
 
 template <int dim>
-void SolverBase<dim>::apply_normal_flux_constraints
+void Solver<dim>::apply_normal_flux_constraints
 (const typename BoundaryConditionsBase<dim>::BCMapping &normal_flux_bcs,
  const ComponentMask                                   &mask)
 {
@@ -187,22 +186,22 @@ void SolverBase<dim>::apply_normal_flux_constraints
 }
 
 // explicit instantiations
-template void SolverBase<2>::apply_hanging_node_constraints();
-template void SolverBase<3>::apply_hanging_node_constraints();
+template void Solver<2>::apply_hanging_node_constraints();
+template void Solver<3>::apply_hanging_node_constraints();
 
-template void SolverBase<2>::apply_periodicity_constraints
+template void Solver<2>::apply_periodicity_constraints
 (std::vector<PeriodicBoundaryData<2>> &);
-template void SolverBase<3>::apply_periodicity_constraints
+template void Solver<3>::apply_periodicity_constraints
 (std::vector<PeriodicBoundaryData<3>> &);
 
-template void SolverBase<2>::apply_dirichlet_constraints
+template void Solver<2>::apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<2>::BCMapping &, const ComponentMask &);
-template void SolverBase<3>::apply_dirichlet_constraints
+template void Solver<3>::apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
 
-template void SolverBase<2>::apply_normal_flux_constraints
+template void Solver<2>::apply_normal_flux_constraints
 (const typename BoundaryConditionsBase<2>::BCMapping &, const ComponentMask &);
-template void SolverBase<3>::apply_normal_flux_constraints
+template void Solver<3>::apply_normal_flux_constraints
 (const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
 
-}  // namespace TopographyProblem
+}  // namespace SolverBase

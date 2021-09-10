@@ -1,2 +1,4 @@
-SET(TEST_TARGET cavity_problem)
-DEAL_II_PICKUP_TESTS()
+ADD_SUBDIRECTORY(cavity_problem)
+ADD_SUBDIRECTORY(advection_problem)
+ADD_SUBDIRECTORY(viscous_problem)
+ADD_SUBDIRECTORY(viscous_buoyant_problem)

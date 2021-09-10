@@ -9,11 +9,11 @@
 
 #include <fstream>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
-HydrodynamicProblemParameters::HydrodynamicProblemParameters()
+ProblemParameters::ProblemParameters()
 :
-HydrodynamicSolverParameters(),
+SolverParameters(),
 mapping_degree(1),
 froude_number(0.0),
 reynolds_number(1.0)
@@ -21,10 +21,10 @@ reynolds_number(1.0)
 
 
 
-HydrodynamicProblemParameters::HydrodynamicProblemParameters
+ProblemParameters::ProblemParameters
 (const std::string &filename)
 :
-HydrodynamicProblemParameters()
+ProblemParameters()
 {
   ParameterHandler prm;
   declare_parameters(prm);
@@ -56,9 +56,9 @@ HydrodynamicProblemParameters()
 
 
 
-void HydrodynamicProblemParameters::declare_parameters(ParameterHandler &prm)
+void ProblemParameters::declare_parameters(ParameterHandler &prm)
 {
-  HydrodynamicSolverParameters::declare_parameters(prm);
+  SolverParameters::declare_parameters(prm);
 
   prm.declare_entry("Mapping - Polynomial degree",
                     "1",
@@ -79,9 +79,9 @@ void HydrodynamicProblemParameters::declare_parameters(ParameterHandler &prm)
 
 
 
-void HydrodynamicProblemParameters::parse_parameters(ParameterHandler &prm)
+void ProblemParameters::parse_parameters(ParameterHandler &prm)
 {
-  HydrodynamicSolverParameters::parse_parameters(prm);
+  SolverParameters::parse_parameters(prm);
 
   mapping_degree = prm.get_integer("Mapping - Polynomial degree");
   AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
@@ -102,23 +102,25 @@ void HydrodynamicProblemParameters::parse_parameters(ParameterHandler &prm)
 
 
 template<typename Stream>
-Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm)
+Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 {
-  stream << static_cast<const HydrodynamicSolverParameters &>(prm);
+  stream << static_cast<const SolverParameters &>(prm);
 
   {
      std::stringstream strstream;
 
      strstream << "MappingQ<dim>"
                << "(" << std::to_string(prm.mapping_degree) << ")";
-     internal::add_line(stream, "Mapping", strstream.str().c_str());
+     Utility::add_line(stream, "Mapping", strstream.str().c_str());
    }
 
-  internal::add_line(stream, "Reynolds number", prm.reynolds_number);
+  Utility::add_line(stream, "Reynolds number", prm.reynolds_number);
 
-  internal::add_line(stream, "Froude number", prm.froude_number);
+  Utility::add_line(stream, "Froude number", prm.froude_number);
 
-  internal::add_header(stream);
+  Utility::add_header(stream);
+
+  Utility::add_header(stream);
 
   return (stream);
 }
@@ -126,8 +128,7 @@ Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm)
 
 
 template <int dim>
-HydrodynamicProblem<dim>::HydrodynamicProblem
-(const HydrodynamicProblemParameters &parameters)
+HydrodynamicProblem<dim>::HydrodynamicProblem(const ProblemParameters &parameters)
 :
 mapping(parameters.mapping_degree),
 solver(triangulation, mapping, parameters, parameters.reynolds_number, parameters.froude_number)
@@ -162,10 +163,10 @@ void HydrodynamicProblem<dim>::run()
 }
 
 // explicit instantiations
-template std::ostream & operator<<(std::ostream &, const HydrodynamicProblemParameters &);
+template std::ostream & operator<<(std::ostream &, const ProblemParameters &);
 
-template HydrodynamicProblem<2>::HydrodynamicProblem(const HydrodynamicProblemParameters &);
-template HydrodynamicProblem<3>::HydrodynamicProblem(const HydrodynamicProblemParameters &);
+template HydrodynamicProblem<2>::HydrodynamicProblem(const ProblemParameters &);
+template HydrodynamicProblem<3>::HydrodynamicProblem(const ProblemParameters &);
 
 template void HydrodynamicProblem<2>::initialize_mapping();
 template void HydrodynamicProblem<3>::initialize_mapping();
@@ -177,4 +178,4 @@ template class HydrodynamicProblem<2>;
 template class HydrodynamicProblem<3>;
 
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic

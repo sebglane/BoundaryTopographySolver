@@ -14,20 +14,20 @@
 #include <fstream>
 #include <string>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
-HydrodynamicSolverParameters::HydrodynamicSolverParameters()
+SolverParameters::SolverParameters()
 :
-SolverBaseParameters(),
+SolverBase::Parameters(),
 convective_term_weak_form(ConvectiveTermWeakForm::standard),
 viscous_term_weak_form(ViscousTermWeakForm::laplacean)
 {}
 
 
 
-void HydrodynamicSolverParameters::declare_parameters(ParameterHandler &prm)
+void SolverParameters::declare_parameters(ParameterHandler &prm)
 {
-  SolverBaseParameters::declare_parameters(prm);
+  SolverBase::Parameters::declare_parameters(prm);
 
   prm.enter_subsection("Hydrodynamic solver parameters");
   {
@@ -44,9 +44,9 @@ void HydrodynamicSolverParameters::declare_parameters(ParameterHandler &prm)
 
 
 
-void HydrodynamicSolverParameters::parse_parameters(ParameterHandler &prm)
+void SolverParameters::parse_parameters(ParameterHandler &prm)
 {
-  SolverBaseParameters::parse_parameters(prm);
+  SolverBase::Parameters::parse_parameters(prm);
 
   prm.enter_subsection("Hydrodynamic solver parameters");
   {
@@ -84,27 +84,27 @@ void HydrodynamicSolverParameters::parse_parameters(ParameterHandler &prm)
 
 
 template<typename Stream>
-Stream& operator<<(Stream &stream, const HydrodynamicSolverParameters &prm)
+Stream& operator<<(Stream &stream, const SolverParameters &prm)
 {
-  stream << static_cast<const SolverBaseParameters &>(prm);
+  stream << static_cast<const SolverBase::Parameters &>(prm);
 
-  internal::add_header(stream);
-  internal::add_line(stream, "Hydrodynamic solver parameters");
-  internal::add_header(stream);
+  Utility::add_header(stream);
+  Utility::add_line(stream, "Hydrodynamic solver parameters");
+  Utility::add_header(stream);
 
   switch (prm.convective_term_weak_form)
   {
     case ConvectiveTermWeakForm::standard:
-      internal::add_line(stream, "Convective term weak form", "standard");
+      Utility::add_line(stream, "Convective term weak form", "standard");
       break;
     case ConvectiveTermWeakForm::rotational:
-      internal::add_line(stream, "Convective term weak form", "rotational");
+      Utility::add_line(stream, "Convective term weak form", "rotational");
       break;
     case ConvectiveTermWeakForm::divergence:
-      internal::add_line(stream, "Convective term weak form", "divergence");
+      Utility::add_line(stream, "Convective term weak form", "divergence");
       break;
     case ConvectiveTermWeakForm::skewsymmetric:
-      internal::add_line(stream, "Convective term weak form", "skew-symmetric");
+      Utility::add_line(stream, "Convective term weak form", "skew-symmetric");
       break;
     default:
       AssertThrow(false, ExcMessage("Unexpected type identifier for the "
@@ -115,10 +115,10 @@ Stream& operator<<(Stream &stream, const HydrodynamicSolverParameters &prm)
   switch (prm.viscous_term_weak_form)
   {
     case ViscousTermWeakForm::laplacean:
-      internal::add_line(stream, "Viscous term weak form", "Laplacean");
+      Utility::add_line(stream, "Viscous term weak form", "Laplacean");
       break;
     case ViscousTermWeakForm::stress:
-      internal::add_line(stream, "Viscous term weak form", "stress");
+      Utility::add_line(stream, "Viscous term weak form", "stress");
       break;
     default:
       AssertThrow(false, ExcMessage("Unexpected type identifier for the "
@@ -132,14 +132,14 @@ Stream& operator<<(Stream &stream, const HydrodynamicSolverParameters &prm)
 
 
 template <int dim>
-HydrodynamicSolver<dim>::HydrodynamicSolver
+Solver<dim>::Solver
 (Triangulation<dim>     &tria,
  Mapping<dim>           &mapping,
- const HydrodynamicSolverParameters &parameters,
+ const SolverParameters &parameters,
  const double           reynolds,
  const double           froude)
 :
-SolverBase<dim>(tria, mapping, parameters),
+SolverBase::Solver<dim>(tria, mapping, parameters),
 velocity_boundary_conditions(this->triangulation),
 pressure_boundary_conditions(this->triangulation),
 body_force_ptr(nullptr),
@@ -153,12 +153,12 @@ froude_number(froude)
 
 
 template<int dim>
-void HydrodynamicSolver<dim>::output_results(const unsigned int cycle) const
+void Solver<dim>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     std::cout << "    Output results..." << std::endl;
 
-  HydrodynamicPostprocessor<dim>  postprocessor(0, dim);
+  Postprocessor<dim>  postprocessor(0, dim);
 
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
@@ -179,25 +179,25 @@ void HydrodynamicSolver<dim>::output_results(const unsigned int cycle) const
 }
 
 // explicit instantiation
-template std::ostream & operator<<(std::ostream &, const HydrodynamicSolverParameters &);
+template std::ostream & operator<<(std::ostream &, const SolverParameters &);
 
-template HydrodynamicSolver<2>::HydrodynamicSolver
+template Solver<2>::Solver
 (Triangulation<2>  &,
  Mapping<2>        &,
- const HydrodynamicSolverParameters &,
+ const SolverParameters &,
  const double       ,
  const double        );
-template HydrodynamicSolver<3>::HydrodynamicSolver
+template Solver<3>::Solver
 (Triangulation<3>  &,
  Mapping<3>        &,
- const HydrodynamicSolverParameters &,
+ const SolverParameters &,
  const double       ,
  const double        );
 
-template void HydrodynamicSolver<2>::output_results(const unsigned int ) const;
-template void HydrodynamicSolver<3>::output_results(const unsigned int ) const;
+template void Solver<2>::output_results(const unsigned int ) const;
+template void Solver<3>::output_results(const unsigned int ) const;
 
-template class HydrodynamicSolver<2>;
-template class HydrodynamicSolver<3>;
+template class Solver<2>;
+template class Solver<3>;
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic

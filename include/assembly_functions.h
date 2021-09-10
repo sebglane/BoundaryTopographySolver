@@ -10,7 +10,7 @@
 
 #include <deal.II/base/tensor.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 using namespace dealii;
 
@@ -65,8 +65,132 @@ inline double compute_hydrodynamic_rhs
           );
 }
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
+
+namespace BuoyantHydrodynamic {
+
+using namespace dealii;
+
+template <int dim>
+inline double compute_density_matrix
+(const Tensor<1, dim> &density_trial_function_gradient,
+ const Tensor<1, dim> &density_test_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<1, dim> &present_density_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<1, dim> &reference_density_gradient,
+ const double          density_test_function_value,
+ const double          stratification_parameter,
+ const double          delta,
+ const bool            vanishing_velocity)
+{
+  if (vanishing_velocity)
+    return (stratification_parameter * velocity_trial_function_value * reference_density_gradient +
+            velocity_trial_function_value * present_density_gradient +
+            present_velocity_value * density_trial_function_gradient) *
+           (density_test_function_value +
+            delta * present_velocity_value * density_test_function_gradient) +
+            delta * density_trial_function_gradient * density_test_function_gradient +
+           (stratification_parameter * present_velocity_value * reference_density_gradient +
+            present_velocity_value * present_density_gradient) *
+           (delta * velocity_trial_function_value * density_trial_function_gradient);
+  else
+    return (stratification_parameter * velocity_trial_function_value * reference_density_gradient +
+            velocity_trial_function_value * present_density_gradient +
+            present_velocity_value * density_trial_function_gradient) *
+           (density_test_function_value +
+            delta * present_velocity_value * density_test_function_gradient) +
+           (present_velocity_value * present_density_gradient) *
+           (delta * velocity_trial_function_value * density_trial_function_gradient);
+}
 
 
+
+template <int dim>
+inline double compute_density_rhs
+(const Tensor<1, dim> &density_test_function_gradient,
+ const Tensor<1, dim> &present_density_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<1, dim> &reference_density_gradient,
+ const double          density_test_function_value,
+ const double          stratification_parameter,
+ const double          delta)
+{
+  return -(stratification_parameter * present_velocity_value * reference_density_gradient +
+           present_velocity_value * present_density_gradient) *
+          (density_test_function_value +
+           delta * present_velocity_value * density_test_function_gradient);
+}
+
+
+
+template<int dim>
+inline std::pair<const double, bool> compute_stabilization_parameter
+(const std::vector<Tensor<1, dim>> &present_velocity_values,
+ const double                       cell_diameter)
+{
+  double max_velocity = 0;
+
+  for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+    max_velocity = std::max(present_velocity_values[q].norm(), max_velocity);
+
+  if (max_velocity > 0.0)
+    return std::pair<const double, bool>(0.5 * cell_diameter / max_velocity, false);
+  else
+    return std::pair<const double, bool>(0.1 * cell_diameter, true);
+}
+
+}  // namespace BuoyantHydrodynamic
+
+namespace Advection {
+
+using namespace dealii;
+
+template <int dim>
+inline double compute_matrix
+(const Tensor<1, dim> &trial_function_gradient,
+ const Tensor<1, dim> &test_function_gradient,
+ const Tensor<1, dim> &advection_field_value,
+ const double          test_function_value,
+ const double          delta)
+{
+  return (advection_field_value * trial_function_gradient) *
+         (test_function_value +
+          delta * advection_field_value * test_function_gradient);
+}
+
+
+
+template <int dim>
+inline double compute_rhs
+(const Tensor<1, dim> &test_function_gradient,
+ const Tensor<1, dim> &present_gradient,
+ const Tensor<1, dim> &advection_field_value,
+ const double          test_function_value,
+ const double          delta)
+{
+  return -(advection_field_value * present_gradient) *
+          (test_function_value +
+           delta * advection_field_value * test_function_gradient);
+}
+
+
+
+template<int dim>
+inline double compute_stabilization_parameter
+(const std::vector<Tensor<1, dim>> &advection_field_values,
+ const double                       cell_diameter)
+{
+  double max_velocity = 0;
+
+  for (std::size_t q=0; q<advection_field_values.size(); ++q)
+    max_velocity = std::max(advection_field_values[q].norm(), max_velocity);
+
+  const double max_viscosity = 0.5 * cell_diameter / max_velocity;
+
+  return (max_viscosity);
+}
+
+}  // namespace Advection
 
 #endif /* INCLUDE_ASSEMBLY_FUNCTIONS_H_ */

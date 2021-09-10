@@ -7,10 +7,10 @@
 
 #include <hydrodynamic_postprocessor.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
 
 template<int dim>
-HydrodynamicPostprocessor<dim>::HydrodynamicPostprocessor
+Postprocessor<dim>::Postprocessor
 (const unsigned int velocity_start_index,
  const unsigned int pressure_index)
 :
@@ -22,7 +22,7 @@ pressure_index(pressure_index)
 
 
 template<int dim>
-std::vector<std::string> HydrodynamicPostprocessor<dim>::get_names() const
+std::vector<std::string> Postprocessor<dim>::get_names() const
 {
   std::vector<std::string> solution_names;
 
@@ -47,7 +47,7 @@ std::vector<std::string> HydrodynamicPostprocessor<dim>::get_names() const
 
 
 template<int dim>
-UpdateFlags HydrodynamicPostprocessor<dim>::get_needed_update_flags() const
+UpdateFlags Postprocessor<dim>::get_needed_update_flags() const
 {
     return (update_values|update_gradients);
 }
@@ -56,7 +56,7 @@ UpdateFlags HydrodynamicPostprocessor<dim>::get_needed_update_flags() const
 
 template<int dim>
 std::vector<DataComponentInterpretation::DataComponentInterpretation>
-HydrodynamicPostprocessor<dim>::get_data_component_interpretation() const
+Postprocessor<dim>::get_data_component_interpretation() const
 {
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
   component_interpretation;
@@ -82,7 +82,7 @@ HydrodynamicPostprocessor<dim>::get_data_component_interpretation() const
 
 
 template<int dim>
-void HydrodynamicPostprocessor<dim>::evaluate_vector_field
+void Postprocessor<dim>::evaluate_vector_field
 (const DataPostprocessorInputs::Vector<dim>  &inputs,
  std::vector<Vector<double>>                 &computed_quantities) const
 {
@@ -137,8 +137,8 @@ void HydrodynamicPostprocessor<dim>::evaluate_vector_field
 }
 
 // explicit instantiation
-template class HydrodynamicPostprocessor<2>;
-template class HydrodynamicPostprocessor<3>;
+template class Postprocessor<2>;
+template class Postprocessor<3>;
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
 

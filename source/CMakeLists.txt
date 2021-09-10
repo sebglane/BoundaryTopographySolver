@@ -1,9 +1,10 @@
 # Set the source files to be compiled
 SET(TARGET_SRC
+    angular_velocity.cc
     boundary_conditions.cc
-    hydrodynamic_postprocessor.cc
-    hydrodynamic_problem.cc
+    grid_factory.cc
     parameters.cc
+    postprocessor_base.cc
     # solver base
     solver_base/apply_constraints.cc
     solver_base/refine_mesh.cc
@@ -11,16 +12,33 @@ SET(TARGET_SRC
     solver_base/solve_linear_system.cc
     solver_base/solver_base.cc
     # hydrodynamic solver
+    hydrodynamic_postprocessor.cc
+    hydrodynamic_problem.cc
     hydrodynamic_solver/apply_boundary_conditions.cc
     hydrodynamic_solver/assemble_system.cc
     hydrodynamic_solver/assemble_rhs.cc
     hydrodynamic_solver/hydrodynamic_solver.cc
     hydrodynamic_solver/setup.cc
+    # buoyant hydrodynamic solver
+    buoyant_hydrodynamic_problem.cc
+    buoyant_hydrodynamic_solver/apply_boundary_conditions.cc
+    buoyant_hydrodynamic_solver/assemble_system.cc
+    buoyant_hydrodynamic_solver/assemble_rhs.cc
+    buoyant_hydrodynamic_solver/buoyant_hydrodynamic_solver.cc
+    buoyant_hydrodynamic_solver/setup.cc
+    buoyant_hydrodynamic_solver/stabilization.cc
+    # buoyant hydrodynamic solver
+    advection_problem.cc
+    advection_solver/apply_boundary_conditions.cc
+    advection_solver/assemble_system.cc
+    advection_solver/assemble_rhs.cc
+    advection_solver/advection_solver.cc
+    advection_solver/setup.cc
+    advection_solver/stabilization.cc
     # assemble_system.cc
     # assembly_data.cc
     # entropy_viscosity.cc
     # equation_data.cc
-    # grid_factory.cc
     # linear_solver.cc
     # local_assemble.cc
     # make_grid.cc

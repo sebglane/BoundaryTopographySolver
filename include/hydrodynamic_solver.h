@@ -12,20 +12,116 @@
 
 #include <solver_base.h>
 
-namespace TopographyProblem {
+namespace Hydrodynamic {
+
+using namespace BoundaryConditions;
+
 
 /*!
- * @struct HydrodynamicSolverParameters
+ * @brief Enumeration for the weak form of the convective term.
+ *
+ * @attention These definitions are the ones I see the most in the literature.
+ * Nonetheless Volker John and Helene Dallmann define the skew-symmetric
+ * and the divergence form differently.
+ */
+enum class ConvectiveTermWeakForm
+{
+  /*!
+   * @brief The standard form.
+   * @details Given by
+   * \f[
+   * \int_\Omega \bs{w} \cdot [ \bs{v} \cdot ( \nabla \otimes \bs{v})] \dint{v}
+   * \f]
+   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
+   * test function respectively.
+   */
+  standard,
+
+  /*!
+   * @brief The skew-symmetric form.
+   * @details Given by
+   * \f[
+   * \int_\Omega \bs{w} \cdot [ \bs{v} \cdot ( \nabla \otimes \bs{v}) +
+   * (\nabla \cdot \bs{v}) \bs{v}] \dint{v}
+   * \f]
+   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
+   * test function respectively.
+   */
+  skewsymmetric,
+
+  /*!
+   * @brief The divergence form.
+   * @details Given by
+   * \f[
+   * \int_\Omega \bs{w} \cdot [ \bs{v} \cdot ( \nabla \otimes \bs{v}) +
+   * \frac{1}{2}(\nabla \cdot \bs{v}) \bs{v}] \dint{v}
+   * \f]
+   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
+   * test function respectively.
+   */
+  divergence,
+
+  /*!
+   * @brief The rotational form.
+   * @details Given by
+   * \f[
+   * \int_\Omega \bs{w} \cdot [ ( \nabla \times\bs{v}) \times \bs{v}] \dint{v}
+   * \f]
+   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
+   * test function respectively.
+   * @note This form modifies the pressure, *i. e.*,
+   * \f[
+   * \bar{p} = p + \frac{1}{2} \bs{v} \cdot \bs{v}.
+   * \f]
+   */
+  rotational
+};
+
+
+
+/*!
+ * @brief Enumeration for the weak form of the non-linear convective term.
+ * @attention These definitions are the ones I see the most in the literature.
+ * Nonetheless Volker John and Helene Dallmann define the skew-symmetric
+ * and the divergence form differently.
+ */
+enum class ViscousTermWeakForm
+{
+  /*!
+   * @brief The Laplacean form.
+   * @details Given by
+   * \f[
+   * \int_\Omega (\nabla\otimes\bs{w}) \cdott (\nabla\otimes\bs{v}) \dint{v}
+   * \f]
+   * where \f$ \bs{v} \f$ and \f$ \bs{w} \f$ are the velocity and the
+   * test function respectively.
+   */
+  laplacean,
+
+  /*!
+   * @brief The stress form.
+   * \f[
+   * \int_\Omega (\nabla\otimes\bs{w} + \bs{w}\otimes\nabla)
+   *              \cdott (\nabla\otimes\bs{v} + \bs{v}\otimes\nabla) \dint{v}
+   * \f]
+   */
+  stress,
+};
+
+
+
+/*!
+ * @struct SolverParameters
  *
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.
  */
-struct HydrodynamicSolverParameters: SolverBaseParameters
+struct SolverParameters: SolverBase::Parameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
    */
-  HydrodynamicSolverParameters();
+  SolverParameters();
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -46,19 +142,19 @@ struct HydrodynamicSolverParameters: SolverBaseParameters
    *
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const HydrodynamicSolverParameters &prm);
+  friend Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
   /*!
    * @brief Enumerator controlling which weak form of the convective
    * term is to be implemented.
    */
-  ConvectiveTermWeakForm            convective_term_weak_form;
+  ConvectiveTermWeakForm convective_term_weak_form;
 
   /*!
    * @brief Enumeration controlling which weak form of the viscous
    * term is to be implemented.
    */
-  ViscousTermWeakForm               viscous_term_weak_form;
+  ViscousTermWeakForm    viscous_term_weak_form;
 
 };
 
@@ -68,20 +164,19 @@ struct HydrodynamicSolverParameters: SolverBaseParameters
  * @brief Method forwarding parameters to a stream object.
  */
 template <typename Stream>
-Stream& operator<<(Stream &stream, const HydrodynamicSolverParameters &prm);
+Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 
 template <int dim>
-class HydrodynamicSolver: public SolverBase<dim>
+class Solver: public SolverBase::Solver<dim>
 {
-
 public:
-  HydrodynamicSolver(Triangulation<dim>  &tria,
-                     Mapping<dim>        &mapping,
-                     const HydrodynamicSolverParameters &parameters,
-                     const double         reynolds_number = 1.0,
-                     const double         froude_number = 0.0);
+  Solver(Triangulation<dim>  &tria,
+         Mapping<dim>        &mapping,
+         const SolverParameters &parameters,
+         const double         reynolds_number = 1.0,
+         const double         froude_number = 0.0);
 
   void set_body_force(const TensorFunction<1, dim> &body_force);
 
@@ -108,27 +203,27 @@ private:
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
+protected:
   VectorBoundaryConditions<dim> velocity_boundary_conditions;
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;
 
-  const TensorFunction<1, dim>       *body_force_ptr;
+  const TensorFunction<1, dim> *body_force_ptr;
 
-  ConvectiveTermWeakForm            convective_term_weak_form;
+  ConvectiveTermWeakForm     convective_term_weak_form;
 
-  ViscousTermWeakForm               viscous_term_weak_form;
+  ViscousTermWeakForm        viscous_term_weak_form;
 
   const unsigned int  velocity_fe_degree;
 
   const double        reynolds_number;
 
   const double        froude_number;
-
 };
 
 // inline functions
 template <int dim>
-inline void HydrodynamicSolver<dim>::set_body_force
+inline void Solver<dim>::set_body_force
 (const TensorFunction<1, dim> &body_force)
 {
   body_force_ptr = &body_force;
@@ -138,7 +233,7 @@ inline void HydrodynamicSolver<dim>::set_body_force
 
 template <int dim>
 inline VectorBoundaryConditions<dim> &
-HydrodynamicSolver<dim>::get_velocity_bcs()
+Solver<dim>::get_velocity_bcs()
 {
   return velocity_boundary_conditions;
 }
@@ -147,7 +242,7 @@ HydrodynamicSolver<dim>::get_velocity_bcs()
 
 template <int dim>
 inline const VectorBoundaryConditions<dim> &
-HydrodynamicSolver<dim>::get_velocity_bcs() const
+Solver<dim>::get_velocity_bcs() const
 {
   return velocity_boundary_conditions;
 }
@@ -155,7 +250,7 @@ HydrodynamicSolver<dim>::get_velocity_bcs() const
 
 template <int dim>
 inline ScalarBoundaryConditions<dim> &
-HydrodynamicSolver<dim>::get_pressure_bcs()
+Solver<dim>::get_pressure_bcs()
 {
   return pressure_boundary_conditions;
 }
@@ -164,7 +259,7 @@ HydrodynamicSolver<dim>::get_pressure_bcs()
 
 template <int dim>
 inline const ScalarBoundaryConditions<dim> &
-HydrodynamicSolver<dim>::get_pressure_bcs() const
+Solver<dim>::get_pressure_bcs() const
 {
   return pressure_boundary_conditions;
 }
@@ -172,7 +267,7 @@ HydrodynamicSolver<dim>::get_pressure_bcs() const
 
 
 template <int dim>
-inline double HydrodynamicSolver<dim>::get_reynolds_number() const
+inline double Solver<dim>::get_reynolds_number() const
 {
   return reynolds_number;
 }
@@ -180,11 +275,11 @@ inline double HydrodynamicSolver<dim>::get_reynolds_number() const
 
 
 template <int dim>
-inline double HydrodynamicSolver<dim>::get_froude_number() const
+inline double Solver<dim>::get_froude_number() const
 {
   return froude_number;
 }
 
-}  // namespace TopographyProblem
+}  // namespace Hydrodynamic
 
 #endif /* INCLUDE_HYDRODYNAMIC_SOLVER_H_ */

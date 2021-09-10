@@ -11,13 +11,13 @@
 
 #include <hydrodynamic_problem.h>
 
-using namespace TopographyProblem;
+using namespace Hydrodynamic;
 
 template <int dim>
 class CavityProblem : public HydrodynamicProblem<dim>
 {
 public:
-  CavityProblem(HydrodynamicProblemParameters &parameters);
+  CavityProblem(ProblemParameters &parameters);
 
 protected:
   virtual void make_grid() override;
@@ -38,7 +38,7 @@ private:
 
 
 template <int dim>
-CavityProblem<dim>::CavityProblem(HydrodynamicProblemParameters &parameters)
+CavityProblem<dim>::CavityProblem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
 left_bndry_id(0),
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
     else
       parameter_filename = "cavity_problem.prm";
 
-    HydrodynamicProblemParameters parameters(parameter_filename);
+    ProblemParameters parameters(parameter_filename);
 
     CavityProblem<2> problem(parameters);
     problem.run();
