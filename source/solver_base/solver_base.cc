@@ -96,6 +96,10 @@ Stream& operator<<(Stream &stream, const Parameters &prm)
   Utility::add_header(stream);
 
   Utility::add_line(stream,
+           "Spatial dimension",
+           prm.space_dim);
+
+  Utility::add_line(stream,
            "Max. number of Newton iterations",
            prm.n_iterations);
 
