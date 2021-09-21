@@ -6,6 +6,7 @@ set Mapping - Polynomial degree      = 1
 set Max. number of Newton iterations = 15
 set Print timings                    = false
 set Relative tolerance               = 1e-9
+set Spatial dimension                = 2
 set Verbose                          = false
 
 

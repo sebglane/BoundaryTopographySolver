@@ -107,9 +107,16 @@ int main(int argc, char *argv[])
       parameter_filename = "cavity_problem.prm";
 
     ProblemParameters parameters(parameter_filename);
-
-    CavityProblem<2> problem(parameters);
-    problem.run();
+    if (parameters.space_dim == 2)
+    {
+      CavityProblem<2> problem(parameters);
+      problem.run();
+    }
+    else
+    {
+      CavityProblem<3> problem(parameters);
+      problem.run();
+    }
   }
   catch (std::exception &exc)
   {

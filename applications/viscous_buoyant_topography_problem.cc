@@ -254,8 +254,16 @@ int main(int argc, char *argv[])
 
     TopographyProblem::ProblemParameters parameters(parameter_filename);
 
-    TopographyProblem::ViscousProblem<2> problem(parameters);
-    problem.run();
+    if (parameters.space_dim == 2)
+    {
+      TopographyProblem::ViscousProblem<2> problem(parameters);
+      problem.run();
+    }
+    else
+    {
+      TopographyProblem::ViscousProblem<3> problem(parameters);
+      problem.run();
+    }
   }
   catch (std::exception &exc)
   {

@@ -67,6 +67,11 @@ struct Parameters
   Utility::RefinementParameters refinement_parameters;
 
   /*!
+   * @brief The spatial dimension of the problem.
+   */
+  unsigned int        space_dim;
+
+  /*!
    * @brief The maximum number of Newton iterations.
    */
   unsigned int        n_iterations;

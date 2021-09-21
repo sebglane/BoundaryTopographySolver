@@ -28,6 +28,10 @@ void Parameters::declare_parameters(ParameterHandler &prm)
 {
   Utility::RefinementParameters::declare_parameters(prm);
 
+  prm.declare_entry("Spatial dimension",
+                    "2",
+                    Patterns::Integer(2,3));
+
   prm.declare_entry("Max. number of Newton iterations",
                     "15",
                     Patterns::Integer(1));
@@ -58,6 +62,8 @@ void Parameters::declare_parameters(ParameterHandler &prm)
 void Parameters::parse_parameters(ParameterHandler &prm)
 {
   refinement_parameters.parse_parameters(prm);
+
+  space_dim = prm.get_integer("Spatial dimension");
 
   n_iterations = prm.get_integer("Max. number of Newton iterations");
   AssertThrow(n_iterations >= 1, ExcLowerRangeType<unsigned >(n_iterations, 0));
