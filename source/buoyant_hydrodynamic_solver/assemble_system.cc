@@ -190,15 +190,15 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
         for (const auto j: fe_values.dof_indices())
         {
           double matrix = Hydrodynamic::
-                          compute_hydrodynamic_matrix(phi_velocity[j],
-                                                      grad_phi_velocity[j],
-                                                      velocity_test_function,
-                                                      velocity_test_function_gradient,
-                                                      present_velocity_values[q],
-                                                      present_velocity_gradients[q],
-                                                      phi_pressure[j],
-                                                      pressure_test_function,
-                                                      nu);
+                          compute_matrix(phi_velocity[j],
+                                         grad_phi_velocity[j],
+                                         velocity_test_function,
+                                         velocity_test_function_gradient,
+                                         present_velocity_values[q],
+                                         present_velocity_gradients[q],
+                                         phi_pressure[j],
+                                         pressure_test_function,
+                                         nu);
 
           matrix += compute_density_matrix(grad_phi_density[j],
                                            density_test_function_gradient,
@@ -218,13 +218,13 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
 
         }
         double rhs = Hydrodynamic::
-                     compute_hydrodynamic_rhs(velocity_test_function,
-                                              velocity_test_function_gradient,
-                                              present_velocity_values[q],
-                                              present_velocity_gradients[q],
-                                              present_pressure_values[q],
-                                              pressure_test_function,
-                                              nu);
+                     compute_rhs(velocity_test_function,
+                                 velocity_test_function_gradient,
+                                 present_velocity_values[q],
+                                 present_velocity_gradients[q],
+                                 present_pressure_values[q],
+                                 pressure_test_function,
+                                 nu);
 
         rhs += compute_density_rhs(density_test_function_gradient,
                                    present_density_gradients[q],

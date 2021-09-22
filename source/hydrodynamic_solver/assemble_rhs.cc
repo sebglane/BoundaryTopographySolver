@@ -125,13 +125,13 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
       for (const auto i: fe_values.dof_indices())
       {
-        double rhs = compute_hydrodynamic_rhs(phi_velocity[i],
-                                              grad_phi_velocity[i],
-                                              present_velocity_values[q],
-                                              present_velocity_gradients[q],
-                                              present_pressure_values[q],
-                                              phi_pressure[i],
-                                              nu);
+        double rhs = compute_rhs(phi_velocity[i],
+                                 grad_phi_velocity[i],
+                                 present_velocity_values[q],
+                                 present_velocity_gradients[q],
+                                 present_pressure_values[q],
+                                 phi_pressure[i],
+                                 nu);
         if (body_force_ptr != nullptr)
           rhs += body_force_values[q] * phi_velocity[i] / std::pow(froude_number, 2);
 

@@ -152,13 +152,13 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
       for (const auto i: fe_values.dof_indices())
       {
         double rhs = Hydrodynamic::
-                     compute_hydrodynamic_rhs(phi_velocity[i],
-                                              grad_phi_velocity[i],
-                                              present_velocity_values[q],
-                                              present_velocity_gradients[q],
-                                              present_pressure_values[q],
-                                              phi_pressure[i],
-                                              nu);
+                     compute_rhs(phi_velocity[i],
+                                 grad_phi_velocity[i],
+                                 present_velocity_values[q],
+                                 present_velocity_gradients[q],
+                                 present_pressure_values[q],
+                                 phi_pressure[i],
+                                 nu);
 
         rhs += compute_density_rhs(grad_phi_density[i],
                                    present_density_gradients[q],

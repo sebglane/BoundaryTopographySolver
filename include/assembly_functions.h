@@ -15,7 +15,7 @@ namespace Hydrodynamic {
 using namespace dealii;
 
 template <int dim>
-inline double compute_hydrodynamic_matrix
+inline double compute_matrix
 (const Tensor<1, dim> &velocity_trial_function_value,
  const Tensor<2, dim> &velocity_trial_function_gradient,
  const Tensor<1, dim> &velocity_test_function_value,
@@ -43,7 +43,7 @@ inline double compute_hydrodynamic_matrix
 
 
 template <int dim>
-inline double compute_hydrodynamic_rhs
+inline double compute_rhs
 (const Tensor<1, dim> &velocity_test_function_value,
  const Tensor<2, dim> &velocity_test_function_gradient,
  const Tensor<1, dim> &present_velocity_value,
