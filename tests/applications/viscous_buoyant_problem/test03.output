@@ -22,11 +22,12 @@
 +------------------------------------------+----------------------+
 | Convective term weak form                | standard             |
 | Viscous term weak form                   | Laplacean            |
+| Stabilization type                       |                      |
+| SUPG/PSPG stab. parameter                | 1                    |
+| Grad-Div stab. parameter                 | 1                    |
 +------------------------------------------+----------------------+
 | Buoyant hydrodynamic solver parameters                          |
 +------------------------------------------+----------------------+
-| Entropy stabilization coeff.             | 10                   |
-| Standard stabilization coeff.            | 100                  |
 | Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 100                  |
 | Froude number                            | 1e-06                |

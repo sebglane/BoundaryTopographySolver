@@ -19,9 +19,7 @@ namespace BuoyantHydrodynamic {
 
 SolverParameters::SolverParameters()
 :
-Hydrodynamic::SolverParameters(),
-c_max(0.1),
-c_entropy(0.1)
+Hydrodynamic::SolverParameters()
 {}
 
 
@@ -32,13 +30,6 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
 
   prm.enter_subsection("Buoyant hydrodynamic solver parameters");
   {
-    prm.declare_entry("Entropy stabilization coefficients",
-                      "0.1",
-                      Patterns::Double(0.0));
-
-    prm.declare_entry("Standard stabilization coefficient",
-                      "0.1",
-                      Patterns::Double(0.0));
   }
   prm.leave_subsection();
 }
@@ -51,11 +42,6 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
 
   prm.enter_subsection("Buoyant hydrodynamic solver parameters");
   {
-    c_entropy = prm.get_double("Entropy stabilization coefficients");
-    Assert(c_entropy > 0.0, ExcLowerRangeType<double>(0.0, c_entropy));
-
-    c_max = prm.get_double("Standard stabilization coefficient");
-    Assert(c_max > 0.0, ExcLowerRangeType<double>(0.0, c_max));
   }
   prm.leave_subsection();
 }
@@ -70,9 +56,6 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
   Utility::add_header(stream);
   Utility::add_line(stream, "Buoyant hydrodynamic solver parameters");
   Utility::add_header(stream);
-
-  Utility::add_line(stream, "Entropy stabilization coeff.", prm.c_entropy);
-  Utility::add_line(stream, "Standard stabilization coeff.", prm.c_max);
 
   return (stream);
 }
@@ -93,10 +76,7 @@ density_boundary_conditions(this->triangulation),
 reference_density_ptr(nullptr),
 gravity_field_ptr(nullptr),
 stratification_number(stratification),
-density_fe_degree(1),
-c_max(parameters.c_max),
-c_entropy(parameters.c_entropy),
-global_entropy_variation{0.0}
+density_fe_degree(1)
 {}
 
 

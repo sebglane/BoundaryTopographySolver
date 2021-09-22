@@ -11,10 +11,13 @@ set Verbose                          = false
 
 
 subsection Hydrodynamic solver parameters
-  set Convective term weak form = standard
-  set Froude number             = 0.0
-  set Reynolds number           = 100.0
-  set Viscous term weak form    = standard
+  set Convective term weak form         = standard
+  set Froude number                     = 0.0
+  set Grad-Div stabilization parameter  = 1.0
+  set Reynolds number                   = 100.0
+  set SUPG/PSPG stabilization parameter = 1.0
+  set Stabilization type                = none
+  set Viscous term weak form            = standard
 end
 
 

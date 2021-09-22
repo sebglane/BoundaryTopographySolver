@@ -44,7 +44,8 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                              update_JxW_values;
   if (body_force_ptr != nullptr)
     update_flags |= update_quadrature_points;
-
+  if (stabilization & (apply_supg|apply_pspg))
+    update_flags |= update_hessians;
 
   FEValues<dim> fe_values(this->mapping,
                           *this->fe_system,
@@ -73,10 +74,25 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   std::vector<double>         div_phi_velocity(dofs_per_cell);
   std::vector<double>         phi_pressure(dofs_per_cell);
 
+  // stabilization related shape functions
+  std::vector<Tensor<1, dim>> grad_phi_pressure;
+  if (stabilization & apply_pspg)
+    grad_phi_pressure.resize(dofs_per_cell);
+
   const unsigned int n_q_points{quadrature_formula.size()};
   std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
   std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
   std::vector<double>         present_pressure_values(n_q_points);
+
+  // stabilization related solution values
+  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
+  std::vector<Tensor<1, dim>> present_pressure_gradients;
+  if (stabilization & (apply_supg|apply_pspg))
+  {
+    present_velocity_laplaceans.resize(n_q_points);
+    present_pressure_gradients.resize(n_q_points);
+  }
+
 
   std::vector<Tensor<1,dim>>  body_force_values;
   if (body_force_ptr != nullptr)
@@ -93,6 +109,8 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   {
     fe_values.reinit(cell);
 
+    const double delta{c * std::pow(cell->diameter(), 2)};
+
     cell_rhs = 0;
 
     fe_values[velocity].get_function_values(this->evaluation_point,
@@ -102,6 +120,15 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
     fe_values[pressure].get_function_values(this->evaluation_point,
                                             present_pressure_values);
+    // stabilization related solution values
+    if (stabilization & (apply_supg|apply_pspg))
+    {
+      fe_values[velocity].get_function_laplacians(this->evaluation_point,
+                                                  present_velocity_laplaceans);
+      fe_values[pressure].get_function_gradients(this->evaluation_point,
+                                                 present_pressure_gradients);
+    }
+
 
     // Body force
     if (body_force_ptr != nullptr)
@@ -119,6 +146,10 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
         grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
         div_phi_velocity[i] = fe_values[velocity].divergence(i, q);
         phi_pressure[i] = fe_values[pressure].value(i, q);
+
+        // stabilization related shape functions
+        if (stabilization & apply_pspg)
+          grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
       }
 
       const double JxW{fe_values.JxW(q)};
@@ -132,8 +163,37 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                                  present_pressure_values[q],
                                  phi_pressure[i],
                                  nu);
+
+        if (stabilization & apply_supg)
+          rhs += delta * compute_supg_rhs(grad_phi_velocity[i],
+                                          present_velocity_values[q],
+                                          present_velocity_gradients[q],
+                                          present_velocity_laplaceans[q],
+                                          present_pressure_gradients[q],
+                                          nu);
+        if (stabilization & apply_pspg)
+          rhs += delta * compute_pspg_rhs(present_velocity_values[q],
+                                          present_velocity_gradients[q],
+                                          present_velocity_laplaceans[q],
+                                          grad_phi_pressure[i],
+                                          present_pressure_gradients[q],
+                                          nu);
+        if (stabilization & apply_grad_div)
+          rhs += mu * compute_grad_div_rhs(present_velocity_gradients[q],
+                                           grad_phi_velocity[i]);
+
         if (body_force_ptr != nullptr)
-          rhs += body_force_values[q] * phi_velocity[i] / std::pow(froude_number, 2);
+        {
+          Tensor<1, dim> body_force_test_function(phi_velocity[i]);
+
+          if (stabilization & apply_supg)
+            body_force_test_function += delta * grad_phi_velocity[i] * present_velocity_values[q];
+
+          if (stabilization & apply_pspg)
+            body_force_test_function += delta * grad_phi_pressure[i];
+
+          rhs += body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
+        }
 
         cell_rhs(i) += rhs * JxW;
       }

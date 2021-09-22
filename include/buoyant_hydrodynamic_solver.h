@@ -50,16 +50,6 @@ struct SolverParameters: Hydrodynamic::SolverParameters
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
-  /*!
-   * @brief Stabilization parameter used to compute the maximum viscosity.
-   */
-  double  c_max;
-
-  /*!
-   * @brief Stabilization parameter used to compute the entropy viscosity.
-   */
-  double  c_entropy;
-
 };
 
 
@@ -117,11 +107,6 @@ private:
 
   const unsigned int  density_fe_degree;
 
-  const double        c_max;
-
-  const double        c_entropy;
-
-  double              global_entropy_variation;
 };
 
 // inline functions

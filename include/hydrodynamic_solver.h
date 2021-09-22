@@ -17,6 +17,23 @@ namespace Hydrodynamic {
 using namespace BoundaryConditions;
 
 
+
+/*!
+ * @brief Enumeration for the stabilization terms.
+ */
+enum StabilizationFlags
+{
+  apply_none = 0,
+
+  apply_supg = 0x0001,
+
+  apply_pspg = 0x0002,
+
+  apply_grad_div = 0x0004
+};
+
+
+
 /*!
  * @brief Enumeration for the weak form of the convective term.
  *
@@ -24,7 +41,7 @@ using namespace BoundaryConditions;
  * Nonetheless Volker John and Helene Dallmann define the skew-symmetric
  * and the divergence form differently.
  */
-enum class ConvectiveTermWeakForm
+enum ConvectiveTermWeakForm
 {
   /*!
    * @brief The standard form.
@@ -85,7 +102,7 @@ enum class ConvectiveTermWeakForm
  * Nonetheless Volker John and Helene Dallmann define the skew-symmetric
  * and the divergence form differently.
  */
-enum class ViscousTermWeakForm
+enum ViscousTermWeakForm
 {
   /*!
    * @brief The Laplacean form.
@@ -146,15 +163,31 @@ struct SolverParameters: SolverBase::Parameters
 
   /*!
    * @brief Enumerator controlling which weak form of the convective
-   * term is to be implemented.
+   * term is applied.
    */
-  ConvectiveTermWeakForm convective_term_weak_form;
+  ConvectiveTermWeakForm  convective_term_weak_form;
 
   /*!
    * @brief Enumeration controlling which weak form of the viscous
-   * term is to be implemented.
+   * term is applied.
    */
-  ViscousTermWeakForm    viscous_term_weak_form;
+  ViscousTermWeakForm     viscous_term_weak_form;
+
+  /*!
+   * @brief Enumeration controlling which weak form of the viscous
+   * term is applied.
+   */
+  StabilizationFlags      stabilization;
+
+  /*!
+   * @brief Stabilization parameter controlling the SUPG and PSPG terms.
+   */
+  double  c;
+
+  /*!
+   * @brief Stabilization parameter controlling the grad-div term.
+   */
+  double  mu;
 
 };
 
@@ -210,18 +243,77 @@ protected:
 
   const TensorFunction<1, dim> *body_force_ptr;
 
-  ConvectiveTermWeakForm     convective_term_weak_form;
+  const ConvectiveTermWeakForm  convective_term_weak_form;
 
-  ViscousTermWeakForm        viscous_term_weak_form;
+  const ViscousTermWeakForm     viscous_term_weak_form;
+
+  const StabilizationFlags      stabilization;
 
   const unsigned int  velocity_fe_degree;
 
   const double        reynolds_number;
 
   const double        froude_number;
+
+  const double        c;
+
+  const double        mu;
 };
 
 // inline functions
+template <class StreamType>
+inline StreamType &
+operator<<(StreamType &s, const StabilizationFlags u)
+{
+  if (u & apply_none)
+    s << "apply_none|";
+  if (u & apply_supg)
+    s << "apply_supg|";
+  if (u & apply_pspg)
+    s << "apply_pspg|";
+  if (u & apply_grad_div)
+    s << "apply_grad_div|";
+
+  return s;
+}
+
+
+
+inline StabilizationFlags
+operator|(const StabilizationFlags f1, const StabilizationFlags f2)
+{
+  return static_cast<StabilizationFlags>(static_cast<unsigned int>(f1) |
+                                    static_cast<unsigned int>(f2));
+}
+
+
+
+inline StabilizationFlags &
+operator|=(StabilizationFlags &f1, const StabilizationFlags f2)
+{
+  f1 = f1 | f2;
+  return f1;
+}
+
+
+
+inline StabilizationFlags operator&(const StabilizationFlags f1, const StabilizationFlags f2)
+{
+  return static_cast<StabilizationFlags>(static_cast<unsigned int>(f1) &
+                                    static_cast<unsigned int>(f2));
+}
+
+
+
+inline StabilizationFlags &
+operator&=(StabilizationFlags &f1, const StabilizationFlags f2)
+{
+  f1 = f1 & f2;
+  return f1;
+}
+
+
+
 template <int dim>
 inline void Solver<dim>::set_body_force
 (const TensorFunction<1, dim> &body_force)

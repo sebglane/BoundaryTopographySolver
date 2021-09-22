@@ -65,6 +65,117 @@ inline double compute_rhs
           );
 }
 
+
+
+template <int dim>
+inline double compute_supg_matrix
+(const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<2, dim> &velocity_trial_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_laplacean,
+ const Tensor<2, dim> &velocity_test_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<1, dim> &present_velocity_laplacean,
+ const Tensor<1, dim> &pressure_trial_function_gradient,
+ const Tensor<1, dim> &present_pressure_gradient,
+ const double          nu)
+{
+  const Tensor<1, dim> projected_test_function_gradient(velocity_test_function_gradient * present_velocity_value);
+  const Tensor<1, dim> linearized_test_function_gradient(velocity_test_function_gradient * velocity_trial_function_value);
+
+  return (// linearized residual
+            (velocity_trial_function_gradient * present_velocity_value) * projected_test_function_gradient
+          + (present_velocity_gradient * velocity_trial_function_value) * projected_test_function_gradient
+          - nu * velocity_trial_function_laplacean * projected_test_function_gradient
+          + pressure_trial_function_gradient * projected_test_function_gradient
+          // linearized test function
+          + (present_velocity_gradient * present_velocity_value) * linearized_test_function_gradient
+          - nu * present_velocity_laplacean * linearized_test_function_gradient
+          + present_pressure_gradient * linearized_test_function_gradient
+         );
+}
+
+
+
+template <int dim>
+inline double compute_supg_rhs
+(const Tensor<2, dim> &velocity_test_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<1, dim> &present_velocity_laplacean,
+ const Tensor<1, dim> &present_pressure_gradient,
+ const double          nu)
+{
+  const Tensor<1, dim> projected_test_function_gradient(velocity_test_function_gradient * present_velocity_value);
+
+  return (- (present_velocity_gradient * present_velocity_value) * projected_test_function_gradient
+          + nu * present_velocity_laplacean * projected_test_function_gradient
+          - present_pressure_gradient * projected_test_function_gradient
+         );
+}
+
+
+
+template <int dim>
+inline double compute_pspg_matrix
+(const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<2, dim> &velocity_trial_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_laplacean,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<1, dim> &pressure_test_function_gradient,
+ const Tensor<1, dim> &pressure_trial_function_gradient,
+ const double          nu)
+{
+  return (  (velocity_trial_function_gradient * present_velocity_value) * pressure_test_function_gradient
+          + (present_velocity_gradient * velocity_trial_function_value) * pressure_test_function_gradient
+          - nu * velocity_trial_function_laplacean * pressure_test_function_gradient
+          + pressure_trial_function_gradient * pressure_test_function_gradient
+         );
+}
+
+
+
+template <int dim>
+inline double compute_pspg_rhs
+(const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<1, dim> &present_velocity_laplacean,
+ const Tensor<1, dim> &pressure_test_function_gradient,
+ const Tensor<1, dim> &present_pressure_gradient,
+ const double          nu)
+{
+  return (- (present_velocity_gradient * present_velocity_value) * pressure_test_function_gradient
+          + nu * present_velocity_laplacean * pressure_test_function_gradient
+          - present_pressure_gradient * pressure_test_function_gradient
+         );
+}
+
+
+
+template <int dim>
+inline double compute_grad_div_matrix
+(const Tensor<2, dim> &velocity_trial_function_gradient,
+ const Tensor<2, dim> &velocity_test_function_gradient)
+{
+  return (trace(velocity_trial_function_gradient) *
+          trace(velocity_test_function_gradient)
+         );
+}
+
+
+
+template <int dim>
+inline double compute_grad_div_rhs
+(const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<2, dim> &velocity_test_function_gradient)
+{
+  return (- trace(present_velocity_gradient) *
+            trace(velocity_test_function_gradient)
+         );
+}
+
+
 }  // namespace Hydrodynamic
 
 namespace BuoyantHydrodynamic {
