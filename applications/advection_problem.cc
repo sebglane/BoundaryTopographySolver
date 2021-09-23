@@ -1,5 +1,5 @@
 /*
- * cavity_problem.cc
+ * advection_problem.cc
  *
  *  Created on: Sep 1, 2021
  *      Author: sg
@@ -12,7 +12,7 @@
 #include <advection_problem.h>
 #include <grid_factory.h>
 
-namespace TopographyProblem {
+namespace AdvectionProblem {
 
 using namespace Advection;
 
@@ -204,7 +204,7 @@ void Problem<dim>::set_boundary_conditions()
   bcs.close();
 }
 
-}  // namespace TopographyProblem
+}  // namespace AdvectionProblem
 
 int main(int argc, char *argv[])
 {
@@ -216,15 +216,15 @@ int main(int argc, char *argv[])
     else
       parameter_filename = "advection_problem.prm";
 
-    TopographyProblem::ProblemParameters parameters(parameter_filename);
+    Advection::ProblemParameters parameters(parameter_filename);
     if (parameters.space_dim == 2)
     {
-      TopographyProblem::Problem<2> problem(parameters);
+      AdvectionProblem::Problem<2> problem(parameters);
       problem.run();
     }
     else
     {
-      TopographyProblem::Problem<3> problem(parameters);
+      AdvectionProblem::Problem<3> problem(parameters);
       problem.run();
     }
   }

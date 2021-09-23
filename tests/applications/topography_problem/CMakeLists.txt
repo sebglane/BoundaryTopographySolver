@@ -1,0 +1,2 @@
+SET(TEST_TARGET topography_problem)
+DEAL_II_PICKUP_TESTS()

@@ -55,6 +55,11 @@ struct ProblemParameters: SolverParameters
   friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
   /*!
+   * @brief Number of initial refinements.
+   */
+  unsigned int  n_initial_refinements;
+
+  /*!
    * @brief Polynomial degree of the mapping.
    */
   unsigned int  mapping_degree;
@@ -101,6 +106,8 @@ protected:
   Triangulation<dim>       triangulation;
 
   MappingQCache<dim>       mapping;
+
+  const unsigned int  n_initial_refinements;
 
   Solver<dim>  solver;
 

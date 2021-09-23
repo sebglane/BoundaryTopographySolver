@@ -1,4 +1,4 @@
 ADD_SUBDIRECTORY(cavity_problem)
 ADD_SUBDIRECTORY(advection_problem)
-ADD_SUBDIRECTORY(viscous_problem)
-ADD_SUBDIRECTORY(viscous_buoyant_problem)
+ADD_SUBDIRECTORY(topography_problem)
+ADD_SUBDIRECTORY(buoyant_topography_problem)

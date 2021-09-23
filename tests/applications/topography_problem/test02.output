@@ -25,6 +25,7 @@
 | Stabilization type                       |                      |
 | SUPG/PSPG stab. parameter                | 1                    |
 | Grad-Div stab. parameter                 | 1                    |
+| Initial refinements                      | 4                    |
 | Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 100                  |
 | Froude number                            | 0                    |

@@ -1,2 +1,0 @@
-SET(TEST_TARGET viscous_buoyant_topography_problem)
-DEAL_II_PICKUP_TESTS()

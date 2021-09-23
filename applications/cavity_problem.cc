@@ -60,7 +60,7 @@ void CavityProblem<dim>::make_grid()
 
   GridGenerator::hyper_cube(this->triangulation, 0.0, 1.0, true);
 
-  this->triangulation.refine_global(5);
+  this->triangulation.refine_global(this->n_initial_refinements);
 }
 
 
