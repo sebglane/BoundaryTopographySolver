@@ -69,6 +69,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
   std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
+  // shape functions
   std::vector<Tensor<1, dim>> phi_velocity(dofs_per_cell);
   std::vector<Tensor<2, dim>> grad_phi_velocity(dofs_per_cell);
   std::vector<double>         div_phi_velocity(dofs_per_cell);
@@ -79,6 +80,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   if (stabilization & apply_pspg)
     grad_phi_pressure.resize(dofs_per_cell);
 
+  // solution values
   const unsigned int n_q_points{quadrature_formula.size()};
   std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
   std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
@@ -93,11 +95,12 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
     present_pressure_gradients.resize(n_q_points);
   }
 
-
+  // source term values
   std::vector<Tensor<1,dim>>  body_force_values;
   if (body_force_ptr != nullptr)
     body_force_values.resize(n_q_points);
 
+  // source term face values
   const unsigned int n_face_q_points{face_quadrature_formula.size()};
   std::vector<Tensor<1, dim>> boundary_traction_values;
   if (!neumann_bcs.empty())
@@ -129,8 +132,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                                                  present_pressure_gradients);
     }
 
-
-    // Body force
+    // body force
     if (body_force_ptr != nullptr)
     {
       body_force_ptr->value_list(fe_values.get_quadrature_points(),

@@ -1,5 +1,5 @@
 /*
- * setup.cc
+ * buoyant_hydrodynamic_solver.cc
  *
  *  Created on: Aug 31, 2021
  *      Author: sg
@@ -19,7 +19,9 @@ namespace BuoyantHydrodynamic {
 
 SolverParameters::SolverParameters()
 :
-Hydrodynamic::SolverParameters()
+Hydrodynamic::SolverParameters(),
+c_density(1.0),
+nu_density(1e-4)
 {}
 
 
@@ -30,6 +32,13 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
 
   prm.enter_subsection("Buoyant hydrodynamic solver parameters");
   {
+    prm.declare_entry("SUPG density stabilization parameter",
+                      "1.0",
+                      Patterns::Double(std::numeric_limits<double>::epsilon()));
+
+    prm.declare_entry("Minimal viscosity (density)",
+                      "1.0e-4",
+                      Patterns::Double(std::numeric_limits<double>::epsilon()));
   }
   prm.leave_subsection();
 }
@@ -42,6 +51,15 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
 
   prm.enter_subsection("Buoyant hydrodynamic solver parameters");
   {
+    c_density = prm.get_double("SUPG density stabilization parameter");
+    AssertIsFinite(c_density);
+    Assert(c_density > 0.0, ExcLowerRangeType<double>(c_density, 0.0));
+
+    nu_density = prm.get_double("Minimal viscosity (density)");
+    AssertIsFinite(nu_density);
+    Assert(nu_density > 0.0, ExcLowerRangeType<double>(nu_density, 0.0));
+
+
   }
   prm.leave_subsection();
 }
@@ -55,6 +73,8 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
   Utility::add_header(stream);
   Utility::add_line(stream, "Buoyant hydrodynamic solver parameters");
+  Utility::add_line(stream, "SUPG density stab. parameter", prm.c_density);
+  Utility::add_line(stream, "Minimal viscosity (density)", prm.nu_density);
   Utility::add_header(stream);
 
   return (stream);
@@ -76,7 +96,9 @@ density_boundary_conditions(this->triangulation),
 reference_density_ptr(nullptr),
 gravity_field_ptr(nullptr),
 stratification_number(stratification),
-density_fe_degree(1)
+density_fe_degree(1),
+c_density(parameters.c_density),
+nu_density(parameters.nu_density)
 {}
 
 
@@ -109,6 +131,23 @@ void Solver<dim>::output_results(const unsigned int cycle) const
   std::ofstream fstream(output_file.c_str());
   data_out.write_vtk(fstream);
 }
+
+
+
+template <int dim>
+inline void Solver<dim>::preprocess_newton_iteration
+(const unsigned int iteration,
+ const bool         is_initial_cycle)
+{
+  if (iteration < 2 && is_initial_cycle)
+  {
+    std::cout << "Reseting density solution..." << std::endl;
+    this->present_solution.block(2) = 0;
+    this->solution_update.block(2) = 0;
+  }
+  return;
+}
+
 
 // explicit instantiation
 template std::ostream & operator<<(std::ostream &, const SolverParameters &);

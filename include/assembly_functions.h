@@ -185,70 +185,82 @@ using namespace dealii;
 template <int dim>
 inline double compute_density_matrix
 (const Tensor<1, dim> &density_trial_function_gradient,
- const Tensor<1, dim> &density_test_function_gradient,
  const Tensor<1, dim> &velocity_trial_function_value,
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<1, dim> &reference_density_gradient,
  const double          density_test_function_value,
- const double          stratification_parameter,
- const double          delta,
- const bool            vanishing_velocity)
+ const double          stratification_parameter)
 {
-  if (vanishing_velocity)
-    return (stratification_parameter * velocity_trial_function_value * reference_density_gradient +
-            velocity_trial_function_value * present_density_gradient +
-            present_velocity_value * density_trial_function_gradient) *
-           (density_test_function_value +
-            delta * present_velocity_value * density_test_function_gradient) +
-            delta * density_trial_function_gradient * density_test_function_gradient +
-           (stratification_parameter * present_velocity_value * reference_density_gradient +
-            present_velocity_value * present_density_gradient) *
-           (delta * velocity_trial_function_value * density_trial_function_gradient);
-  else
-    return (stratification_parameter * velocity_trial_function_value * reference_density_gradient +
-            velocity_trial_function_value * present_density_gradient +
-            present_velocity_value * density_trial_function_gradient) *
-           (density_test_function_value +
-            delta * present_velocity_value * density_test_function_gradient) +
-           (present_velocity_value * present_density_gradient) *
-           (delta * velocity_trial_function_value * density_trial_function_gradient);
+  return (stratification_parameter * velocity_trial_function_value * reference_density_gradient +
+          velocity_trial_function_value * present_density_gradient +
+          present_velocity_value * density_trial_function_gradient) * density_test_function_value;
 }
 
 
 
 template <int dim>
 inline double compute_density_rhs
-(const Tensor<1, dim> &density_test_function_gradient,
- const Tensor<1, dim> &present_density_gradient,
+(const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<1, dim> &reference_density_gradient,
  const double          density_test_function_value,
- const double          stratification_parameter,
- const double          delta)
+ const double          stratification_parameter)
 {
   return -(stratification_parameter * present_velocity_value * reference_density_gradient +
-           present_velocity_value * present_density_gradient) *
-          (density_test_function_value +
-           delta * present_velocity_value * density_test_function_gradient);
+           present_velocity_value * present_density_gradient) * density_test_function_value;
 }
 
 
 
-template<int dim>
-inline std::pair<const double, bool> compute_stabilization_parameter
-(const std::vector<Tensor<1, dim>> &present_velocity_values,
- const double                       cell_diameter)
+template <int dim>
+inline double compute_density_supg_matrix
+(const Tensor<1, dim> &density_trial_function_gradient,
+ const Tensor<1, dim> &density_test_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<1, dim> &present_density_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<1, dim> &reference_density_gradient,
+ const double          stratification_parameter,
+ const double          nu)
 {
-  double max_velocity = 0;
+  const double projected_test_function{density_test_function_gradient * present_velocity_value};
+  const double linearized_test_function{density_test_function_gradient * velocity_trial_function_value};
 
-  for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-    max_velocity = std::max(present_velocity_values[q].norm(), max_velocity);
-
-  if (max_velocity > 0.0)
-    return std::pair<const double, bool>(0.5 * cell_diameter / max_velocity, false);
+  if (present_velocity_value.norm() > 0.0)
+    return (// linearized residual
+            (  stratification_parameter * velocity_trial_function_value * reference_density_gradient
+             + velocity_trial_function_value * present_density_gradient
+             + present_velocity_value * density_trial_function_gradient
+            ) * projected_test_function +
+            // linearized test function
+            (  stratification_parameter * present_velocity_value * reference_density_gradient
+             + present_velocity_value * present_density_gradient
+            ) * linearized_test_function
+           );
   else
-    return std::pair<const double, bool>(0.1 * cell_diameter, true);
+    return (nu * density_trial_function_gradient * density_test_function_gradient);
+}
+
+
+
+template <int dim>
+inline double compute_density_supg_rhs
+(const Tensor<1, dim> &density_test_function_gradient,
+ const Tensor<1, dim> &present_density_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<1, dim> &reference_density_gradient,
+ const double          stratification_parameter,
+ const double          nu)
+{
+  const double projected_test_function{density_test_function_gradient * present_velocity_value};
+
+  if (present_velocity_value.norm() > 0.0)
+    return (-(  stratification_parameter * present_velocity_value * reference_density_gradient
+              + present_velocity_value * present_density_gradient
+             ) * projected_test_function);
+  else
+    return (-nu * present_density_gradient * density_test_function_gradient);
 }
 
 }  // namespace BuoyantHydrodynamic

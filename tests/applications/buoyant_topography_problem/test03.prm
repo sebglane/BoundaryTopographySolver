@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 set Absolute tolerance               = 1e-12
-set Graphical output directory       = ./ResultsViscousBuoyantTopographyProblem
+set Graphical output directory       = ./ResultsBuoyantTopographyProblem
 set Mapping - Polynomial degree      = 1
 set Max. number of Newton iterations = 15
 set Print timings                    = false
@@ -11,9 +11,11 @@ set Verbose                          = false
 
 
 subsection Buoyant hydrodynamic solver parameters
-  set Froude number                      = 1.0e-6
-  set Reynolds number                    = 100.0
-  set Stratification number              = 0.0e0
+  set Froude number                        = 1.0e5
+  set Minimal viscosity (density)          = 1.0e-4
+  set Reynolds number                      = 100.0
+  set SUPG density stabilization parameter = 1.0
+  set Stratification number                = 1.0e-2
 end
 
 

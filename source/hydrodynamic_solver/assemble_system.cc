@@ -80,7 +80,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   // stabilization related shape functions
   std::vector<Tensor<1, dim>> grad_phi_pressure;
   std::vector<Tensor<1, dim>> laplace_phi_velocity;
-  if (stabilization & apply_pspg)
+  if (stabilization & (apply_supg|apply_pspg))
     grad_phi_pressure.resize(dofs_per_cell);
   if (stabilization & (apply_supg|apply_pspg))
     laplace_phi_velocity.resize(dofs_per_cell);
@@ -159,7 +159,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
         phi_pressure[i] = fe_values[pressure].value(i, q);
 
         // stabilization related shape functions
-        if (stabilization & apply_pspg)
+        if (stabilization & (apply_supg|apply_pspg))
           grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
         if (stabilization & (apply_supg|apply_pspg))
         {

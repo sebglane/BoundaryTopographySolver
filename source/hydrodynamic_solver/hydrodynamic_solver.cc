@@ -45,6 +45,7 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("Stabilization type",
                       "none",
                       Patterns::Selection("none|SUPG|PSPG|GradDiv|"
+                          "SUPG_PSPG|PSPG_SUPG|"
                           "SUPG_GradDiv|GradDiv_SUPG|"
                           "PSPG_GradDiv|GradDiv_PSPG|"
                           "SUPG_PSPG_GradDiv|GradDiv_SUPG_PSPG|PSPG_GradDiv_SUPG|"

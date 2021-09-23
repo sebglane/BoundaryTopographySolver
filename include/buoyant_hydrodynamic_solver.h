@@ -8,13 +8,11 @@
 #ifndef INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 #define INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 
-
 #include <hydrodynamic_solver.h>
 
 namespace BuoyantHydrodynamic {
 
 using namespace BoundaryConditions;
-
 
 /*!
  * @struct SolverParameters
@@ -49,6 +47,17 @@ struct SolverParameters: Hydrodynamic::SolverParameters
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const SolverParameters &prm);
+
+  /*!
+   * @brief Stabilization parameter controlling the SUPG term of the density equation.
+   */
+  double  c_density;
+
+  /*!
+   * @brief Minimal viscosity to stabilize the density equation in case of a
+   * vanishing velocity.
+   */
+  double  nu_density;
 
 };
 
@@ -97,6 +106,9 @@ private:
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
+  virtual void preprocess_newton_iteration(const unsigned int iteration,
+                                           const bool         is_initial_cycle);
+
   ScalarBoundaryConditions<dim> density_boundary_conditions;
 
   const Function<dim>          *reference_density_ptr;
@@ -106,6 +118,10 @@ private:
   const double        stratification_number;
 
   const unsigned int  density_fe_degree;
+
+  const double        c_density;
+
+  const double        nu_density;
 
 };
 

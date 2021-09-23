@@ -26,7 +26,6 @@ SET(TARGET_SRC
     buoyant_hydrodynamic_solver/assemble_rhs.cc
     buoyant_hydrodynamic_solver/buoyant_hydrodynamic_solver.cc
     buoyant_hydrodynamic_solver/setup.cc
-    buoyant_hydrodynamic_solver/stabilization.cc
     # buoyant hydrodynamic solver
     advection_problem.cc
     advection_solver/apply_boundary_conditions.cc

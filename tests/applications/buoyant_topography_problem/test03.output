@@ -7,7 +7,7 @@
 | Relative tolerance                       | 1e-09                |
 | Verbose                                  | false                |
 | Print timings                            | false                |
-| Graphical output directory               | ./ResultsViscousBuoyantTopographyProblem |
+| Graphical output directory               | ./ResultsBuoyantTopographyProblem |
 +------------------------------------------+----------------------+
 | Refinement control parameters                                   |
 +------------------------------------------+----------------------+
@@ -27,11 +27,13 @@
 | Grad-Div stab. parameter                 | 1                    |
 +------------------------------------------+----------------------+
 | Buoyant hydrodynamic solver parameters                          |
+| SUPG density stab. parameter             | 1                    |
+| Minimal viscosity (density)              | 0.0001               |
 +------------------------------------------+----------------------+
 | Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 100                  |
-| Froude number                            | 1e-06                |
-| Stratification number                    | 0                    |
+| Froude number                            | 100000               |
+| Stratification number                    | 0.01                 |
 +------------------------------------------+----------------------+
 +------------------------------------------+----------------------+
 
@@ -42,11 +44,15 @@ Solving viscous buoyant topography problem
     Number of active cells: 256
     Number of total degrees of freedom: 2756
 Cycle 0:
+Reseting density solution...
 Initial residual: 8.073271e-02
-Iteration:   0, Current residual: 7.2034e-03 (Tolerance: 8.0733e-11)
-Iteration:   1, Current residual: 1.4624e-04 (Tolerance: 8.0733e-11)
-Iteration:   2, Current residual: 8.0370e-07 (Tolerance: 8.0733e-11)
-Iteration:   3, Current residual: 2.1046e-11 (Tolerance: 8.0733e-11)
+Reseting density solution...
+Iteration:   0, Current residual: 2.3874e-01 (Tolerance: 8.0733e-11), Residual components: 7.2034e-03, 1.0518e-16, 2.3863e-01, 
+Reseting density solution...
+Iteration:   1, Current residual: 2.6567e-04 (Tolerance: 8.0733e-11), Residual components: 1.4624e-04, 5.6082e-17, 2.2180e-04, 
+Iteration:   2, Current residual: 1.7309e-05 (Tolerance: 8.0733e-11), Residual components: 8.0370e-07, 5.4600e-17, 1.7291e-05, 
+Iteration:   3, Current residual: 3.5549e-08 (Tolerance: 8.0733e-11), Residual components: 2.1021e-11, 4.8968e-17, 3.5549e-08, 
+Iteration:   4, Current residual: 2.0022e-14 (Tolerance: 8.0733e-11), Residual components: 2.0019e-14, 5.2683e-17, 3.3113e-16, 
 End cycle 0
 Mesh refinement...
     Number of cells set for refinement: 59
@@ -55,22 +61,12 @@ Mesh refinement...
     Number of total degrees of freedom: 4714
 Cycle 1:
 Initial residual: 1.5779e-03
-Iteration:   0, Current residual: 9.1429e-06 (Tolerance: 1.5779e-12)
-Iteration:   1, Current residual: 4.3540e-09 (Tolerance: 1.5779e-12)
-Iteration:   2, Current residual: 1.1598e-15 (Tolerance: 1.5779e-12)
+Iteration:   0, Current residual: 9.1554e-06 (Tolerance: 1.5779e-12), Residual components: 9.1429e-06, 5.2935e-17, 4.7696e-07, 
+Iteration:   1, Current residual: 6.3789e-09 (Tolerance: 1.5779e-12), Residual components: 4.3540e-09, 5.3313e-17, 4.6619e-09, 
+Iteration:   2, Current residual: 8.2819e-14 (Tolerance: 1.5779e-12), Residual components: 1.7060e-15, 5.3455e-17, 8.2802e-14, 
 End cycle 1
 Mesh refinement...
-    Number of cells set for refinement: 209
+    Number of cells set for refinement: 210
     Number of cells set for coarsening: 0
-    Number of active cells: 1060
-    Number of total degrees of freedom: 11534
-Cycle 2:
-Initial residual: 2.4487e-04
-Iteration:   0, Current residual: 1.1873e-07 (Tolerance: 1.0000e-12)
-Iteration:   1, Current residual: 7.6764e-15 (Tolerance: 1.0000e-12)
-End cycle 2
-Mesh refinement...
-    Number of cells set for refinement: 629
-    Number of cells set for coarsening: 0
-    Number of active cells: 2947
-    Number of total degrees of freedom: 31872
+    Number of active cells: 1063
+    Number of total degrees of freedom: 11564
