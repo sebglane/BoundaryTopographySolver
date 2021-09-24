@@ -19,6 +19,10 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   if (this->verbose)
     std::cout << "    Assemble linear system..." << std::endl;
 
+  if (this->angular_velocity_ptr != nullptr)
+    AssertThrow(this->rossby_number > 0.0,
+                ExcMessage("Non-vanishing Rossby number is required if the angular "
+                           "velocity vector is specified."));
   AssertThrow(gravity_field_ptr != nullptr,
               ExcMessage("For a buoyant fluid, the gravity field must be specified."));
   AssertThrow(reference_density_ptr != nullptr,
@@ -26,9 +30,6 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
 
   AssertThrow(this->froude_number > 0.0,
               ExcMessage("For a buoyant fluid, the Froude number must be specified."));
-//  AssertThrow(stratification_number != 0.0,
-//              ExcMessage("For a buoyant fluid, the stratification number must "
-//                         "be specified."));
   AssertThrow(this->reynolds_number > 0.0,
               ExcMessage("The Reynolds must not vanish (stabilization is not "
                          "implemented yet)."));
@@ -118,8 +119,11 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   std::vector<Tensor<1,dim>>  reference_density_gradients(n_q_points);
   std::vector<Tensor<1,dim>>  gravity_field_values(n_q_points);
   std::vector<Tensor<1,dim>>  body_force_values;
+  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
   if (this->body_force_ptr != nullptr)
     body_force_values.resize(n_q_points);
+  if (this->angular_velocity_ptr != nullptr)
+    angular_velocity_value = this->angular_velocity_ptr->value();
 
   // solution face values
   const unsigned int n_face_q_points{face_quadrature_formula.size()};
@@ -277,25 +281,59 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                       std::pow(this->froude_number, 2);
 
           // buoyancy term
-          matrix -= phi_density[j] * gravity_field_values[q] *
-                    velocity_test_function / std::pow(this->froude_number, 2);
-
-          // buoyancy stabilization terms
-          if (this->stabilization & (Hydrodynamic::apply_supg|Hydrodynamic::apply_pspg))
           {
-            Tensor<1, dim> buoyancy_test_function;
+            Tensor<1, dim> buoyancy_test_function(velocity_test_function);
+
+            // buoyancy stabilization terms
+            if (this->stabilization & Hydrodynamic::apply_supg)
+              buoyancy_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
+            if (this->stabilization & Hydrodynamic::apply_pspg)
+              buoyancy_test_function += delta * grad_phi_pressure[i];
+
+            matrix -= phi_density[j] * gravity_field_values[q] *
+                      buoyancy_test_function / std::pow(this->froude_number, 2);
 
             if (this->stabilization & Hydrodynamic::apply_supg)
-              buoyancy_test_function += velocity_test_function_gradient * present_velocity_values[q];
+              matrix -= present_density_values[q] * gravity_field_values[q] *
+                        velocity_test_function_gradient * phi_velocity[j] /
+                        std::pow(this->froude_number, 2);
+          }
+
+          // Coriolis term
+          if (this->angular_velocity_ptr != nullptr)
+          {
+            Tensor<1, dim> coriolis_term_test_function(velocity_test_function);
+
+            // Coriolis stabilization terms
+            if (this->stabilization & Hydrodynamic::apply_supg)
+              coriolis_term_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
 
             if (this->stabilization & Hydrodynamic::apply_pspg)
-              buoyancy_test_function += grad_phi_pressure[i];
+              coriolis_term_test_function += delta * grad_phi_pressure[i];
 
-            matrix -= delta * (  present_density_values[q] * gravity_field_values[q] *
-                                 velocity_test_function_gradient * phi_velocity[j]
-                               + phi_density[j] * gravity_field_values[q] * buoyancy_test_function) /
-                              std::pow(this->froude_number, 2);
+            if constexpr(dim == 2)
+              matrix += 2.0 / this->rossby_number * angular_velocity_value[0] *
+                        cross_product_2d(-phi_velocity[j]) *
+                        coriolis_term_test_function;
+            else if constexpr(dim == 3)
+              matrix += 2.0 / this->rossby_number *
+                        cross_product_3d(angular_velocity_value , phi_velocity[j]) *
+                        coriolis_term_test_function;
+
+            // Coriolis stabilization terms
+            if (this->stabilization & Hydrodynamic::apply_supg)
+            {
+              if constexpr(dim == 2)
+                matrix += 2.0 * delta / this->rossby_number * angular_velocity_value[0] *
+                          cross_product_2d(-present_velocity_values[q]) *
+                          velocity_test_function_gradient * phi_velocity[j];
+              else if constexpr(dim == 3)
+                matrix += 2.0 * delta / this->rossby_number *
+                          cross_product_3d(angular_velocity_value, present_velocity_values[q]) *
+                          velocity_test_function_gradient * phi_velocity[j];
+            }
           }
+
 
           // matrix step 2: density part
           matrix += compute_density_matrix(grad_phi_density[j],
@@ -306,14 +344,15 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                            density_test_function,
                                            stratification_number);
           // standard stabilization terms
-          matrix += delta_density * compute_density_supg_matrix(grad_phi_density[j],
-                                                                density_test_function_gradient,
-                                                                phi_velocity[j],
-                                                                present_density_gradients[q],
-                                                                present_velocity_values[q],
-                                                                reference_density_gradients[q],
-                                                                stratification_number,
-                                                                nu_density);
+          matrix += delta_density *
+                    compute_density_supg_matrix(grad_phi_density[j],
+                                                density_test_function_gradient,
+                                                phi_velocity[j],
+                                                present_density_gradients[q],
+                                                present_velocity_values[q],
+                                                reference_density_gradients[q],
+                                                stratification_number,
+                                                nu_density);
 
           cell_matrix(i, j) += matrix * JxW;
 
@@ -365,9 +404,6 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
           rhs += body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
         }
 
-        /*
-         *
-
         // buoyancy term
         {
           Tensor<1, dim> buoyancy_test_function(velocity_test_function);
@@ -382,9 +418,26 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                  buoyancy_test_function / std::pow(this->froude_number, 2);
         }
 
-         *
-         */
+        // Coriolis term
+        if (this->angular_velocity_ptr != nullptr)
+        {
+          Tensor<1, dim> coriolis_term_test_function(velocity_test_function);
 
+          // Coriolis stabilization terms
+          if (this->stabilization & Hydrodynamic::apply_supg)
+            coriolis_term_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
+          if (this->stabilization & Hydrodynamic::apply_pspg)
+            coriolis_term_test_function += delta * grad_phi_pressure[i];
+
+          if constexpr(dim == 2)
+            rhs -= 2.0 / this->rossby_number * angular_velocity_value[0] *
+                   cross_product_2d(-present_velocity_values[q]) *
+                   coriolis_term_test_function;
+          else if constexpr(dim == 3)
+            rhs -= 2.0 / this->rossby_number *
+                   cross_product_3d(angular_velocity_value, present_velocity_values[q]) *
+                   coriolis_term_test_function;
+        }
 
         // rhs step 2: density part
         rhs += compute_density_rhs(present_density_gradients[q],

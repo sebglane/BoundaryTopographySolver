@@ -17,7 +17,8 @@ SolverParameters(),
 mapping_degree(1),
 froude_number(0.0),
 reynolds_number(1.0),
-stratification_number(1.0)
+stratification_number(1.0),
+rossby_number(0.0)
 {}
 
 
@@ -78,6 +79,10 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("Stratification number",
                       "1.0",
                       Patterns::Double());
+
+    prm.declare_entry("Rossby number",
+                      "0.0",
+                      Patterns::Double(0.0));
   }
   prm.leave_subsection();
 }
@@ -104,6 +109,10 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
     stratification_number = prm.get_double("Stratification number");
     AssertThrow(stratification_number >= 0.0, ExcLowerRangeType<double>(0.0, stratification_number));
     AssertIsFinite(stratification_number);
+
+    rossby_number = prm.get_double("Rossby number");
+    AssertThrow(rossby_number >= 0.0, ExcLowerRangeType<double>(rossby_number, 0.0));
+    AssertIsFinite(rossby_number);
   }
   prm.leave_subsection();
 }
@@ -125,9 +134,14 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
   Utility::add_line(stream, "Reynolds number", prm.reynolds_number);
 
-  Utility::add_line(stream, "Froude number", prm.froude_number);
+  if (prm.froude_number > 0.0)
+    Utility::add_line(stream, "Froude number", prm.froude_number);
 
-  Utility::add_line(stream, "Stratification number", prm.stratification_number);
+  if (prm.stratification_number > 0.0)
+    Utility::add_line(stream, "Stratification number", prm.stratification_number);
+
+  if (prm.rossby_number > 0.0)
+    Utility::add_line(stream, "Rossby number", prm.rossby_number);
 
   Utility::add_header(stream);
 
@@ -143,7 +157,8 @@ BuoyantHydrodynamicProblem<dim>::BuoyantHydrodynamicProblem(const ProblemParamet
 :
 mapping(parameters.mapping_degree),
 solver(triangulation, mapping, parameters,
-       parameters.reynolds_number, parameters.froude_number, parameters.stratification_number),
+       parameters.reynolds_number, parameters.froude_number, parameters.stratification_number,
+       parameters.rossby_number),
 n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
 n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
 {

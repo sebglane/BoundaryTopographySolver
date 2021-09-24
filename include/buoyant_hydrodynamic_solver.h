@@ -81,7 +81,8 @@ public:
          const SolverParameters &parameters,
          const double         reynolds_number = 1.0,
          const double         froude_number = 0.0,
-         const double         stratification_number = 1.0);
+         const double         stratification_number = 1.0,
+         const double         rossby_number = 0.0);
 
   void set_reference_density(const Function<dim> &reference_density);
 

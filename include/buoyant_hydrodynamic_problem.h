@@ -74,6 +74,11 @@ struct ProblemParameters: SolverParameters
    */
   double        stratification_number;
 
+  /*!
+   * @brief The Rossby number of the problem.
+   */
+  double        rossby_number;
+
 };
 
 
@@ -99,6 +104,8 @@ protected:
 
   void initialize_mapping();
 
+  virtual void set_angular_velocity();
+
   virtual void set_boundary_conditions() = 0;
 
   virtual void set_body_force_term();
@@ -120,6 +127,14 @@ protected:
 
 // inline functions
 template <int dim>
+inline void BuoyantHydrodynamicProblem<dim>::set_angular_velocity()
+{
+  return;
+}
+
+
+
+template <int dim>
 void BuoyantHydrodynamicProblem<dim>::set_body_force_term()
 {
   return;
@@ -127,7 +142,5 @@ void BuoyantHydrodynamicProblem<dim>::set_body_force_term()
 
 
 }  // namespace BuoyantHydrodynamic
-
-
 
 #endif /* INCLUDE_BUOYANT_HYDRODYNAMIC_PROBLEM_H_ */

@@ -89,9 +89,10 @@ Solver<dim>::Solver
  const SolverParameters &parameters,
  const double           reynolds,
  const double           froude,
- const double           stratification)
+ const double           stratification,
+ const double           rossby)
 :
-Hydrodynamic::Solver<dim>(tria, mapping, parameters, reynolds, froude),
+Hydrodynamic::Solver<dim>(tria, mapping, parameters, reynolds, froude, rossby),
 density_boundary_conditions(this->triangulation),
 reference_density_ptr(nullptr),
 gravity_field_ptr(nullptr),
@@ -158,11 +159,13 @@ template Solver<2>::Solver
  const SolverParameters &,
  const double       ,
  const double       ,
+ const double       ,
  const double        );
 template Solver<3>::Solver
 (Triangulation<3>  &,
  Mapping<3>        &,
  const SolverParameters &,
+ const double       ,
  const double       ,
  const double       ,
  const double        );

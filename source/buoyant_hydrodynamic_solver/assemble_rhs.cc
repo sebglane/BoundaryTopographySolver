@@ -19,9 +19,10 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   if (this->verbose)
     std::cout << "    Assemble rhs..." << std::endl;
 
-  AssertThrow(this->body_force_ptr == nullptr,
-              ExcMessage("For a buoyant fluid, the gravity field must be specified."));
-
+  if (this->angular_velocity_ptr != nullptr)
+    AssertThrow(this->rossby_number > 0.0,
+                ExcMessage("Non-vanishing Rossby number is required if the angular "
+                           "velocity vector is specified."));
   AssertThrow(gravity_field_ptr != nullptr,
               ExcMessage("For a buoyant fluid, the gravity field must be specified."));
   AssertThrow(reference_density_ptr != nullptr,
@@ -109,8 +110,11 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   std::vector<Tensor<1,dim>>  reference_density_gradients(n_q_points);
   std::vector<Tensor<1,dim>>  gravity_field_values(n_q_points);
   std::vector<Tensor<1,dim>>  body_force_values;
+  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
   if (this->body_force_ptr != nullptr)
     body_force_values.resize(n_q_points);
+  if (this->angular_velocity_ptr != nullptr)
+    angular_velocity_value = this->angular_velocity_ptr->value();
 
   // source term face values
   const unsigned int n_face_q_points{face_quadrature_formula.size()};
@@ -248,6 +252,28 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                  buoyancy_test_function / std::pow(this->froude_number, 2);
         }
 
+        // Coriolis term
+        if (this->angular_velocity_ptr != nullptr)
+        {
+          Tensor<1, dim> coriolis_term_test_function(phi_velocity[i]);
+
+          // Coriolis stabilization terms
+          if (this->stabilization & Hydrodynamic::apply_supg)
+            coriolis_term_test_function += delta * grad_phi_velocity[i] *
+                                           present_velocity_values[q];
+          if (this->stabilization & Hydrodynamic::apply_pspg)
+            coriolis_term_test_function += delta * grad_phi_pressure[i];
+
+          if constexpr(dim == 2)
+            rhs -= 2.0 / this->rossby_number * angular_velocity_value[0] *
+                   cross_product_2d(-present_velocity_values[q]) *
+                   coriolis_term_test_function;
+          else if constexpr(dim == 3)
+            rhs -= 2.0 / this->rossby_number *
+                   cross_product_3d(angular_velocity_value, present_velocity_values[q]) *
+                   coriolis_term_test_function;
+        }
+
         // rhs step 2: density part
         rhs += compute_density_rhs(present_density_gradients[q],
                                    present_velocity_values[q],
@@ -255,12 +281,13 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
                                    phi_density[i],
                                    stratification_number);
         // standard stabilization terms
-        rhs += delta_density * compute_density_supg_rhs(grad_phi_density[i],
-                                                        present_density_gradients[q],
-                                                        present_velocity_values[q],
-                                                        reference_density_gradients[q],
-                                                        stratification_number,
-                                                        nu_density);
+        rhs += delta_density *
+               compute_density_supg_rhs(grad_phi_density[i],
+                                        present_density_gradients[q],
+                                        present_velocity_values[q],
+                                        reference_density_gradients[q],
+                                        stratification_number,
+                                        nu_density);
 
         cell_rhs(i) += rhs * JxW;
       }
