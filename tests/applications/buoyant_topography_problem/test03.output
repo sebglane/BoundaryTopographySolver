@@ -70,3 +70,14 @@ Mesh refinement...
     Number of cells set for coarsening: 0
     Number of active cells: 1063
     Number of total degrees of freedom: 11564
+Cycle 2:
+Initial residual: 2.4475e-04
+Iteration:   0, Current residual: 1.2498e-07 (Tolerance: 1.0000e-12), Residual components: 1.2423e-07, 5.3373e-17, 1.3627e-08, 
+Iteration:   1, Current residual: 1.8076e-12 (Tolerance: 1.0000e-12), Residual components: 1.6466e-14, 4.8527e-17, 1.8076e-12, 
+Iteration:   2, Current residual: 5.0461e-15 (Tolerance: 1.0000e-12), Residual components: 5.0458e-15, 5.0943e-17, 1.0539e-19, 
+End cycle 2
+Mesh refinement...
+    Number of cells set for refinement: 623
+    Number of cells set for coarsening: 0
+    Number of active cells: 2932
+    Number of total degrees of freedom: 31928
