@@ -40,50 +40,37 @@ Solving cavity problem
     Number of active cells: 1024
     Number of total degrees of freedom: 9539
 Cycle 0:
-Initial residual: 1.129569e-01
-Iteration:   0, Current residual: 8.9548e-02 (Tolerance: 1.1296e-10), Residual components: 8.9548e-02, 3.6874e-17, 
-Iteration:   1, Current residual: 2.3503e-02 (Tolerance: 1.1296e-10), Residual components: 2.3503e-02, 1.0835e-16, 
-Iteration:   2, Current residual: 3.0919e-03 (Tolerance: 1.1296e-10), Residual components: 3.0919e-03, 2.5622e-16, 
-Iteration:   3, Current residual: 3.5926e-05 (Tolerance: 1.1296e-10), Residual components: 3.5926e-05, 3.8498e-17, 
-Iteration:   4, Current residual: 8.2004e-07 (Tolerance: 1.1296e-10), Residual components: 8.2004e-07, 5.7104e-17, 
-Iteration:   5, Current residual: 6.1226e-08 (Tolerance: 1.1296e-10), Residual components: 6.1226e-08, 6.7052e-17, 
-Iteration:   6, Current residual: 7.1961e-09 (Tolerance: 1.1296e-10), Residual components: 7.1961e-09, 5.2030e-17, 
-Iteration:   7, Current residual: 8.3635e-10 (Tolerance: 1.1296e-10), Residual components: 8.3635e-10, 4.6955e-17, 
-Iteration:   8, Current residual: 1.1202e-10 (Tolerance: 1.1296e-10), Residual components: 1.1202e-10, 4.1909e-17, 
+Initial residual: 1.131225e-01
+Iteration:   0, Current residual: 8.7119e-03 (Tolerance: 1.1312e-10), Residual components: 8.7119e-03, 3.7491e-17, 
+Iteration:   1, Current residual: 8.8475e-04 (Tolerance: 1.1312e-10), Residual components: 8.8475e-04, 5.0809e-17, 
+Iteration:   2, Current residual: 1.3377e-05 (Tolerance: 1.1312e-10), Residual components: 1.3377e-05, 8.1848e-17, 
+Iteration:   3, Current residual: 1.8813e-09 (Tolerance: 1.1312e-10), Residual components: 1.8813e-09, 7.0664e-17, 
+Iteration:   4, Current residual: 2.0577e-13 (Tolerance: 1.1312e-10), Residual components: 2.0077e-13, 4.5046e-14, 
 End cycle 0
 Mesh refinement...
-    Number of cells set for refinement: 46
+    Number of cells set for refinement: 330
     Number of cells set for coarsening: 0
-    Number of active cells: 1162
-    Number of total degrees of freedom: 10942
+    Number of active cells: 2014
+    Number of total degrees of freedom: 18986
 Cycle 1:
-Initial residual: 1.0407e-02
-Iteration:   0, Current residual: 2.1038e-03 (Tolerance: 1.0407e-11), Residual components: 2.1038e-03, 1.0799e-16, 
-Iteration:   1, Current residual: 3.3350e-05 (Tolerance: 1.0407e-11), Residual components: 3.3350e-05, 3.0169e-16, 
-Iteration:   2, Current residual: 3.4264e-07 (Tolerance: 1.0407e-11), Residual components: 3.4264e-07, 2.3581e-16, 
-Iteration:   3, Current residual: 1.8472e-08 (Tolerance: 1.0407e-11), Residual components: 1.8472e-08, 7.8756e-16, 
-Iteration:   4, Current residual: 1.5546e-09 (Tolerance: 1.0407e-11), Residual components: 1.5546e-09, 1.5533e-16, 
-Iteration:   5, Current residual: 1.8234e-10 (Tolerance: 1.0407e-11), Residual components: 1.8234e-10, 3.4662e-17, 
-Iteration:   6, Current residual: 2.0639e-11 (Tolerance: 1.0407e-11), Residual components: 2.0639e-11, 2.0407e-16, 
-Iteration:   7, Current residual: 2.9462e-12 (Tolerance: 1.0407e-11), Residual components: 2.9462e-12, 4.0833e-17, 
+Initial residual: 1.1369e-02
+Iteration:   0, Current residual: 5.7647e-04 (Tolerance: 1.1369e-11), Residual components: 5.7647e-04, 3.6450e-16, 
+Iteration:   1, Current residual: 1.0944e-07 (Tolerance: 1.1369e-11), Residual components: 1.0944e-07, 3.3044e-16, 
+Iteration:   2, Current residual: 9.4498e-14 (Tolerance: 1.1369e-11), Residual components: 9.4498e-14, 1.2926e-16, 
 End cycle 1
 Mesh refinement...
-    Number of cells set for refinement: 49
+    Number of cells set for refinement: 976
     Number of cells set for coarsening: 0
-    Number of active cells: 1309
-    Number of total degrees of freedom: 12435
+    Number of active cells: 4942
+    Number of total degrees of freedom: 46314
 Cycle 2:
-Initial residual: 9.6796e-03
-Iteration:   0, Current residual: 9.4395e-04 (Tolerance: 9.6796e-12), Residual components: 9.4395e-04, 1.1090e-16, 
-Iteration:   1, Current residual: 4.7406e-06 (Tolerance: 9.6796e-12), Residual components: 4.7406e-06, 3.5341e-15, 
-Iteration:   2, Current residual: 1.2017e-07 (Tolerance: 9.6796e-12), Residual components: 1.2017e-07, 1.1628e-16, 
-Iteration:   3, Current residual: 4.6391e-09 (Tolerance: 9.6796e-12), Residual components: 4.6391e-09, 2.2143e-17, 
-Iteration:   4, Current residual: 6.5871e-10 (Tolerance: 9.6796e-12), Residual components: 6.5871e-10, 5.4923e-17, 
-Iteration:   5, Current residual: 6.2652e-11 (Tolerance: 9.6796e-12), Residual components: 6.2652e-11, 5.8696e-17, 
-Iteration:   6, Current residual: 8.1430e-12 (Tolerance: 9.6796e-12), Residual components: 8.1430e-12, 1.0600e-16, 
+Initial residual: 9.7814e-03
+Iteration:   0, Current residual: 2.8646e-04 (Tolerance: 9.7814e-12), Residual components: 2.8646e-04, 4.8032e-15, 
+Iteration:   1, Current residual: 1.3686e-08 (Tolerance: 9.7814e-12), Residual components: 1.3686e-08, 3.4227e-16, 
+Iteration:   2, Current residual: 9.5287e-14 (Tolerance: 9.7814e-12), Residual components: 9.5287e-14, 6.7156e-17, 
 End cycle 2
 Mesh refinement...
-    Number of cells set for refinement: 40
+    Number of cells set for refinement: 2425
     Number of cells set for coarsening: 0
-    Number of active cells: 1429
-    Number of total degrees of freedom: 13673
+    Number of active cells: 12217
+    Number of total degrees of freedom: 113543

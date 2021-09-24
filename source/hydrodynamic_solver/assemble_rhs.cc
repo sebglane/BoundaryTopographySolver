@@ -1,5 +1,5 @@
 /*
- * setup.cc
+ * assemble_rhs.cc
  *
  *  Created on: Aug 31, 2021
  *      Author: sg
@@ -101,9 +101,9 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
   // source term values
   std::vector<Tensor<1,dim>>  body_force_values;
+  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
   if (body_force_ptr != nullptr)
     body_force_values.resize(n_q_points);
-  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
   if (angular_velocity_ptr != nullptr)
     angular_velocity_value = angular_velocity_ptr->value();
 
@@ -210,15 +210,15 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
         {
           Tensor<1, dim> coriolis_term_test_function(phi_velocity[i]);
 
+          // Coriolis stabilization terms
           if (stabilization & apply_supg)
             coriolis_term_test_function += delta * grad_phi_velocity[i] *
                                            present_velocity_values[q];
-
           if (stabilization & apply_pspg)
             coriolis_term_test_function += delta * grad_phi_pressure[i];
 
           if constexpr(dim == 2)
-            rhs -= 2.0 * delta / rossby_number * angular_velocity_value[0] *
+            rhs -= 2.0 / rossby_number * angular_velocity_value[0] *
                    cross_product_2d(-present_velocity_values[q]) *
                    coriolis_term_test_function;
           else if constexpr(dim == 3)

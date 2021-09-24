@@ -1,5 +1,5 @@
 /*
- * setup.cc
+ * assemble_system.cc
  *
  *  Created on: Aug 31, 2021
  *      Author: sg
@@ -232,9 +232,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
           {
             Tensor<1, dim> coriolis_term_test_function(velocity_test_function);
 
+            // Coriolis stabilization terms
             if (stabilization & apply_supg)
               coriolis_term_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
-
             if (stabilization & apply_pspg)
               coriolis_term_test_function += delta * grad_phi_pressure[i];
 
@@ -247,6 +247,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                         cross_product_3d(angular_velocity_value , phi_velocity[j]) *
                         coriolis_term_test_function;
 
+            // Coriolis stabilization terms
             if (stabilization & apply_supg)
             {
               if constexpr(dim == 2)
@@ -313,7 +314,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
             coriolis_term_test_function += delta * grad_phi_pressure[i];
 
           if constexpr(dim == 2)
-            rhs -= 2.0 * delta / rossby_number * angular_velocity_value[0] *
+            rhs -= 2.0 / rossby_number * angular_velocity_value[0] *
                    cross_product_2d(-present_velocity_values[q]) *
                    coriolis_term_test_function;
           else if constexpr(dim == 3)
