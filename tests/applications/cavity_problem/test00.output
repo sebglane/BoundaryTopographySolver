@@ -12,6 +12,8 @@
 | Refinement control parameters                                   |
 +------------------------------------------+----------------------+
 | Adaptive mesh refinement                 | True                 |
+| Initial refinements                      | 4                    |
+| Initial boundary refinements             | 0                    |
 | Fraction of cells set to coarsen         | 0                    |
 | Fraction of cells set to refine          | 0.8                  |
 | Maximum number of levels                 | 10                   |
@@ -25,7 +27,6 @@
 | Stabilization type                       |                      |
 | SUPG/PSPG stab. parameter                | 1                    |
 | Grad-Div stab. parameter                 | 1                    |
-| Initial refinements                      | 4                    |
 | Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 1                    |
 | Froude number                            | 0                    |

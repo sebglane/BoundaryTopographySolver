@@ -104,6 +104,16 @@ struct RefinementParameters
    */
   unsigned int  n_cycles;
 
+  /*!
+   * @brief Number of initial refinements.
+   */
+  unsigned int  n_initial_refinements;
+
+  /*!
+   * @brief Number of initial boundary refinements.
+   */
+  unsigned int  n_initial_bndry_refinements;
+
 };
 
 

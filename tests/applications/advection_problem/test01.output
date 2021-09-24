@@ -12,6 +12,8 @@
 | Refinement control parameters                                   |
 +------------------------------------------+----------------------+
 | Adaptive mesh refinement                 | False                |
+| Initial refinements                      | 4                    |
+| Initial boundary refinements             | 0                    |
 | Number of refinement cycles              | 2                    |
 +------------------------------------------+----------------------+
 | Advection solver parameters                                     |

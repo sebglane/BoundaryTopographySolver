@@ -113,6 +113,9 @@ protected:
 
   Solver<dim>  solver;
 
+  const unsigned int      n_initial_refinements;
+
+  const unsigned int      n_initial_bndry_refinements;
 };
 
 // inline functions

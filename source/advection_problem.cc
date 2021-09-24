@@ -100,7 +100,9 @@ template <int dim>
 AdvectionProblem<dim>::AdvectionProblem(const ProblemParameters &parameters)
 :
 mapping(parameters.mapping_degree),
-solver(triangulation, mapping, parameters)
+solver(triangulation, mapping, parameters),
+n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
+n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
 {
   std::cout << parameters << std::endl;
 }

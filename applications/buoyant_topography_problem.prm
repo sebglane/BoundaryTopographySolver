@@ -15,7 +15,7 @@ subsection Buoyant hydrodynamic solver parameters
   set Minimal viscosity (density)          = 1.0e-4
   set Reynolds number                      = 100.0
   set SUPG density stabilization parameter = 1.0
-  set Stratification number                = 1.0e-2
+  set Stratification number                = 2.0e-2
 end
 
 
@@ -29,12 +29,14 @@ end
 
 
 subsection Refinement control parameters
-  set Adaptive mesh refinement         = true
-  set Fraction of cells set to coarsen = 0.0
-  set Fraction of cells set to refine  = 0.8
-  set Maximum number of levels         = 10
-  set Minimum number of levels         = 2
-  set Number of refinement cycles      = 5
+  set Adaptive mesh refinement               = true
+  set Fraction of cells set to coarsen       = 0.0
+  set Fraction of cells set to refine        = 0.8
+  set Maximum number of levels               = 10
+  set Minimum number of levels               = 2
+  set Number of initial boundary refinements = 0
+  set Number of initial refinements          = 4
+  set Number of refinement cycles            = 5
 end
 
 

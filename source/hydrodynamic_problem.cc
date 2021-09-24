@@ -14,7 +14,6 @@ namespace Hydrodynamic {
 ProblemParameters::ProblemParameters()
 :
 SolverParameters(),
-n_initial_refinements(1),
 mapping_degree(1),
 froude_number(0.0),
 reynolds_number(1.0)
@@ -61,10 +60,6 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
 {
   SolverParameters::declare_parameters(prm);
 
-  prm.declare_entry("Number of initial refinements",
-                    "1",
-                    Patterns::Integer(1));
-
   prm.declare_entry("Mapping - Polynomial degree",
                     "1",
                     Patterns::Integer(1));
@@ -88,9 +83,6 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 {
   SolverParameters::parse_parameters(prm);
 
-  n_initial_refinements = prm.get_integer("Number of initial refinements");
-  AssertThrow(n_initial_refinements > 0, ExcLowerRange(n_initial_refinements, 0) );
-
   mapping_degree = prm.get_integer("Mapping - Polynomial degree");
   AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
 
@@ -113,8 +105,6 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 {
   stream << static_cast<const SolverParameters &>(prm);
-
-  Utility::add_line(stream, "Initial refinements", prm.n_initial_refinements);
 
   {
      std::stringstream strstream;
@@ -141,8 +131,9 @@ template <int dim>
 HydrodynamicProblem<dim>::HydrodynamicProblem(const ProblemParameters &parameters)
 :
 mapping(parameters.mapping_degree),
-n_initial_refinements(parameters.n_initial_refinements),
-solver(triangulation, mapping, parameters, parameters.reynolds_number, parameters.froude_number)
+solver(triangulation, mapping, parameters, parameters.reynolds_number, parameters.froude_number),
+n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
+n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
 {
   std::cout << parameters << std::endl;
 }

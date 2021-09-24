@@ -89,12 +89,15 @@ protected:
 
   virtual void set_advection_field() = 0;
 
-  Triangulation<dim>       triangulation;
+  Triangulation<dim>      triangulation;
 
-  MappingQCache<dim>       mapping;
+  MappingQCache<dim>      mapping;
 
   Solver<dim>             solver;
 
+  const unsigned int      n_initial_refinements;
+
+  const unsigned int      n_initial_bndry_refinements;
 };
 
 // inline functions

@@ -85,6 +85,19 @@ void Problem<dim>::make_grid()
 
   this->triangulation.refine_global(this->n_initial_refinements);
 
+  // initial boundary refinements
+  if (this->n_initial_bndry_refinements > 0)
+  {
+    for (unsigned int step=0; step<this->n_initial_bndry_refinements; ++step)
+    {
+      for (const auto &cell: this->triangulation.active_cell_iterators())
+        if (cell->at_boundary())
+          for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+            if (cell->face(f)->boundary_id() == topographic_bndry_id)
+              cell->set_refine_flag();
+      this->triangulation.execute_coarsening_and_refinement();
+    }
+  }
 }
 
 

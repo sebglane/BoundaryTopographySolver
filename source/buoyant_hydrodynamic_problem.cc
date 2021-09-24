@@ -143,7 +143,9 @@ BuoyantHydrodynamicProblem<dim>::BuoyantHydrodynamicProblem(const ProblemParamet
 :
 mapping(parameters.mapping_degree),
 solver(triangulation, mapping, parameters,
-       parameters.reynolds_number, parameters.froude_number, parameters.stratification_number)
+       parameters.reynolds_number, parameters.froude_number, parameters.stratification_number),
+n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
+n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
 {
   std::cout << parameters << std::endl;
 }

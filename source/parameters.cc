@@ -66,7 +66,9 @@ cell_fraction_to_coarsen(0.30),
 cell_fraction_to_refine(0.03),
 n_maximum_levels(5),
 n_minimum_levels(1),
-n_cycles(2)
+n_cycles(2),
+n_initial_refinements(1),
+n_initial_bndry_refinements(0)
 {}
 
 
@@ -100,6 +102,14 @@ void RefinementParameters::declare_parameters(ParameterHandler &prm)
                       "2",
                       Patterns::Integer(1));
 
+    prm.declare_entry("Number of initial refinements",
+                      "1",
+                      Patterns::Integer(1));
+
+    prm.declare_entry("Number of initial boundary refinements",
+                      "0",
+                      Patterns::Integer());
+
   }
   prm.leave_subsection();
 }
@@ -113,6 +123,12 @@ void RefinementParameters::parse_parameters(ParameterHandler &prm)
     adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
 
     n_cycles = prm.get_integer("Number of refinement cycles");
+
+    n_initial_refinements = prm.get_integer("Number of initial refinements");
+    AssertThrow(n_initial_refinements > 0, ExcLowerRange(n_initial_refinements, 0) );
+
+    n_initial_bndry_refinements = prm.get_integer("Number of initial boundary refinements");
+    AssertThrow(n_initial_refinements > 0, ExcLowerRange(n_initial_refinements, 0) );
 
     if (adaptive_mesh_refinement)
     {
@@ -154,9 +170,12 @@ Stream& operator<<(Stream &stream, const RefinementParameters &prm)
   add_line(stream, "Refinement control parameters");
   add_header(stream);
 
-  add_line(stream,
-                     "Adaptive mesh refinement",
-                     (prm.adaptive_mesh_refinement ? "True": "False"));
+  add_line(stream,"Adaptive mesh refinement", (prm.adaptive_mesh_refinement ? "True": "False"));
+
+  add_line(stream, "Initial refinements", prm.n_initial_refinements);
+
+  add_line(stream, "Initial boundary refinements", prm.n_initial_bndry_refinements);
+
   if (prm.adaptive_mesh_refinement)
   {
     add_line(stream,

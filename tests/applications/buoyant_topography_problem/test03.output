@@ -12,10 +12,12 @@
 | Refinement control parameters                                   |
 +------------------------------------------+----------------------+
 | Adaptive mesh refinement                 | True                 |
+| Initial refinements                      | 4                    |
+| Initial boundary refinements             | 0                    |
 | Fraction of cells set to coarsen         | 0                    |
 | Fraction of cells set to refine          | 0.8                  |
 | Maximum number of levels                 | 10                   |
-| Minimum number of levels                 | 4                    |
+| Minimum number of levels                 | 2                    |
 | Number of refinement cycles              | 3                    |
 +------------------------------------------+----------------------+
 | Hydrodynamic solver parameters                                  |

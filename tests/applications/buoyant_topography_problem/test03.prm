@@ -29,12 +29,14 @@ end
 
 
 subsection Refinement control parameters
-  set Adaptive mesh refinement         = true
-  set Fraction of cells set to coarsen = 0.0
-  set Fraction of cells set to refine  = 0.8
-  set Maximum number of levels         = 10
-  set Minimum number of levels         = 4
-  set Number of refinement cycles      = 3
+  set Adaptive mesh refinement               = true
+  set Fraction of cells set to coarsen       = 0.0
+  set Fraction of cells set to refine        = 0.8
+  set Maximum number of levels               = 10
+  set Minimum number of levels               = 2
+  set Number of initial boundary refinements = 0
+  set Number of initial refinements          = 4
+  set Number of refinement cycles            = 3
 end
 
 
