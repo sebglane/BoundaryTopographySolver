@@ -261,8 +261,23 @@ void TopographyBox<dim>::create_coarse_mesh(Triangulation<dim> &coarse_grid)
     const Point<dim>    origin;
 
     Point<dim>    corner;
-    for (unsigned int d=0; d<dim; ++d)
-      corner[d] = 1.0;
+    if (dim == 2)
+    {
+      for (unsigned int d=0; d<dim; ++d)
+        corner[d] = 1.0;
+    }
+    else if (dim == 3)
+    {
+      if (plane_wave)
+      {
+        corner[0] = 1.0;
+        corner[1] = 0.1;
+        corner[2] = 1.0;
+      }
+      else
+        for (unsigned int d=0; d<dim; ++d)
+          corner[d] = 1.0;
+    }
 
     GridGenerator::hyper_rectangle(coarse_grid,
                                    origin,

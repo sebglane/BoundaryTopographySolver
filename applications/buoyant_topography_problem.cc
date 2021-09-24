@@ -112,7 +112,7 @@ reference_density()
   std::cout << "Solving viscous buoyant topography problem" << std::endl;
 
   Point<2> point;
-  Assert(reference_density.gradient(point) * gravity_field.value(point) > 0.0,
+  Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 }
 
@@ -128,7 +128,7 @@ reference_density()
   std::cout << "Solving viscous buoyant topography problem" << std::endl;
 
   Point<3> point;
-  Assert(reference_density.gradient(point) * gravity_field.value(point) > 0.0,
+  Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 }
 

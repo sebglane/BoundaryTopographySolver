@@ -69,6 +69,11 @@ struct ProblemParameters: SolverParameters
    */
   double        reynolds_number;
 
+  /*!
+   * @brief The Rossby number of the problem.
+   */
+  double        rossby_number;
+
 };
 
 
@@ -94,9 +99,11 @@ protected:
 
   void initialize_mapping();
 
+  virtual void set_angular_velocity();
+
   virtual void set_boundary_conditions() = 0;
 
-  virtual void set_body_force_term();
+  virtual void set_body_force();
 
   Triangulation<dim>       triangulation;
 
@@ -111,7 +118,15 @@ protected:
 
 // inline functions
 template <int dim>
-void HydrodynamicProblem<dim>::set_body_force_term()
+inline void HydrodynamicProblem<dim>::set_angular_velocity()
+{
+  return;
+}
+
+
+
+template <int dim>
+inline void HydrodynamicProblem<dim>::set_body_force()
 {
   return;
 }

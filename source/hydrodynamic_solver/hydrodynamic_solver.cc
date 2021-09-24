@@ -184,11 +184,13 @@ Solver<dim>::Solver
  Mapping<dim>           &mapping,
  const SolverParameters &parameters,
  const double           reynolds,
- const double           froude)
+ const double           froude,
+ const double           rossby)
 :
 SolverBase::Solver<dim>(tria, mapping, parameters),
 velocity_boundary_conditions(this->triangulation),
 pressure_boundary_conditions(this->triangulation),
+angular_velocity_ptr(nullptr),
 body_force_ptr(nullptr),
 convective_term_weak_form(parameters.convective_term_weak_form),
 viscous_term_weak_form(parameters.viscous_term_weak_form),
@@ -196,6 +198,7 @@ stabilization(parameters.stabilization),
 velocity_fe_degree(2),
 reynolds_number(reynolds),
 froude_number(froude),
+rossby_number(rossby),
 c(1.0),
 mu(1.0)
 {}
@@ -236,11 +239,13 @@ template Solver<2>::Solver
  Mapping<2>        &,
  const SolverParameters &,
  const double       ,
+ const double       ,
  const double        );
 template Solver<3>::Solver
 (Triangulation<3>  &,
  Mapping<3>        &,
  const SolverParameters &,
+ const double       ,
  const double       ,
  const double        );
 

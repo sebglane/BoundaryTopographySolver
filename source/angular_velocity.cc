@@ -17,6 +17,7 @@ FunctionTime<double>(time)
 {}
 
 
+
 template <int dim>
 typename AngularVelocity<dim>::value_type
 AngularVelocity<dim>::value() const

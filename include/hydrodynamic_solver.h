@@ -8,8 +8,8 @@
 #ifndef INCLUDE_HYDRODYNAMIC_SOLVER_H_
 #define INCLUDE_HYDRODYNAMIC_SOLVER_H_
 
+#include <angular_velocity.h>
 #include <boundary_conditions.h>
-
 #include <solver_base.h>
 
 namespace Hydrodynamic {
@@ -209,7 +209,10 @@ public:
          Mapping<dim>        &mapping,
          const SolverParameters &parameters,
          const double         reynolds_number = 1.0,
-         const double         froude_number = 0.0);
+         const double         froude_number = 0.0,
+         const double         rossby_number = 0.0);
+
+  void set_angular_velocity(const Utility::AngularVelocity<dim> &angular_velocity);
 
   void set_body_force(const TensorFunction<1, dim> &body_force);
 
@@ -241,7 +244,9 @@ protected:
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;
 
-  const TensorFunction<1, dim> *body_force_ptr;
+  const Utility::AngularVelocity<dim> *angular_velocity_ptr;
+
+  const TensorFunction<1, dim>        *body_force_ptr;
 
   const ConvectiveTermWeakForm  convective_term_weak_form;
 
@@ -254,6 +259,8 @@ protected:
   const double        reynolds_number;
 
   const double        froude_number;
+
+  const double        rossby_number;
 
   const double        c;
 
@@ -312,6 +319,14 @@ operator&=(StabilizationFlags &f1, const StabilizationFlags f2)
   return f1;
 }
 
+
+
+template <int dim>
+inline void Solver<dim>::set_angular_velocity
+(const Utility::AngularVelocity<dim> &angular_velocity)
+{
+  angular_velocity_ptr = &angular_velocity;
+}
 
 
 template <int dim>

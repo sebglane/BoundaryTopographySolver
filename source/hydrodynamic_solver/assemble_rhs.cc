@@ -19,6 +19,10 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   if (this->verbose)
     std::cout << "    Assemble rhs..." << std::endl;
 
+  if (angular_velocity_ptr != nullptr)
+    AssertThrow(rossby_number > 0.0,
+                ExcMessage("Non-vanishing Rossby number is required if the angular "
+                           "velocity vector is specified."));
   if (body_force_ptr != nullptr)
     AssertThrow(froude_number > 0.0,
                 ExcMessage("Non-vanishing Froude number is required if the body "
@@ -99,6 +103,9 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   std::vector<Tensor<1,dim>>  body_force_values;
   if (body_force_ptr != nullptr)
     body_force_values.resize(n_q_points);
+  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
+  if (angular_velocity_ptr != nullptr)
+    angular_velocity_value = angular_velocity_ptr->value();
 
   // source term face values
   const unsigned int n_face_q_points{face_quadrature_formula.size()};
@@ -184,6 +191,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
           rhs += mu * compute_grad_div_rhs(present_velocity_gradients[q],
                                            grad_phi_velocity[i]);
 
+        // body force term
         if (body_force_ptr != nullptr)
         {
           Tensor<1, dim> body_force_test_function(phi_velocity[i]);
@@ -195,6 +203,28 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
             body_force_test_function += delta * grad_phi_pressure[i];
 
           rhs += body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
+        }
+
+        // Coriolis term
+        if (angular_velocity_ptr != nullptr)
+        {
+          Tensor<1, dim> coriolis_term_test_function(phi_velocity[i]);
+
+          if (stabilization & apply_supg)
+            coriolis_term_test_function += delta * grad_phi_velocity[i] *
+                                           present_velocity_values[q];
+
+          if (stabilization & apply_pspg)
+            coriolis_term_test_function += delta * grad_phi_pressure[i];
+
+          if constexpr(dim == 2)
+            rhs -= 2.0 * delta / rossby_number * angular_velocity_value[0] *
+                   cross_product_2d(-present_velocity_values[q]) *
+                   coriolis_term_test_function;
+          else if constexpr(dim == 3)
+            rhs -= 2.0 / rossby_number *
+                   cross_product_3d(angular_velocity_value, present_velocity_values[q]) *
+                   coriolis_term_test_function;
         }
 
         cell_rhs(i) += rhs * JxW;
