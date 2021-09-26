@@ -1,6 +1,7 @@
 # Set the source files to be compiled
 SET(TARGET_SRC
     angular_velocity.cc
+    assembly_base_data.cc
     boundary_conditions.cc
     grid_factory.cc
     parameters.cc
@@ -17,6 +18,7 @@ SET(TARGET_SRC
     hydrodynamic_solver/apply_boundary_conditions.cc
     hydrodynamic_solver/assemble_system.cc
     hydrodynamic_solver/assemble_rhs.cc
+    hydrodynamic_solver/assembly_data.cc
     hydrodynamic_solver/hydrodynamic_solver.cc
     hydrodynamic_solver/setup.cc
     # buoyant hydrodynamic solver
