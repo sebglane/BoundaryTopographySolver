@@ -16,14 +16,15 @@ SET(TARGET_SRC
     hydrodynamic_postprocessor.cc
     hydrodynamic_problem.cc
     hydrodynamic_solver/apply_boundary_conditions.cc
-    hydrodynamic_solver/assemble_system.cc
-    hydrodynamic_solver/assemble_rhs.cc
     hydrodynamic_solver/assembly_data.cc
+    hydrodynamic_solver/assemble_rhs.cc
+    hydrodynamic_solver/assemble_system.cc
     hydrodynamic_solver/hydrodynamic_solver.cc
     hydrodynamic_solver/setup.cc
     # buoyant hydrodynamic solver
     buoyant_hydrodynamic_problem.cc
     buoyant_hydrodynamic_solver/apply_boundary_conditions.cc
+    buoyant_hydrodynamic_solver/assembly_data.cc
     buoyant_hydrodynamic_solver/assemble_system.cc
     buoyant_hydrodynamic_solver/assemble_rhs.cc
     buoyant_hydrodynamic_solver/buoyant_hydrodynamic_solver.cc

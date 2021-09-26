@@ -331,22 +331,22 @@ private:
    AssemblyData::Matrix::Scratch<dim> &scratch,
    AssemblyBaseData::Matrix::Copy     &data) const;
 
-  void copy_local_to_global_system
-  (const AssemblyBaseData::Matrix::Copy     &data,
-   const bool use_homogeneous_constraints);
-
   void assemble_local_rhs
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
    AssemblyData::RightHandSide::Scratch<dim> &scratch,
    AssemblyBaseData::RightHandSide::Copy     &data) const;
 
+  virtual void output_results(const unsigned int cycle = 0) const;
+
+protected:
+  void copy_local_to_global_system
+  (const AssemblyBaseData::Matrix::Copy     &data,
+   const bool use_homogeneous_constraints);
+
   void copy_local_to_global_rhs
   (const AssemblyBaseData::RightHandSide::Copy     &data,
    const bool use_homogeneous_constraints);
 
-  virtual void output_results(const unsigned int cycle = 0) const;
-
-protected:
   VectorBoundaryConditions<dim> velocity_boundary_conditions;
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;
