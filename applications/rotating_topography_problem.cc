@@ -4,9 +4,9 @@
  *  Created on: Sep 1, 2021
  *      Author: sg
  */
-
 #include <deal.II/base/function_lib.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/grid_out.h>
 
 #include <grid_factory.h>
 #include <hydrodynamic_problem.h>
@@ -14,6 +14,37 @@
 namespace TopographyProblem {
 
 using namespace Hydrodynamic;
+
+template <int dim>
+class ConstantAngularVelocity : public Utility::AngularVelocity<dim>
+{
+public:
+  ConstantAngularVelocity(const double time = 0);
+
+  virtual typename Utility::AngularVelocity<dim>::value_type value() const;
+};
+
+
+
+template <int dim>
+ConstantAngularVelocity<dim>::ConstantAngularVelocity(const double time)
+:
+Utility::AngularVelocity<dim>(time)
+{}
+
+
+
+template <>
+typename Utility::AngularVelocity<3>::value_type
+ConstantAngularVelocity<3>::value() const
+{
+  value_type value;
+  value[2] = 1.0;
+
+  return (value);
+}
+
+
 
 template <int dim>
 class Problem : public HydrodynamicProblem<dim>
@@ -24,9 +55,13 @@ public:
 protected:
   virtual void make_grid() override;
 
+  virtual void set_angular_velocity();
+
   virtual void set_boundary_conditions() override;
 
 private:
+  const ConstantAngularVelocity<dim>  angular_velocity;
+
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
   types::boundary_id  bottom_bndry_id;
@@ -43,6 +78,7 @@ template <int dim>
 Problem<dim>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
+angular_velocity(),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -61,7 +97,7 @@ void Problem<dim>::make_grid()
 {
   std::cout << "    Make grid..." << std::endl;
 
-  GridFactory::TopographyBox<dim> topography_box(2.0 * numbers::PI, 0.1);
+  GridFactory::TopographyBox<dim> topography_box(2.0 * numbers::PI, 0.1, 0.0, false);
   left_bndry_id = topography_box.left;
   right_bndry_id = topography_box.right;
   bottom_bndry_id = topography_box.bottom;
@@ -149,6 +185,15 @@ void Problem<dim>::set_boundary_conditions()
   pressure_bcs.close();
 }
 
+
+
+template <int dim>
+void Problem<dim>::set_angular_velocity()
+{
+  this->solver.set_angular_velocity(angular_velocity);
+}
+
+
 }  // namespace TopographyProblem
 
 int main(int argc, char *argv[])
@@ -159,19 +204,13 @@ int main(int argc, char *argv[])
     if (argc >= 2)
       parameter_filename = argv[1];
     else
-      parameter_filename = "topography_problem.prm";
+      parameter_filename = "rotating_topography_problem.prm";
 
     TopographyProblem::ProblemParameters parameters(parameter_filename);
-    if (parameters.space_dim == 2)
-    {
-      TopographyProblem::Problem<2> problem(parameters);
-      problem.run();
-    }
-    else
-    {
-      TopographyProblem::Problem<3> problem(parameters);
-      problem.run();
-    }
+    AssertThrow(parameters.space_dim == 3,
+                dealii::ExcMessage("Rotating problem only make sense in 3D."));
+    TopographyProblem::Problem<3> problem(parameters);
+    problem.run();
   }
   catch (std::exception &exc)
   {

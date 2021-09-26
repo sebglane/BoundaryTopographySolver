@@ -10,6 +10,7 @@ SET(SOURCE_FILES
     buoyant_topography_problem.cc
     cavity_problem.cc
     rotating_cavity_problem.cc
+    rotating_topography_problem.cc
     topography_problem.cc
     topography_mesh.cc
     )
