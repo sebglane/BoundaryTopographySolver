@@ -406,7 +406,7 @@ void TopographyBox<dim>::create_coarse_mesh(Triangulation<dim> &coarse_grid)
             case 3:
             {
               const double height{include_exterior ? 1.0 + exterior_length: 1.0};
-              const double depth{1.0};
+              const double depth{plane_wave ? 0.1 : 1.0};
 
               // y-coordinate
               for (unsigned int v=0; v<GeometryInfo<dim>::vertices_per_face; ++v)
