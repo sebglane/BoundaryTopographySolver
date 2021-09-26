@@ -6,6 +6,7 @@
  */
 
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/work_stream.h>
 #include <deal.II/fe/fe_values.h>
 
 #include <assembly_functions.h>
@@ -35,14 +36,30 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
   this->system_rhs = 0;
 
-  const AffineConstraints<double> &constraints =
-      (use_homogeneous_constraints? this->zero_constraints: this->nonzero_constraints);
-
-  const FEValuesExtractors::Vector  velocity(0);
-  const FEValuesExtractors::Scalar  pressure(dim);
-
+  // Initiate the quadrature formula
   const QGauss<dim>   quadrature_formula(velocity_fe_degree + 1);
 
+  // Initiate the face quadrature formula
+  const QGauss<dim-1>   face_quadrature_formula(velocity_fe_degree + 1);
+
+  // Set up the lambda function for the local assembly operation
+  using Scratch = AssemblyData::RightHandSide::Scratch<dim>;
+  using Copy = AssemblyBaseData::RightHandSide::Copy;
+  auto worker =
+      [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+         Scratch  &scratch,
+         Copy     &data)
+         {
+            assemble_local_rhs(cell, scratch, data);
+         };
+
+  // Set up the lambda function for the copy local to global operation
+  auto copier = [this, use_homogeneous_constraints](const Copy   &data)
+      {
+        copy_local_to_global_rhs(data, use_homogeneous_constraints);
+      };
+
+  // Assemble using the WorkStream approach
   UpdateFlags update_flags = update_values|
                              update_gradients|
                              update_JxW_values;
@@ -51,227 +68,229 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   if (stabilization & (apply_supg|apply_pspg))
     update_flags |= update_hessians;
 
-  FEValues<dim> fe_values(this->mapping,
-                          *this->fe_system,
-                          quadrature_formula,
-                          update_flags);
+  const UpdateFlags face_update_flags = update_values|
+                                        update_quadrature_points|
+                                        update_JxW_values;
 
-  const QGauss<dim-1>   face_quadrature_formula(velocity_fe_degree + 1);
+  WorkStream::run
+  (this->dof_handler.begin_active(),
+   this->dof_handler.end(),
+   worker,
+   copier,
+   Scratch(this->mapping,
+           quadrature_formula,
+           *this->fe_system,
+           update_flags,
+           face_quadrature_formula,
+           face_update_flags,
+           stabilization,
+           body_force_ptr != nullptr,
+           angular_velocity_ptr != nullptr),
+   Copy(this->fe_system->n_dofs_per_cell()));
 
-  FEFaceValues<dim>     fe_face_values(this->mapping,
-                                       *this->fe_system,
-                                       face_quadrature_formula,
-                                       update_values|
-                                       update_quadrature_points|
-                                       update_JxW_values);
+}
 
-  const typename VectorBoundaryConditions<dim>::NeumannBCMapping
-  &neumann_bcs = velocity_boundary_conditions.neumann_bcs;
 
-  const unsigned int dofs_per_cell{this->fe_system->n_dofs_per_cell()};
-  Vector<double>     cell_rhs(dofs_per_cell);
+template<int dim>
+void Solver<dim>::assemble_local_rhs
+(const typename DoFHandler<dim>::active_cell_iterator &cell,
+ AssemblyData::RightHandSide::Scratch<dim> &scratch,
+ AssemblyBaseData::RightHandSide::Copy     &data) const
+{
+  cell->get_dof_indices(data.local_dof_indices);
 
-  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-
-  // shape functions
-  std::vector<Tensor<1, dim>> phi_velocity(dofs_per_cell);
-  std::vector<Tensor<2, dim>> grad_phi_velocity(dofs_per_cell);
-  std::vector<double>         div_phi_velocity(dofs_per_cell);
-  std::vector<double>         phi_pressure(dofs_per_cell);
-
-  // stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_phi_pressure;
-  if (stabilization & apply_pspg)
-    grad_phi_pressure.resize(dofs_per_cell);
-
-  // solution values
-  const unsigned int n_q_points{quadrature_formula.size()};
-  std::vector<Tensor<1, dim>> present_velocity_values(n_q_points);
-  std::vector<Tensor<2, dim>> present_velocity_gradients(n_q_points);
-  std::vector<double>         present_pressure_values(n_q_points);
-
-  // stabilization related solution values
-  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
-  std::vector<Tensor<1, dim>> present_pressure_gradients;
-  if (stabilization & (apply_supg|apply_pspg))
-  {
-    present_velocity_laplaceans.resize(n_q_points);
-    present_pressure_gradients.resize(n_q_points);
-  }
-
-  // source term values
-  std::vector<Tensor<1,dim>>  body_force_values;
-  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
-  if (body_force_ptr != nullptr)
-    body_force_values.resize(n_q_points);
-  if (angular_velocity_ptr != nullptr)
-    angular_velocity_value = angular_velocity_ptr->value();
-
-  // source term face values
-  const unsigned int n_face_q_points{face_quadrature_formula.size()};
-  std::vector<Tensor<1, dim>> boundary_traction_values;
-  if (!neumann_bcs.empty())
-    boundary_traction_values.resize(n_face_q_points);
+  const FEValuesExtractors::Vector  velocity(0);
+  const FEValuesExtractors::Scalar  pressure(dim);
 
   const double nu{1.0 / reynolds_number};
 
-  for (const auto &cell : this->dof_handler.active_cell_iterators())
+  scratch.fe_values.reinit(cell);
+
+  const double delta{c * std::pow(cell->diameter(), 2)};
+
+  data.local_rhs = 0;
+
+  scratch.fe_values[velocity].get_function_values(this->evaluation_point,
+                                                  scratch.present_velocity_values);
+  scratch.fe_values[velocity].get_function_gradients(this->evaluation_point,
+                                                     scratch.present_velocity_gradients);
+
+  scratch.fe_values[pressure].get_function_values(this->evaluation_point,
+                                                  scratch.present_pressure_values);
+  // stabilization related solution values
+  if (stabilization & (apply_supg|apply_pspg))
   {
-    fe_values.reinit(cell);
+    scratch.fe_values[velocity].get_function_laplacians(this->evaluation_point,
+                                                        scratch.present_velocity_laplaceans);
+    scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
+                                                       scratch.present_pressure_gradients);
+  }
 
-    const double delta{c * std::pow(cell->diameter(), 2)};
+  // body force
+  if (body_force_ptr != nullptr)
+  {
+    body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
+                               scratch.body_force_values);
 
-    cell_rhs = 0;
+  }
 
-    fe_values[velocity].get_function_values(this->evaluation_point,
-                                            present_velocity_values);
-    fe_values[velocity].get_function_gradients(this->evaluation_point,
-                                               present_velocity_gradients);
+  // Coriolis term
+  if (angular_velocity_ptr != nullptr)
+  {
+    scratch.angular_velocity_value = angular_velocity_ptr->value();
+  }
 
-    fe_values[pressure].get_function_values(this->evaluation_point,
-                                            present_pressure_values);
-    // stabilization related solution values
-    if (stabilization & (apply_supg|apply_pspg))
+  for (const auto q: scratch.fe_values.quadrature_point_indices())
+  {
+    for (const auto i: scratch.fe_values.dof_indices())
     {
-      fe_values[velocity].get_function_laplacians(this->evaluation_point,
-                                                  present_velocity_laplaceans);
-      fe_values[pressure].get_function_gradients(this->evaluation_point,
-                                                 present_pressure_gradients);
+      scratch.phi_velocity[i] = scratch.fe_values[velocity].value(i, q);
+      scratch.grad_phi_velocity[i] = scratch.fe_values[velocity].gradient(i, q);
+      scratch.div_phi_velocity[i] = scratch.fe_values[velocity].divergence(i, q);
+      scratch.phi_pressure[i] = scratch.fe_values[pressure].value(i, q);
+
+      // stabilization related shape functions
+      if (stabilization & apply_pspg)
+        scratch.grad_phi_pressure[i] = scratch.fe_values[pressure].gradient(i, q);
     }
 
-    // body force
-    if (body_force_ptr != nullptr)
+    const double JxW{scratch.fe_values.JxW(q)};
+
+    for (const auto i: scratch.fe_values.dof_indices())
     {
-      body_force_ptr->value_list(fe_values.get_quadrature_points(),
-                                 body_force_values);
+      double rhs = compute_rhs(scratch.phi_velocity[i],
+                               scratch.grad_phi_velocity[i],
+                               scratch.present_velocity_values[q],
+                               scratch.present_velocity_gradients[q],
+                               scratch.present_pressure_values[q],
+                               scratch.phi_pressure[i],
+                               nu);
 
-    }
+      if (stabilization & apply_supg)
+        rhs += delta * compute_supg_rhs(scratch.grad_phi_velocity[i],
+                                        scratch.present_velocity_values[q],
+                                        scratch.present_velocity_gradients[q],
+                                        scratch.present_velocity_laplaceans[q],
+                                        scratch.present_pressure_gradients[q],
+                                        nu);
+      if (stabilization & apply_pspg)
+        rhs += delta * compute_pspg_rhs(scratch.present_velocity_values[q],
+                                        scratch.present_velocity_gradients[q],
+                                        scratch.present_velocity_laplaceans[q],
+                                        scratch.grad_phi_pressure[i],
+                                        scratch.present_pressure_gradients[q],
+                                        nu);
+      if (stabilization & apply_grad_div)
+        rhs += mu * compute_grad_div_rhs(scratch.present_velocity_gradients[q],
+                                         scratch.grad_phi_velocity[i]);
 
-    for (const auto q: fe_values.quadrature_point_indices())
-    {
-      for (const auto i: fe_values.dof_indices())
+      // body force term
+      if (body_force_ptr != nullptr)
       {
-        phi_velocity[i] = fe_values[velocity].value(i, q);
-        grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
-        div_phi_velocity[i] = fe_values[velocity].divergence(i, q);
-        phi_pressure[i] = fe_values[pressure].value(i, q);
-
-        // stabilization related shape functions
-        if (stabilization & apply_pspg)
-          grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
-      }
-
-      const double JxW{fe_values.JxW(q)};
-
-      for (const auto i: fe_values.dof_indices())
-      {
-        double rhs = compute_rhs(phi_velocity[i],
-                                 grad_phi_velocity[i],
-                                 present_velocity_values[q],
-                                 present_velocity_gradients[q],
-                                 present_pressure_values[q],
-                                 phi_pressure[i],
-                                 nu);
+        Tensor<1, dim> body_force_test_function(scratch.phi_velocity[i]);
 
         if (stabilization & apply_supg)
-          rhs += delta * compute_supg_rhs(grad_phi_velocity[i],
-                                          present_velocity_values[q],
-                                          present_velocity_gradients[q],
-                                          present_velocity_laplaceans[q],
-                                          present_pressure_gradients[q],
-                                          nu);
+          body_force_test_function += delta * scratch.grad_phi_velocity[i] *
+                                      scratch.present_velocity_values[q];
+
         if (stabilization & apply_pspg)
-          rhs += delta * compute_pspg_rhs(present_velocity_values[q],
-                                          present_velocity_gradients[q],
-                                          present_velocity_laplaceans[q],
-                                          grad_phi_pressure[i],
-                                          present_pressure_gradients[q],
-                                          nu);
-        if (stabilization & apply_grad_div)
-          rhs += mu * compute_grad_div_rhs(present_velocity_gradients[q],
-                                           grad_phi_velocity[i]);
+          body_force_test_function += delta * scratch.grad_phi_pressure[i];
 
-        // body force term
-        if (body_force_ptr != nullptr)
-        {
-          Tensor<1, dim> body_force_test_function(phi_velocity[i]);
-
-          if (stabilization & apply_supg)
-            body_force_test_function += delta * grad_phi_velocity[i] * present_velocity_values[q];
-
-          if (stabilization & apply_pspg)
-            body_force_test_function += delta * grad_phi_pressure[i];
-
-          rhs += body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
-        }
-
-        // Coriolis term
-        if (angular_velocity_ptr != nullptr)
-        {
-          Tensor<1, dim> coriolis_term_test_function(phi_velocity[i]);
-
-          // Coriolis stabilization terms
-          if (stabilization & apply_supg)
-            coriolis_term_test_function += delta * grad_phi_velocity[i] *
-                                           present_velocity_values[q];
-          if (stabilization & apply_pspg)
-            coriolis_term_test_function += delta * grad_phi_pressure[i];
-
-          if constexpr(dim == 2)
-            rhs -= 2.0 / rossby_number * angular_velocity_value[0] *
-                   cross_product_2d(-present_velocity_values[q]) *
-                   coriolis_term_test_function;
-          else if constexpr(dim == 3)
-            rhs -= 2.0 / rossby_number *
-                   cross_product_3d(angular_velocity_value, present_velocity_values[q]) *
-                   coriolis_term_test_function;
-        }
-
-        cell_rhs(i) += rhs * JxW;
+        rhs += scratch.body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
       }
-    } // end loop over cell quadrature points
 
-    // Loop over the faces of the cell
-    if (!neumann_bcs.empty())
-      if (cell->at_boundary())
-        for (const auto &face : cell->face_iterators())
-          if (face->at_boundary() &&
-              neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
+      // Coriolis term
+      if (angular_velocity_ptr != nullptr)
+      {
+        Tensor<1, dim> coriolis_term_test_function(scratch.phi_velocity[i]);
+
+        // Coriolis stabilization terms
+        if (stabilization & apply_supg)
+          coriolis_term_test_function += delta * scratch.grad_phi_velocity[i] *
+                                         scratch.present_velocity_values[q];
+        if (stabilization & apply_pspg)
+          coriolis_term_test_function += delta * scratch.grad_phi_pressure[i];
+
+        if constexpr(dim == 2)
+          rhs -= 2.0 / rossby_number * scratch.angular_velocity_value[0] *
+                 cross_product_2d(-scratch.present_velocity_values[q]) *
+                 coriolis_term_test_function;
+        else if constexpr(dim == 3)
+          rhs -= 2.0 / rossby_number *
+                 cross_product_3d(scratch.angular_velocity_value, scratch.present_velocity_values[q]) *
+                 coriolis_term_test_function;
+      }
+
+      data.local_rhs(i) += rhs * JxW;
+    }
+  } // end loop over cell quadrature points
+
+  // Loop over the faces of the cell
+  const typename VectorBoundaryConditions<dim>::NeumannBCMapping
+  &neumann_bcs = velocity_boundary_conditions.neumann_bcs;
+  if (!neumann_bcs.empty())
+    if (cell->at_boundary())
+      for (const auto &face : cell->face_iterators())
+        if (face->at_boundary() &&
+            neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
+        {
+          // Neumann boundary condition
+          scratch.fe_face_values.reinit(cell, face);
+
+          const types::boundary_id  boundary_id{face->boundary_id()};
+          neumann_bcs.at(boundary_id)->value_list(scratch.fe_face_values.get_quadrature_points(),
+                                                  scratch.boundary_traction_values);
+
+          // Loop over face quadrature points
+          for (const auto q: scratch.fe_face_values.quadrature_point_indices())
           {
-            // Neumann boundary condition
-            fe_face_values.reinit(cell, face);
+            // Extract the test function's values at the face quadrature points
+            for (const auto i: scratch.fe_face_values.dof_indices())
+              scratch.phi_velocity[i] = scratch.fe_face_values[velocity].value(i,q);
 
-            const types::boundary_id  boundary_id{face->boundary_id()};
-            neumann_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
-                                                    boundary_traction_values);
+            const double JxW_face{scratch.fe_face_values.JxW(q)};
 
-            // Loop over face quadrature points
-            for (const auto q: fe_face_values.quadrature_point_indices())
-            {
-              // Extract the test function's values at the face quadrature points
-              for (const auto i: fe_face_values.dof_indices())
-                phi_velocity[i] = fe_face_values[velocity].value(i,q);
+            // Loop over the degrees of freedom
+            for (const auto i: scratch.fe_face_values.dof_indices())
+              data.local_rhs(i) += scratch.phi_velocity[i] *
+                                   scratch.boundary_traction_values[q] *
+                                   JxW_face;
+          } // Loop over face quadrature points
+        } // Loop over the faces of the cell
+}
 
-              const double JxW_face{fe_face_values.JxW(q)};
 
-              // Loop over the degrees of freedom
-              for (const auto i: fe_face_values.dof_indices())
-                cell_rhs(i) += phi_velocity[i] *
-                               boundary_traction_values[q] *
-                               JxW_face;
 
-            } // Loop over face quadrature points
-          } // Loop over the faces of the cell
+template <int dim>
+void Solver<dim>::copy_local_to_global_rhs
+(const AssemblyBaseData::RightHandSide::Copy  &data,
+ const bool use_homogeneous_constraints)
+{
+  const AffineConstraints<double> &constraints =
+      (use_homogeneous_constraints ? this->zero_constraints: this->nonzero_constraints);
 
-    cell->get_dof_indices(local_dof_indices);
-
-    constraints.distribute_local_to_global(cell_rhs,
-                                           local_dof_indices,
-                                           this->system_rhs);
-  } // end loop over cells
+  constraints.distribute_local_to_global(data.local_rhs,
+                                         data.local_dof_indices,
+                                         this->system_rhs);
 }
 
 // explicit instantiation
+template void Solver<2>::assemble_local_rhs
+(const typename DoFHandler<2>::active_cell_iterator &cell,
+ AssemblyData::RightHandSide::Scratch<2> &scratch,
+ AssemblyBaseData::RightHandSide::Copy     &data) const;
+template void Solver<3>::assemble_local_rhs
+(const typename DoFHandler<3>::active_cell_iterator &cell,
+ AssemblyData::RightHandSide::Scratch<3> &scratch,
+ AssemblyBaseData::RightHandSide::Copy     &data) const;
+
+template void Solver<2>::copy_local_to_global_rhs
+(const AssemblyBaseData::RightHandSide::Copy  &data,
+ const bool use_homogeneous_constraints);
+template void Solver<3>::copy_local_to_global_rhs
+(const AssemblyBaseData::RightHandSide::Copy  &data,
+ const bool use_homogeneous_constraints);
+
 template void Solver<2>::assemble_rhs(const bool);
 template void Solver<3>::assemble_rhs(const bool);
 

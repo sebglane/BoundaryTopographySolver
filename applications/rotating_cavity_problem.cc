@@ -72,7 +72,7 @@ protected:
   virtual void set_angular_velocity() override;
 
 private:
-  ConstantAngularVelocity<dim>  angular_velocity;
+  const ConstantAngularVelocity<dim>  angular_velocity;
 
   const types::boundary_id  left_bndry_id;
   const types::boundary_id  right_bndry_id;
@@ -89,6 +89,7 @@ template <int dim>
 RotatingCavityProblem<dim>::RotatingCavityProblem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
+angular_velocity(),
 left_bndry_id(0),
 right_bndry_id(1),
 bottom_bndry_id(2),

@@ -17,13 +17,15 @@ struct Copy
 {
   Copy(const unsigned int dofs_per_cell);
 
+  Copy(const Copy &data);
+
   FullMatrix<double>                    local_matrix;
 
   Vector<double>                        local_rhs;
 
-  std::vector<types::global_cell_index> local_dof_indices;
+  std::vector<types::global_dof_index> local_dof_indices;
 
-  const unsigned int                    dofs_per_cell;
+  types::global_dof_index dofs_per_cell;
 
 };
 
@@ -41,7 +43,7 @@ struct Scratch
 
   FEValues<dim>       fe_values;
 
-  const unsigned int  dofs_per_cell;
+  types::global_dof_index dofs_per_cell;
 
   const unsigned int  n_q_points;
 
@@ -56,11 +58,13 @@ struct Copy
 {
   Copy(const unsigned int dofs_per_cell);
 
+  Copy(const Copy &data);
+
   Vector<double>                        local_rhs;
 
-  std::vector<types::global_cell_index> local_dof_indices;
+  std::vector<types::global_dof_index> local_dof_indices;
 
-  const unsigned int                    dofs_per_cell;
+  types::global_dof_index dofs_per_cell;
 };
 
 
@@ -77,7 +81,7 @@ struct Scratch
 
   FEValues<dim>       fe_values;
 
-  const unsigned int  dofs_per_cell;
+  types::global_dof_index dofs_per_cell;
 
   const unsigned int  n_q_points;
 

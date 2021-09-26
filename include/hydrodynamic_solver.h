@@ -327,6 +327,24 @@ private:
 
   virtual void assemble_rhs(const bool initial_step);
 
+  void assemble_local_system
+  (const typename DoFHandler<dim>::active_cell_iterator &cell,
+   AssemblyData::Matrix::Scratch<dim> &scratch,
+   AssemblyBaseData::Matrix::Copy     &data) const;
+
+  void copy_local_to_global_system
+  (const AssemblyBaseData::Matrix::Copy     &data,
+   const bool use_homogeneous_constraints);
+
+  void assemble_local_rhs
+  (const typename DoFHandler<dim>::active_cell_iterator &cell,
+   AssemblyData::RightHandSide::Scratch<dim> &scratch,
+   AssemblyBaseData::RightHandSide::Copy     &data) const;
+
+  void copy_local_to_global_rhs
+  (const AssemblyBaseData::RightHandSide::Copy     &data,
+   const bool use_homogeneous_constraints);
+
   virtual void output_results(const unsigned int cycle = 0) const;
 
 protected:

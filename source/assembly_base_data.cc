@@ -22,6 +22,16 @@ dofs_per_cell(dofs_per_cell)
 
 
 
+Copy::Copy(const Copy &data)
+:
+local_matrix(data.local_matrix),
+local_rhs(data.local_rhs),
+local_dof_indices(data.local_dof_indices),
+dofs_per_cell(data.dofs_per_cell)
+{}
+
+
+
 template <int dim>
 Scratch<dim>::Scratch
 (const Mapping<dim>        &mapping,
@@ -60,6 +70,15 @@ Copy::Copy(const unsigned int dofs_per_cell)
 local_rhs(dofs_per_cell),
 local_dof_indices(dofs_per_cell),
 dofs_per_cell(dofs_per_cell)
+{}
+
+
+
+Copy::Copy(const Copy &data)
+:
+local_rhs(data.local_rhs),
+local_dof_indices(data.local_dof_indices),
+dofs_per_cell(data.dofs_per_cell)
 {}
 
 
