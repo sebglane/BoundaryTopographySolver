@@ -52,7 +52,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                              update_gradients|
                              update_quadrature_points|
                              update_JxW_values;
-  if (this->stabilization & (Hydrodynamic::apply_supg|Hydrodynamic::apply_pspg))
+  if (this->stabilization & (apply_supg|apply_pspg))
     update_flags |= update_hessians;
 
   FEValues<dim> fe_values(this->mapping,
@@ -93,9 +93,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   // stabilization related shape functions
   std::vector<Tensor<1, dim>> grad_phi_pressure;
   std::vector<Tensor<1, dim>> laplace_phi_velocity;
-  if (this->stabilization & (Hydrodynamic::apply_supg|Hydrodynamic::apply_pspg))
+  if (this->stabilization & (apply_supg|apply_pspg))
     grad_phi_pressure.resize(dofs_per_cell);
-  if (this->stabilization & (Hydrodynamic::apply_supg|Hydrodynamic::apply_pspg))
+  if (this->stabilization & (apply_supg|apply_pspg))
     laplace_phi_velocity.resize(dofs_per_cell);
 
   // solution values
@@ -109,7 +109,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   // stabilization related solution values
   std::vector<Tensor<1, dim>> present_velocity_laplaceans;
   std::vector<Tensor<1, dim>> present_pressure_gradients;
-  if (this->stabilization & (Hydrodynamic::apply_supg|Hydrodynamic::apply_pspg))
+  if (this->stabilization & (apply_supg|apply_pspg))
   {
     present_velocity_laplaceans.resize(n_q_points);
     present_pressure_gradients.resize(n_q_points);
@@ -172,7 +172,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                               present_density_gradients);
 
     // stabilization related solution values
-    if (this->stabilization & (Hydrodynamic::apply_supg|Hydrodynamic::apply_pspg))
+    if (this->stabilization & (apply_supg|apply_pspg))
     {
       fe_values[velocity].get_function_laplacians(this->evaluation_point,
                                                   present_velocity_laplaceans);
@@ -209,9 +209,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
         grad_phi_density[i] = fe_values[density].gradient(i, q);
 
         // stabilization related shape functions
-        if (this->stabilization & (Hydrodynamic::apply_supg|Hydrodynamic::apply_pspg))
+        if (this->stabilization & (apply_supg|apply_pspg))
           grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
-        if (this->stabilization & (Hydrodynamic::apply_supg|Hydrodynamic::apply_pspg))
+        if (this->stabilization & (apply_supg|apply_pspg))
         {
           const Tensor<3, dim> shape_hessian(fe_values[velocity].hessian(i, q));
           for (unsigned int d=0; d<dim; ++d)
@@ -247,7 +247,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                          nu);
 
           // standard stabilization terms
-          if (this->stabilization & Hydrodynamic::apply_supg)
+          if (this->stabilization & apply_supg)
             matrix += delta * Hydrodynamic::
                       compute_supg_matrix(phi_velocity[j],
                                           grad_phi_velocity[j],
@@ -259,7 +259,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                           grad_phi_pressure[j],
                                           present_pressure_gradients[q],
                                           nu);
-          if (this->stabilization & Hydrodynamic::apply_pspg)
+          if (this->stabilization & apply_pspg)
             matrix += delta * Hydrodynamic::
                       compute_pspg_matrix(phi_velocity[j],
                                           grad_phi_velocity[j],
@@ -269,13 +269,13 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                           grad_phi_pressure[i],
                                           grad_phi_pressure[j],
                                           nu);
-          if (this->stabilization & Hydrodynamic::apply_grad_div)
+          if (this->stabilization & apply_grad_div)
             matrix += this->mu * Hydrodynamic::
                       compute_grad_div_matrix(grad_phi_velocity[j],
                                               velocity_test_function_gradient);
 
           // body force stabilization terms
-          if (this->body_force_ptr != nullptr && (this->stabilization & Hydrodynamic::apply_supg))
+          if (this->body_force_ptr != nullptr && (this->stabilization & apply_supg))
             matrix -= delta * body_force_values[q] *
                       velocity_test_function_gradient * phi_velocity[j] /
                       std::pow(this->froude_number, 2);
@@ -285,15 +285,15 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
             Tensor<1, dim> buoyancy_test_function(velocity_test_function);
 
             // buoyancy stabilization terms
-            if (this->stabilization & Hydrodynamic::apply_supg)
+            if (this->stabilization & apply_supg)
               buoyancy_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
-            if (this->stabilization & Hydrodynamic::apply_pspg)
+            if (this->stabilization & apply_pspg)
               buoyancy_test_function += delta * grad_phi_pressure[i];
 
             matrix -= phi_density[j] * gravity_field_values[q] *
                       buoyancy_test_function / std::pow(this->froude_number, 2);
 
-            if (this->stabilization & Hydrodynamic::apply_supg)
+            if (this->stabilization & apply_supg)
               matrix -= present_density_values[q] * gravity_field_values[q] *
                         velocity_test_function_gradient * phi_velocity[j] /
                         std::pow(this->froude_number, 2);
@@ -305,10 +305,10 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
             Tensor<1, dim> coriolis_term_test_function(velocity_test_function);
 
             // Coriolis stabilization terms
-            if (this->stabilization & Hydrodynamic::apply_supg)
+            if (this->stabilization & apply_supg)
               coriolis_term_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
 
-            if (this->stabilization & Hydrodynamic::apply_pspg)
+            if (this->stabilization & apply_pspg)
               coriolis_term_test_function += delta * grad_phi_pressure[i];
 
             if constexpr(dim == 2)
@@ -321,7 +321,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                         coriolis_term_test_function;
 
             // Coriolis stabilization terms
-            if (this->stabilization & Hydrodynamic::apply_supg)
+            if (this->stabilization & apply_supg)
             {
               if constexpr(dim == 2)
                 matrix += 2.0 * delta / this->rossby_number * angular_velocity_value[0] *
@@ -369,7 +369,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                  nu);
 
         // standard stabilization terms
-        if (this->stabilization & Hydrodynamic::apply_supg)
+        if (this->stabilization & apply_supg)
           rhs += delta * Hydrodynamic::
                  compute_supg_rhs(velocity_test_function_gradient,
                                   present_velocity_values[q],
@@ -377,7 +377,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                   present_velocity_laplaceans[q],
                                   present_pressure_gradients[q],
                                   nu);
-        if (this->stabilization & Hydrodynamic::apply_pspg)
+        if (this->stabilization & apply_pspg)
           rhs += delta * Hydrodynamic::
                  compute_pspg_rhs(present_velocity_values[q],
                                   present_velocity_gradients[q],
@@ -385,7 +385,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                                   grad_phi_pressure[i],
                                   present_pressure_gradients[q],
                                   nu);
-        if (this->stabilization & Hydrodynamic::apply_grad_div)
+        if (this->stabilization & apply_grad_div)
           rhs += this->mu * Hydrodynamic::
                  compute_grad_div_rhs(present_velocity_gradients[q],
                                       velocity_test_function_gradient);
@@ -396,9 +396,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
           Tensor<1, dim> body_force_test_function(phi_velocity[i]);
 
           // body force stabilization terms
-          if (this->stabilization & Hydrodynamic::apply_supg)
+          if (this->stabilization & apply_supg)
             body_force_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
-          if (this->stabilization & Hydrodynamic::apply_pspg)
+          if (this->stabilization & apply_pspg)
             body_force_test_function += delta * grad_phi_pressure[i];
 
           rhs += body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
@@ -409,9 +409,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
           Tensor<1, dim> buoyancy_test_function(velocity_test_function);
 
           // buoyancy stabilization terms
-          if (this->stabilization & Hydrodynamic::apply_supg)
+          if (this->stabilization & apply_supg)
             buoyancy_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
-          if (this->stabilization & Hydrodynamic::apply_pspg)
+          if (this->stabilization & apply_pspg)
             buoyancy_test_function += delta * grad_phi_pressure[i];
 
           rhs += present_density_values[q] * gravity_field_values[q] *
@@ -424,9 +424,9 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
           Tensor<1, dim> coriolis_term_test_function(velocity_test_function);
 
           // Coriolis stabilization terms
-          if (this->stabilization & Hydrodynamic::apply_supg)
+          if (this->stabilization & apply_supg)
             coriolis_term_test_function += delta * velocity_test_function_gradient * present_velocity_values[q];
-          if (this->stabilization & Hydrodynamic::apply_pspg)
+          if (this->stabilization & apply_pspg)
             coriolis_term_test_function += delta * grad_phi_pressure[i];
 
           if constexpr(dim == 2)

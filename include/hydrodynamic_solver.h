@@ -9,30 +9,14 @@
 #define INCLUDE_HYDRODYNAMIC_SOLVER_H_
 
 #include <angular_velocity.h>
+#include <assembly_data.h>
 #include <boundary_conditions.h>
 #include <solver_base.h>
+#include <stabilization_flags.h>
 
 namespace Hydrodynamic {
 
 using namespace BoundaryConditions;
-
-
-
-/*!
- * @brief Enumeration for the stabilization terms.
- */
-enum StabilizationFlags
-{
-  apply_none = 0,
-
-  apply_supg = 0x0001,
-
-  apply_pspg = 0x0002,
-
-  apply_grad_div = 0x0004
-};
-
-
 
 /*!
  * @brief Enumeration for the weak form of the convective term.
@@ -267,66 +251,15 @@ protected:
   const double        mu;
 };
 
+
 // inline functions
-template <class StreamType>
-inline StreamType &
-operator<<(StreamType &s, const StabilizationFlags u)
-{
-  if (u & apply_none)
-    s << "apply_none|";
-  if (u & apply_supg)
-    s << "apply_supg|";
-  if (u & apply_pspg)
-    s << "apply_pspg|";
-  if (u & apply_grad_div)
-    s << "apply_grad_div|";
-
-  return s;
-}
-
-
-
-inline StabilizationFlags
-operator|(const StabilizationFlags f1, const StabilizationFlags f2)
-{
-  return static_cast<StabilizationFlags>(static_cast<unsigned int>(f1) |
-                                    static_cast<unsigned int>(f2));
-}
-
-
-
-inline StabilizationFlags &
-operator|=(StabilizationFlags &f1, const StabilizationFlags f2)
-{
-  f1 = f1 | f2;
-  return f1;
-}
-
-
-
-inline StabilizationFlags operator&(const StabilizationFlags f1, const StabilizationFlags f2)
-{
-  return static_cast<StabilizationFlags>(static_cast<unsigned int>(f1) &
-                                    static_cast<unsigned int>(f2));
-}
-
-
-
-inline StabilizationFlags &
-operator&=(StabilizationFlags &f1, const StabilizationFlags f2)
-{
-  f1 = f1 & f2;
-  return f1;
-}
-
-
-
 template <int dim>
 inline void Solver<dim>::set_angular_velocity
 (const Utility::AngularVelocity<dim> &angular_velocity)
 {
   angular_velocity_ptr = &angular_velocity;
 }
+
 
 
 template <int dim>

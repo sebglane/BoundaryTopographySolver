@@ -51,7 +51,7 @@ void Solver<dim>::setup_dofs()
         coupling_table[c][d] = DoFTools::always;
       else
         coupling_table[c][d] = DoFTools::none;
-  if (this->stabilization & Hydrodynamic::apply_pspg)
+  if (this->stabilization & apply_pspg)
   {
     coupling_table[dim][dim] = DoFTools::always;
     coupling_table[dim][dim+1] = DoFTools::always;
