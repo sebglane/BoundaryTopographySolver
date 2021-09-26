@@ -70,34 +70,33 @@ fe_face_values(data.fe_face_values.get_mapping(),
                data.fe_face_values.get_quadrature(),
                data.fe_face_values.get_update_flags()),
 n_face_q_points(data.n_face_q_points),
-phi_velocity(this->dofs_per_cell),
-grad_phi_velocity(this->dofs_per_cell),
-div_phi_velocity(this->dofs_per_cell),
-phi_pressure(this->dofs_per_cell),
-present_velocity_values(this->n_q_points),
-present_velocity_gradients(this->n_q_points),
-present_pressure_values(this->n_q_points)
+phi_velocity(data.phi_velocity),
+grad_phi_velocity(data.grad_phi_velocity),
+div_phi_velocity(data.div_phi_velocity),
+phi_pressure(data.phi_pressure),
+present_velocity_values(data.present_velocity_values),
+present_velocity_gradients(data.present_velocity_gradients),
+present_pressure_values(data.present_pressure_values)
 {
   // stabilization related shape functions
-  if (grad_phi_pressure.size() > 0)
-    grad_phi_pressure.resize(this->dofs_per_cell);
-  if (laplace_phi_velocity.size() > 0)
-    laplace_phi_velocity.resize(this->dofs_per_cell);
+  if (data.grad_phi_pressure.size() > 0)
+    grad_phi_pressure.resize(data.grad_phi_pressure.size());
+  if (data.laplace_phi_velocity.size() > 0)
+    laplace_phi_velocity.resize(data.laplace_phi_velocity.size());
 
   // stabilization related solution values
-  if (present_velocity_laplaceans.size() > 0)
-    present_velocity_laplaceans.resize(this->n_q_points);
-  if (present_pressure_gradients.size() > 0)
-    present_pressure_gradients.resize(this->n_q_points);
+  if (data.present_velocity_laplaceans.size() > 0)
+    present_velocity_laplaceans.resize(data.present_velocity_laplaceans.size());
+  if (data.present_pressure_gradients.size() > 0)
+    present_pressure_gradients.resize(data.present_pressure_gradients.size());
 
   // source term values
   if (data.body_force_values.size() > 0)
-    body_force_values.resize(this->n_q_points);
+    body_force_values.resize(data.body_force_values.size());
 
   // source term face values
   if (data.boundary_traction_values.size() > 0)
-    boundary_traction_values.resize(this->n_face_q_points);
-
+    boundary_traction_values.resize(data.boundary_traction_values.size());
 }
 
 template struct Scratch<2>;
@@ -163,32 +162,31 @@ fe_face_values(data.fe_face_values.get_mapping(),
                data.fe_face_values.get_quadrature(),
                data.fe_face_values.get_update_flags()),
 n_face_q_points(data.n_face_q_points),
-phi_velocity(this->dofs_per_cell),
-grad_phi_velocity(this->dofs_per_cell),
-div_phi_velocity(this->dofs_per_cell),
-phi_pressure(this->dofs_per_cell),
-present_velocity_values(this->n_q_points),
-present_velocity_gradients(this->n_q_points),
-present_pressure_values(this->n_q_points)
+phi_velocity(data.phi_velocity),
+grad_phi_velocity(data.grad_phi_velocity),
+div_phi_velocity(data.div_phi_velocity),
+phi_pressure(data.phi_pressure),
+present_velocity_values(data.present_velocity_values),
+present_velocity_gradients(data.present_velocity_gradients),
+present_pressure_values(data.present_pressure_values)
 {
   // stabilization related shape functions
-  if (grad_phi_pressure.size() > 0)
-    grad_phi_pressure.resize(this->dofs_per_cell);
+  if (data.grad_phi_pressure.size() > 0)
+    grad_phi_pressure.resize(data.grad_phi_pressure.size());
 
   // stabilization related solution values
-  if (present_velocity_laplaceans.size() > 0)
-    present_velocity_laplaceans.resize(this->n_q_points);
-  if (present_pressure_gradients.size() > 0)
-    present_pressure_gradients.resize(this->n_q_points);
+  if (data.present_velocity_laplaceans.size() > 0)
+    present_velocity_laplaceans.resize(data.present_velocity_laplaceans.size());
+  if (data.present_pressure_gradients.size() > 0)
+    present_pressure_gradients.resize(data.present_pressure_gradients.size());
 
   // source term values
   if (data.body_force_values.size() > 0)
-    body_force_values.resize(this->n_q_points);
+    body_force_values.resize(data.body_force_values.size());
 
   // source term face values
   if (data.boundary_traction_values.size() > 0)
-    boundary_traction_values.resize(this->n_face_q_points);
-
+    boundary_traction_values.resize(data.boundary_traction_values.size());
 }
 
 template struct Scratch<2>;

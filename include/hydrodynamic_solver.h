@@ -185,7 +185,6 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 
-
 namespace AssemblyData {
 
 namespace Matrix {
