@@ -85,7 +85,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
            face_update_flags,
            stabilization,
            body_force_ptr != nullptr,
-           angular_velocity_ptr != nullptr),
+           !velocity_boundary_conditions.neumann_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
 
 }
