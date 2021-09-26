@@ -175,6 +175,8 @@ void HydrodynamicProblem<dim>::run()
 
   this->set_angular_velocity();
 
+  this->set_background_velocity();
+
   this->set_body_force();
 
   solver.solve();

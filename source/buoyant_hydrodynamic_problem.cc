@@ -186,6 +186,10 @@ void BuoyantHydrodynamicProblem<dim>::run()
 
   this->set_boundary_conditions();
 
+  this->set_angular_velocity();
+
+  this->set_background_velocity();
+
   this->set_body_force_term();
 
   this->set_gravity_field();

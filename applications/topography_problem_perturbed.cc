@@ -1,78 +1,21 @@
 /*
- * buoyant_topography_problem.cc
+ * topography_problem_perturbed.cc
  *
- *  Created on: Sep 1, 2021
+ *  Created on: Sep 26, 2021
  *      Author: sg
  */
-
 #include <deal.II/base/function_lib.h>
-#include <deal.II/base/tensor.h>
 #include <deal.II/grid/grid_tools.h>
 
-#include <buoyant_hydrodynamic_problem.h>
 #include <grid_factory.h>
+#include <hydrodynamic_problem.h>
 
 namespace TopographyProblem {
 
-using namespace BuoyantHydrodynamic;
+using namespace Hydrodynamic;
 
 template <int dim>
-class ReferenceDensity : public Function<dim>
-{
-public:
-  ReferenceDensity();
-
-  virtual Tensor<1, dim> gradient(const Point<dim>   &point,
-                                  const unsigned int  component = 0) const;
-
-  virtual void gradient_list(const std::vector<Point<dim>> &points,
-                             std::vector<Tensor<1, dim>>   &gradients,
-                             const unsigned int    component = 0) const;
-};
-
-
-
-template <int dim>
-ReferenceDensity<dim>::ReferenceDensity()
-:
-Function<dim>(1)
-{}
-
-
-
-
-template <int dim>
-Tensor<1, dim> ReferenceDensity<dim>::gradient
-(const Point<dim>   &/* point */,
- const unsigned int  /* component */) const
-{
-  Tensor<1, dim> gradient_value;
-  gradient_value[dim-1] = -1.0;
-
-  return gradient_value;
-}
-
-
-
-template <int dim>
-void ReferenceDensity<dim>::gradient_list
-(const std::vector<Point<dim>> &/* points */,
- std::vector<Tensor<1, dim>>   &gradients,
- const unsigned int /* component */) const
-{
-  Tensor<1, dim> gradient_value;
-  gradient_value[dim-1] = -1.0;
-
-  for (auto &gradient: gradients)
-    gradient = gradient_value;
-
-  return;
-}
-
-
-
-template <int dim>
-class Problem : public BuoyantHydrodynamicProblem<dim>
+class Problem : public HydrodynamicProblem<dim>
 {
 public:
   Problem(ProblemParameters &parameters);
@@ -80,16 +23,12 @@ public:
 protected:
   virtual void make_grid() override;
 
+  virtual void set_background_velocity() override;
+
   virtual void set_boundary_conditions() override;
 
-  virtual void set_gravity_field() override;
-
-  virtual void set_reference_density() override;
-
 private:
-  ConstantTensorFunction<1, dim>  gravity_field;
-
-  ReferenceDensity<dim> reference_density;
+  const ConstantTensorFunction<1, dim>  background_velocity;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -98,6 +37,7 @@ private:
   types::boundary_id  topographic_bndry_id;
   types::boundary_id  back_bndry_id;
   types::boundary_id  front_bndry_id;
+
 };
 
 
@@ -105,9 +45,8 @@ private:
 template <>
 Problem<2>::Problem(ProblemParameters &parameters)
 :
-BuoyantHydrodynamicProblem<2>(parameters),
-gravity_field(Tensor<1, 2>({0.0, -1.0})),
-reference_density(),
+HydrodynamicProblem<2>(parameters),
+background_velocity(Tensor<1, 2>({1.0, 0.0})),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -116,11 +55,7 @@ topographic_bndry_id(numbers::invalid_boundary_id),
 back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
-  std::cout << "Solving buoyant topography problem" << std::endl;
-
-  Point<2> point;
-  Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
-         ExcMessage("Density gradient and gravity field are not co-linear."));
+  std::cout << "Solving perturbed topography problem" << std::endl;
 }
 
 
@@ -128,9 +63,8 @@ front_bndry_id(numbers::invalid_boundary_id)
 template <>
 Problem<3>::Problem(ProblemParameters &parameters)
 :
-BuoyantHydrodynamicProblem<3>(parameters),
-gravity_field(Tensor<1, 3>({0.0, 0.0, -1.0})),
-reference_density(),
+HydrodynamicProblem<3>(parameters),
+background_velocity(Tensor<1, 3>({1.0, 0.0, 0.0})),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -139,27 +73,7 @@ topographic_bndry_id(numbers::invalid_boundary_id),
 back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
-  std::cout << "Solving buoyant topography problem" << std::endl;
-
-  Point<3> point;
-  Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
-         ExcMessage("Density gradient and gravity field are not co-linear."));
-}
-
-
-
-template <int dim>
-void Problem<dim>::set_gravity_field()
-{
-  this->solver.set_gravity_field(gravity_field);
-}
-
-
-
-template <int dim>
-void Problem<dim>::set_reference_density()
-{
-  this->solver.set_reference_density(reference_density);
+  std::cout << "Solving perturbed topography problem" << std::endl;
 }
 
 
@@ -213,7 +127,6 @@ void Problem<dim>::make_grid()
       this->triangulation.execute_coarsening_and_refinement();
     }
   }
-
 }
 
 
@@ -225,50 +138,52 @@ void Problem<dim>::set_boundary_conditions()
 
   VectorBoundaryConditions<dim> &velocity_bcs = this->solver.get_velocity_bcs();
   ScalarBoundaryConditions<dim> &pressure_bcs = this->solver.get_pressure_bcs();
-  ScalarBoundaryConditions<dim> &density_bcs = this->solver.get_density_bcs();
 
   velocity_bcs.clear();
   pressure_bcs.clear();
-  density_bcs.clear();
 
   velocity_bcs.extract_boundary_ids();
   pressure_bcs.extract_boundary_ids();
-  density_bcs.extract_boundary_ids();
 
   velocity_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
   pressure_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
-  density_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
 
+  const std::shared_ptr<Function<dim>> bottom_bc_fun =
+      std::make_shared<Functions::ZeroFunction<dim>>(dim);
   std::vector<double> value(dim);
-  value[0] = 1.0;
-  const std::shared_ptr<Function<dim>> velocity_function =
+  value[0] = -1.0;
+  const std::shared_ptr<Function<dim>> topographic_bc_fun =
       std::make_shared<Functions::ConstantFunction<dim>>(value);
 
   if (dim == 2)
   {
-    velocity_bcs.set_dirichlet_bc(bottom_bndry_id, velocity_function);
-    velocity_bcs.set_normal_flux_bc(topographic_bndry_id);
-
-    density_bcs.set_dirichlet_bc(bottom_bndry_id);
+    velocity_bcs.set_dirichlet_bc(bottom_bndry_id, bottom_bc_fun);
+    velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
   }
   else if (dim == 3)
   {
     velocity_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
     pressure_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
-    density_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
 
-    velocity_bcs.set_dirichlet_bc(back_bndry_id, velocity_function);
-    velocity_bcs.set_normal_flux_bc(topographic_bndry_id);
-
-    density_bcs.set_dirichlet_bc(back_bndry_id);
+    velocity_bcs.set_dirichlet_bc(back_bndry_id, bottom_bc_fun);
+    velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
   }
 
   velocity_bcs.close();
   pressure_bcs.close();
-  density_bcs.close();
+}
+
+
+
+template <int dim>
+void Problem<dim>::set_background_velocity()
+{
+  this->solver.set_background_velocity(background_velocity);
 }
 
 }  // namespace TopographyProblem
+
+
 
 int main(int argc, char *argv[])
 {
@@ -278,10 +193,9 @@ int main(int argc, char *argv[])
     if (argc >= 2)
       parameter_filename = argv[1];
     else
-      parameter_filename = "buoyant_topography_problem.prm";
+      parameter_filename = "topography_problem_perturbed.prm";
 
     TopographyProblem::ProblemParameters parameters(parameter_filename);
-
     if (parameters.space_dim == 2)
     {
       TopographyProblem::Problem<2> problem(parameters);
@@ -318,3 +232,6 @@ int main(int argc, char *argv[])
   }
   return 0;
 }
+
+
+

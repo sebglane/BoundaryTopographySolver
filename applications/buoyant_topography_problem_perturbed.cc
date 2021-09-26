@@ -1,10 +1,9 @@
 /*
- * buoyant_topography_problem.cc
+ * buoyant_topography_problem_perturbed.cc
  *
- *  Created on: Sep 1, 2021
+ *  Created on: Sep 26, 2021
  *      Author: sg
  */
-
 #include <deal.II/base/function_lib.h>
 #include <deal.II/base/tensor.h>
 #include <deal.II/grid/grid_tools.h>
@@ -80,6 +79,8 @@ public:
 protected:
   virtual void make_grid() override;
 
+  virtual void set_background_velocity() override;
+
   virtual void set_boundary_conditions() override;
 
   virtual void set_gravity_field() override;
@@ -87,7 +88,9 @@ protected:
   virtual void set_reference_density() override;
 
 private:
-  ConstantTensorFunction<1, dim>  gravity_field;
+  const ConstantTensorFunction<1, dim>  gravity_field;
+
+  const ConstantTensorFunction<1, dim>  background_velocity;
 
   ReferenceDensity<dim> reference_density;
 
@@ -107,6 +110,7 @@ Problem<2>::Problem(ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<2>(parameters),
 gravity_field(Tensor<1, 2>({0.0, -1.0})),
+background_velocity(Tensor<1, 2>({1.0, 0.0})),
 reference_density(),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
@@ -116,7 +120,7 @@ topographic_bndry_id(numbers::invalid_boundary_id),
 back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
-  std::cout << "Solving buoyant topography problem" << std::endl;
+  std::cout << "Solving viscous buoyant topography problem" << std::endl;
 
   Point<2> point;
   Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
@@ -130,6 +134,7 @@ Problem<3>::Problem(ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<3>(parameters),
 gravity_field(Tensor<1, 3>({0.0, 0.0, -1.0})),
+background_velocity(Tensor<1, 3>({1.0, 0.0, 0.0})),
 reference_density(),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
@@ -139,11 +144,19 @@ topographic_bndry_id(numbers::invalid_boundary_id),
 back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
-  std::cout << "Solving buoyant topography problem" << std::endl;
+  std::cout << "Solving perturbed buoyant topography problem" << std::endl;
 
   Point<3> point;
   Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
+}
+
+
+
+template <int dim>
+void Problem<dim>::set_background_velocity()
+{
+  this->solver.set_background_velocity(background_velocity);
 }
 
 
@@ -239,15 +252,17 @@ void Problem<dim>::set_boundary_conditions()
   pressure_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
   density_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
 
+  const std::shared_ptr<Function<dim>> bottom_bc_fun =
+      std::make_shared<Functions::ZeroFunction<dim>>(dim);
   std::vector<double> value(dim);
-  value[0] = 1.0;
-  const std::shared_ptr<Function<dim>> velocity_function =
+  value[0] = -1.0;
+  const std::shared_ptr<Function<dim>> topographic_bc_fun =
       std::make_shared<Functions::ConstantFunction<dim>>(value);
 
   if (dim == 2)
   {
-    velocity_bcs.set_dirichlet_bc(bottom_bndry_id, velocity_function);
-    velocity_bcs.set_normal_flux_bc(topographic_bndry_id);
+    velocity_bcs.set_dirichlet_bc(bottom_bndry_id, bottom_bc_fun);
+    velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
 
     density_bcs.set_dirichlet_bc(bottom_bndry_id);
   }
@@ -257,8 +272,8 @@ void Problem<dim>::set_boundary_conditions()
     pressure_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
     density_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
 
-    velocity_bcs.set_dirichlet_bc(back_bndry_id, velocity_function);
-    velocity_bcs.set_normal_flux_bc(topographic_bndry_id);
+    velocity_bcs.set_dirichlet_bc(back_bndry_id, bottom_bc_fun);
+    velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
 
     density_bcs.set_dirichlet_bc(back_bndry_id);
   }
@@ -278,7 +293,7 @@ int main(int argc, char *argv[])
     if (argc >= 2)
       parameter_filename = argv[1];
     else
-      parameter_filename = "buoyant_topography_problem.prm";
+      parameter_filename = "buoyant_topography_problem_perturbed.prm";
 
     TopographyProblem::ProblemParameters parameters(parameter_filename);
 

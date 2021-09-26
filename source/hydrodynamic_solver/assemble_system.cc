@@ -65,7 +65,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   UpdateFlags update_flags = update_values|
                              update_gradients|
                              update_JxW_values;
-  if (body_force_ptr != nullptr)
+  if (body_force_ptr != nullptr || background_velocity_ptr != nullptr)
     update_flags |= update_quadrature_points;
   if (stabilization & (apply_supg|apply_pspg))
     update_flags |= update_hessians;
@@ -88,7 +88,8 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
            face_update_flags,
            stabilization,
            body_force_ptr != nullptr,
-           !velocity_boundary_conditions.neumann_bcs.empty()),
+           !velocity_boundary_conditions.neumann_bcs.empty(),
+           background_velocity_ptr != nullptr),
    Copy(this->fe_system->n_dofs_per_cell()));
 
 }
@@ -140,6 +141,15 @@ void Solver<dim>::assemble_local_system
     body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
                                scratch.body_force_values);
 
+  }
+
+  // background field
+  if (background_velocity_ptr != nullptr)
+  {
+    background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
+                                        scratch.background_velocity_values);
+    background_velocity_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
+                                           scratch.background_velocity_gradients);
   }
 
   // Coriolis term
@@ -214,10 +224,34 @@ void Solver<dim>::assemble_local_system
           matrix += mu * compute_grad_div_matrix(scratch.grad_phi_velocity[j],
                                                  velocity_test_function_gradient);
 
+        // body force stabilization term
         if (body_force_ptr != nullptr && (stabilization & apply_supg))
           matrix -= delta * scratch.body_force_values[q] *
                     velocity_test_function_gradient * scratch.phi_velocity[j] /
                     std::pow(this->froude_number, 2);
+
+        // background field term
+        if (background_velocity_ptr != nullptr)
+        {
+          Tensor<1, dim> background_velocity_test_function(velocity_test_function);
+
+          // background field stabilization terms
+          if (stabilization & apply_supg)
+            background_velocity_test_function += delta * velocity_test_function_gradient *
+                                                 scratch.present_velocity_values[q];
+          if (stabilization & apply_pspg)
+            background_velocity_test_function += delta * scratch.grad_phi_pressure[i];
+
+          matrix += (scratch.background_velocity_values[q] * scratch.grad_phi_velocity[j] +
+                     scratch.phi_velocity[j] * scratch.background_velocity_gradients[q]) *
+                    background_velocity_test_function;
+
+          // background field stabilization terms
+          if (stabilization & apply_supg)
+            matrix += (scratch.background_velocity_values[q] * scratch.present_velocity_gradients[q] +
+                       scratch.present_velocity_values[q] * scratch.background_velocity_gradients[q]) *
+                      velocity_test_function_gradient * scratch.phi_velocity[j];
+        }
 
         // Coriolis term
         if (angular_velocity_ptr != nullptr)
@@ -289,11 +323,26 @@ void Solver<dim>::assemble_local_system
         if (stabilization & apply_supg)
           body_force_test_function += delta * velocity_test_function_gradient *
                                       scratch.present_velocity_values[q];
-
         if (stabilization & apply_pspg)
           body_force_test_function += delta * scratch.grad_phi_pressure[i];
 
         rhs += scratch.body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
+      }
+
+      // background field term
+      if (background_velocity_ptr != nullptr)
+      {
+        Tensor<1, dim> background_velocity_test_function(velocity_test_function);
+
+        if (stabilization & apply_supg)
+          background_velocity_test_function += delta * velocity_test_function_gradient *
+                                               scratch.present_velocity_values[q];
+        if (stabilization & apply_pspg)
+          background_velocity_test_function += delta * scratch.grad_phi_pressure[i];
+
+        rhs -= (scratch.background_velocity_values[q] * scratch.present_velocity_gradients[q] +
+                scratch.present_velocity_values[q] * scratch.background_velocity_gradients[q]) *
+               background_velocity_test_function;
       }
 
       // Coriolis term

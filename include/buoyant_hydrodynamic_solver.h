@@ -87,6 +87,7 @@ struct Scratch : Hydrodynamic::AssemblyData::Matrix::Scratch<dim>
           const StabilizationFlags  stabilization_flags,
           const bool                allocate_body_force,
           const bool                allocate_traction,
+          const bool                allocate_background_velocity,
           const bool                allocate_density_bc);
 
   Scratch(const Scratch<dim>  &data);
@@ -130,6 +131,7 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
           const StabilizationFlags  stabilization_flags,
           const bool                allocate_body_force,
           const bool                allocate_traction,
+          const bool                allocate_background_velocity,
           const bool                allocate_density_bc);
 
   Scratch(const Scratch<dim>  &data);

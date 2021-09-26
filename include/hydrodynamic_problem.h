@@ -103,13 +103,15 @@ protected:
 
   virtual void set_boundary_conditions() = 0;
 
+  virtual void set_background_velocity();
+
   virtual void set_body_force();
 
-  Triangulation<dim>       triangulation;
+  Triangulation<dim>      triangulation;
 
-  MappingQCache<dim>       mapping;
+  MappingQCache<dim>      mapping;
 
-  Solver<dim>  solver;
+  Solver<dim>             solver;
 
   const unsigned int      n_initial_refinements;
 
@@ -125,6 +127,15 @@ inline void HydrodynamicProblem<dim>::set_angular_velocity()
 
 
 
+
+template <int dim>
+inline void HydrodynamicProblem<dim>::set_background_velocity()
+{
+  return;
+}
+
+
+
 template <int dim>
 inline void HydrodynamicProblem<dim>::set_body_force()
 {
@@ -132,7 +143,5 @@ inline void HydrodynamicProblem<dim>::set_body_force()
 }
 
 }  // namespace Hydrodynamic
-
-
 
 #endif /* INCLUDE_HYDRODYNAMIC_PROBLEM_H_ */

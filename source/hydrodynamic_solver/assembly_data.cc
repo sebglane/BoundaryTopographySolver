@@ -23,7 +23,8 @@ Scratch<dim>::Scratch
  const UpdateFlags         face_update_flags,
  const StabilizationFlags  stabilization_flags,
  const bool                allocate_body_force,
- const bool                allocate_traction)
+ const bool                allocate_traction,
+ const bool                allocate_background_velocity)
 :
 AssemblyBaseData::Matrix::Scratch<dim>(mapping, quadrature_formula, fe, update_flags),
 fe_face_values(mapping, fe, face_quadrature_formula, face_update_flags),
@@ -47,6 +48,13 @@ present_pressure_values(this->n_q_points)
   {
     present_velocity_laplaceans.resize(this->n_q_points);
     present_pressure_gradients.resize(this->n_q_points);
+  }
+
+  // solution values
+  if (allocate_background_velocity)
+  {
+    background_velocity_values.resize(this->n_q_points);
+    background_velocity_gradients.resize(this->n_q_points);
   }
 
   // source term values
@@ -90,6 +98,12 @@ present_pressure_values(data.present_pressure_values)
   if (data.present_pressure_gradients.size() > 0)
     present_pressure_gradients.resize(data.present_pressure_gradients.size());
 
+  // solution values
+  if (data.background_velocity_values.size() > 0)
+    background_velocity_values.resize(data.background_velocity_values.size());
+  if (data.background_velocity_gradients.size() > 0)
+    background_velocity_gradients.resize(data.background_velocity_gradients.size());
+
   // source term values
   if (data.body_force_values.size() > 0)
     body_force_values.resize(data.body_force_values.size());
@@ -117,7 +131,8 @@ Scratch<dim>::Scratch
  const UpdateFlags         face_update_flags,
  const StabilizationFlags  stabilization_flags,
  const bool                allocate_body_force,
- const bool                allocate_traction)
+ const bool                allocate_traction,
+ const bool                allocate_background_velocity)
 :
 AssemblyBaseData::RightHandSide::Scratch<dim>(mapping, quadrature_formula, fe, update_flags),
 fe_face_values(mapping, fe, face_quadrature_formula, face_update_flags),
@@ -139,6 +154,13 @@ present_pressure_values(this->n_q_points)
   {
     present_velocity_laplaceans.resize(this->n_q_points);
     present_pressure_gradients.resize(this->n_q_points);
+  }
+
+  // solution values
+  if (allocate_background_velocity)
+  {
+    background_velocity_values.resize(this->n_q_points);
+    background_velocity_gradients.resize(this->n_q_points);
   }
 
   // source term values
@@ -179,6 +201,12 @@ present_pressure_values(data.present_pressure_values)
     present_velocity_laplaceans.resize(data.present_velocity_laplaceans.size());
   if (data.present_pressure_gradients.size() > 0)
     present_pressure_gradients.resize(data.present_pressure_gradients.size());
+
+  // solution values
+  if (data.background_velocity_values.size() > 0)
+    background_velocity_values.resize(data.background_velocity_values.size());
+  if (data.background_velocity_gradients.size() > 0)
+    background_velocity_gradients.resize(data.background_velocity_gradients.size());
 
   // source term values
   if (data.body_force_values.size() > 0)

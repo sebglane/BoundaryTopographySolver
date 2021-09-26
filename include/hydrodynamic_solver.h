@@ -200,7 +200,8 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
           const UpdateFlags         face_update_flags,
           const StabilizationFlags  stabilization_flags,
           const bool                allocate_body_force,
-          const bool                allocate_traction);
+          const bool                allocate_traction,
+          const bool                allocate_background_velocity);
 
   Scratch(const Scratch<dim>  &data);
 
@@ -222,6 +223,9 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
   std::vector<Tensor<1, dim>> present_velocity_values;
   std::vector<Tensor<2, dim>> present_velocity_gradients;
   std::vector<double>         present_pressure_values;
+
+  std::vector<Tensor<1, dim>> background_velocity_values;
+  std::vector<Tensor<2, dim>> background_velocity_gradients;
 
   // stabilization related solution values
   std::vector<Tensor<1, dim>> present_velocity_laplaceans;
@@ -251,7 +255,8 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
           const UpdateFlags         face_update_flags,
           const StabilizationFlags  stabilization_flags,
           const bool                allocate_body_force,
-          const bool                allocate_traction);
+          const bool                allocate_traction,
+          const bool                allocate_background_velocity);
 
   Scratch(const Scratch<dim>  &data);
 
@@ -272,6 +277,9 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
   std::vector<Tensor<1, dim>> present_velocity_values;
   std::vector<Tensor<2, dim>> present_velocity_gradients;
   std::vector<double>         present_pressure_values;
+
+  std::vector<Tensor<1, dim>> background_velocity_values;
+  std::vector<Tensor<2, dim>> background_velocity_gradients;
 
   // stabilization related solution values
   std::vector<Tensor<1, dim>> present_velocity_laplaceans;
@@ -304,6 +312,8 @@ public:
   void set_angular_velocity(const Utility::AngularVelocity<dim> &angular_velocity);
 
   void set_body_force(const TensorFunction<1, dim> &body_force);
+
+  void set_background_velocity(const TensorFunction<1, dim> &background_velocity);
 
   VectorBoundaryConditions<dim>&  get_velocity_bcs();
   const VectorBoundaryConditions<dim>&  get_velocity_bcs() const;
@@ -355,6 +365,8 @@ protected:
 
   const TensorFunction<1, dim>        *body_force_ptr;
 
+  const TensorFunction<1, dim>        *background_velocity_ptr;
+
   const ConvectiveTermWeakForm  convective_term_weak_form;
 
   const ViscousTermWeakForm     viscous_term_weak_form;
@@ -390,6 +402,15 @@ inline void Solver<dim>::set_body_force
 (const TensorFunction<1, dim> &body_force)
 {
   body_force_ptr = &body_force;
+}
+
+
+
+template <int dim>
+inline void Solver<dim>::set_background_velocity
+(const TensorFunction<1, dim> &velocity)
+{
+  background_velocity_ptr = &velocity;
 }
 
 

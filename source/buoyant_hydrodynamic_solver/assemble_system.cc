@@ -93,6 +93,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
            this->stabilization,
            this->body_force_ptr != nullptr,
            !this->velocity_boundary_conditions.neumann_bcs.empty(),
+           this->background_velocity_ptr != nullptr,
            !density_boundary_conditions.dirichlet_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
 }
@@ -151,6 +152,15 @@ void Solver<dim>::assemble_local_system
     this->body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
                                      scratch.body_force_values);
 
+  }
+
+  // background field
+  if (this->background_velocity_ptr != nullptr)
+  {
+    this->background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
+                                              scratch.background_velocity_values);
+    this->background_velocity_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
+                                                 scratch.background_velocity_gradients);
   }
 
   // Coriolis term
@@ -268,6 +278,29 @@ void Solver<dim>::assemble_local_system
                       std::pow(this->froude_number, 2);
         }
 
+        // background field term
+        if (this->background_velocity_ptr != nullptr)
+        {
+          Tensor<1, dim> background_velocity_test_function(velocity_test_function);
+
+          // background field stabilization terms
+          if (this->stabilization & apply_supg)
+            background_velocity_test_function += delta * velocity_test_function_gradient *
+                                                 scratch.present_velocity_values[q];
+          if (this->stabilization & apply_pspg)
+            background_velocity_test_function += delta * scratch.grad_phi_pressure[i];
+
+          matrix += (scratch.background_velocity_values[q] * scratch.grad_phi_velocity[j] +
+                     scratch.phi_velocity[j] * scratch.background_velocity_gradients[q]) *
+                    background_velocity_test_function;
+
+          // background field stabilization terms
+          if (this->stabilization & apply_supg)
+            matrix += (scratch.background_velocity_values[q] * scratch.present_velocity_gradients[q] +
+                       scratch.present_velocity_values[q] * scratch.background_velocity_gradients[q]) *
+                      velocity_test_function_gradient * scratch.phi_velocity[j];
+        }
+
         // Coriolis term
         if (this->angular_velocity_ptr != nullptr)
         {
@@ -324,6 +357,18 @@ void Solver<dim>::assemble_local_system
                                               stratification_number,
                                               nu_density);
 
+        // background field term
+        if (this->background_velocity_ptr != nullptr)
+        {
+          const double background_velocity_test_function
+            = density_test_function + delta_density * scratch.present_velocity_values[q] * density_test_function_gradient;
+
+          matrix += scratch.background_velocity_values[q] * scratch.grad_phi_density[j] *
+                    background_velocity_test_function +
+                    delta_density * (scratch.background_velocity_values[q] * scratch.present_density_gradients[q]) *
+                    scratch.phi_velocity[j] * density_test_function_gradient;
+        }
+
         data.local_matrix(i, j) += matrix * JxW;
 
       }
@@ -375,6 +420,22 @@ void Solver<dim>::assemble_local_system
         rhs += scratch.body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
       }
 
+      // background field term
+      if (this->background_velocity_ptr != nullptr)
+      {
+        Tensor<1, dim> background_velocity_test_function(velocity_test_function);
+
+        if (this->stabilization & apply_supg)
+          background_velocity_test_function += delta * velocity_test_function_gradient *
+                                               scratch.present_velocity_values[q];
+        if (this->stabilization & apply_pspg)
+          background_velocity_test_function += delta * scratch.grad_phi_pressure[i];
+
+        rhs -= (scratch.background_velocity_values[q] * scratch.present_velocity_gradients[q] +
+                scratch.present_velocity_values[q] * scratch.background_velocity_gradients[q]) *
+               background_velocity_test_function;
+      }
+
       // buoyancy term
       {
         Tensor<1, dim> buoyancy_test_function(velocity_test_function);
@@ -424,6 +485,17 @@ void Solver<dim>::assemble_local_system
                                                       scratch.reference_density_gradients[q],
                                                       stratification_number,
                                                       nu_density);
+
+      // background field term
+      if (this->background_velocity_ptr != nullptr)
+      {
+        const double background_velocity_test_function
+          = density_test_function + delta_density * scratch.present_velocity_values[q] * density_test_function_gradient;
+
+        rhs -= (stratification_number * scratch.background_velocity_values[q] * scratch.reference_density_gradients[q] +
+                scratch.background_velocity_values[q] * scratch.present_density_gradients[q] ) *
+               background_velocity_test_function;
+      }
 
       data.local_rhs(i) += rhs * JxW;
     }
