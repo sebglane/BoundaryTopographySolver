@@ -273,7 +273,7 @@ void Solver<dim>::assemble_local_rhs
                 scratch.background_velocity_gradients[q] * scratch.present_velocity_values[q]) *
                background_velocity_test_function;
 
-        if (this->stabilization & apply_pspg)
+        if (this->stabilization & apply_supg)
         {
           const Tensor<1, dim> projected_test_function_gradient(scratch.grad_phi_velocity[i] *
                                                                 scratch.background_velocity_values[q]);
