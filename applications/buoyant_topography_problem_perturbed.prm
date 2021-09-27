@@ -11,9 +11,9 @@ set Verbose                          = false
 
 
 subsection Buoyant hydrodynamic solver parameters
-  set Froude number                        = 2.0e0
+  set Froude number                        = 1.0e2
   set Minimal viscosity (density)          = 1.0e-4
-  set Reynolds number                      = 1.0e2
+  set Reynolds number                      = 100.0
   set SUPG density stabilization parameter = 1.0
   set Stratification number                = 2.0e-2
 end
@@ -23,7 +23,7 @@ subsection Hydrodynamic solver parameters
   set Convective term weak form         = standard
   set Grad-Div stabilization parameter  = 1.0
   set SUPG/PSPG stabilization parameter = 0.2
-  set Stabilization type                = none
+  set Stabilization type                = SUPG
   set Viscous term weak form            = standard
 end
 
