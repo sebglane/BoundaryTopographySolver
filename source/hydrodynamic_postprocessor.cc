@@ -15,6 +15,7 @@ Postprocessor<dim>::Postprocessor
  const unsigned int pressure_index)
 :
 DataPostprocessor<dim>(),
+background_velocity_ptr(nullptr),
 velocity_start_index(velocity_start_index),
 pressure_index(pressure_index)
 {}
@@ -27,8 +28,12 @@ std::vector<std::string> Postprocessor<dim>::get_names() const
   std::vector<std::string> solution_names;
 
   // velocity
-  for (unsigned int d=0; d<dim; ++d)
-    solution_names.push_back("velocity");
+  if (background_velocity_ptr != nullptr)
+    for (unsigned int d=0; d<dim; ++d)
+      solution_names.push_back("velocity_perturbation");
+  else
+    for (unsigned int d=0; d<dim; ++d)
+      solution_names.push_back("velocity");
   // vorticity
   if constexpr(dim == 2)
     solution_names.emplace_back("vorticity");
@@ -40,6 +45,10 @@ std::vector<std::string> Postprocessor<dim>::get_names() const
   // pressure gradient
   for (unsigned int d=0; d<dim; ++d)
     solution_names.push_back("pressure_gradient");
+  // background velocity
+  if (background_velocity_ptr != nullptr)
+    for (unsigned int d=0; d<dim; ++d)
+      solution_names.push_back("velocity");
 
   return (solution_names);
 }
@@ -49,7 +58,11 @@ std::vector<std::string> Postprocessor<dim>::get_names() const
 template<int dim>
 UpdateFlags Postprocessor<dim>::get_needed_update_flags() const
 {
-    return (update_values|update_gradients);
+  UpdateFlags update_flags{update_values|update_gradients};
+  if (background_velocity_ptr != nullptr)
+    update_flags |= update_quadrature_points;
+
+  return (update_flags);
 }
 
 
@@ -75,6 +88,10 @@ Postprocessor<dim>::get_data_component_interpretation() const
   // pressure gradient
   for (unsigned int d=0; d<dim; ++d)
     component_interpretation.push_back(DataComponentInterpretation::component_is_part_of_vector);
+  // background velocity
+  if (background_velocity_ptr != nullptr)
+    for (unsigned int d=0; d<dim; ++d)
+      component_interpretation.push_back(DataComponentInterpretation::component_is_part_of_vector);
 
   return (component_interpretation);
 }
@@ -100,6 +117,8 @@ void Postprocessor<dim>::evaluate_vector_field
     Assert(pressure_index < n_solution_components,
            ExcLowerRange(pressure_index, n_solution_components));
   }
+
+  Tensor<1, dim> background_velocity;
 
   for (unsigned int q=0; q<n_quadrature_points; ++q)
   {
@@ -132,7 +151,16 @@ void Postprocessor<dim>::evaluate_vector_field
     // pressure gradient
     for (unsigned int d=0; d<dim; ++d)
       computed_quantities[q](cnt) = inputs.solution_gradients[q][pressure_index][d];
-    cnt += 1;
+    cnt += dim;
+    // background value
+    if (background_velocity_ptr != nullptr)
+    {
+      background_velocity = background_velocity_ptr->value(inputs.evaluation_points[q]);
+      for (unsigned int d=0; d<dim; ++d)
+        computed_quantities[q](cnt) = inputs.solution_values[q][velocity_start_index + d] +
+                                      background_velocity[d];
+      cnt += dim;
+    }
   }
 }
 

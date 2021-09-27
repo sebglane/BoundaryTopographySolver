@@ -61,3 +61,15 @@ Mesh refinement...
     Number of cells set for coarsening: 0
     Number of active cells: 1060
     Number of total degrees of freedom: 10354
+
+cycle    average traction     
+    0 -1.6310e-07 -1.7839e-04 
+    1 -8.9377e-10 -6.4683e-07 
+
+cycle average pressure component 
+    0 -2.5306e-07    -1.7872e-04 
+    1 -2.9892e-09    -6.4732e-07 
+
+cycle average viscous component 
+    0 8.9955e-08     3.2972e-07 
+    1 2.0954e-09     4.8793e-10 

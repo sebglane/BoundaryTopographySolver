@@ -55,7 +55,7 @@ public:
 protected:
   virtual void make_grid() override;
 
-  virtual void set_angular_velocity();
+  virtual void set_angular_velocity() override;
 
   virtual void set_boundary_conditions() override;
 

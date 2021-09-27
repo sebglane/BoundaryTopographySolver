@@ -214,6 +214,9 @@ void Solver<dim>::output_results(const unsigned int cycle) const
 
   Postprocessor<dim>  postprocessor(0, dim);
 
+  if (background_velocity_ptr != nullptr)
+    postprocessor.set_background_velocity(*background_velocity_ptr);
+
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
   data_out.attach_dof_handler(this->dof_handler);

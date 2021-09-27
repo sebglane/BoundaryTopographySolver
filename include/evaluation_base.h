@@ -31,13 +31,13 @@ public:
   virtual void operator()(const Mapping<dim>        &mapping,
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
-                          const Vector<double>      &solution) const = 0;
+                          const Vector<double>      &solution) = 0;
 
   virtual void operator()(const Mapping<dim>        &mapping,
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
-                          const BlockVector<double> &solution) const = 0;
-private:
+                          const BlockVector<double> &solution) = 0;
+protected:
   unsigned int cycle;
 };
 
