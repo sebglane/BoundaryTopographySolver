@@ -159,6 +159,8 @@ void Problem<dim>::set_boundary_conditions()
   {
     velocity_bcs.set_dirichlet_bc(bottom_bndry_id, bottom_bc_fun);
     velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
+
+    pressure_bcs.set_dirichlet_bc(bottom_bndry_id);
   }
   else if (dim == 3)
   {
@@ -167,6 +169,8 @@ void Problem<dim>::set_boundary_conditions()
 
     velocity_bcs.set_dirichlet_bc(back_bndry_id, bottom_bc_fun);
     velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
+
+    pressure_bcs.set_dirichlet_bc(bottom_bndry_id);
   }
 
   velocity_bcs.close();

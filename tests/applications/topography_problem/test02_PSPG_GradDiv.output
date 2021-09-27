@@ -1,0 +1,63 @@
++------------------------------------------+----------------------+
+| Problem parameters                                              |
++------------------------------------------+----------------------+
+| Spatial dimension                        | 2                    |
+| Max. number of Newton iterations         | 15                   |
+| Absolute tolerance                       | 1e-12                |
+| Relative tolerance                       | 1e-09                |
+| Verbose                                  | false                |
+| Print timings                            | false                |
+| Graphical output directory               | ./ResultsTopographyProblem |
++------------------------------------------+----------------------+
+| Refinement control parameters                                   |
++------------------------------------------+----------------------+
+| Adaptive mesh refinement                 | True                 |
+| Initial refinements                      | 4                    |
+| Initial boundary refinements             | 0                    |
+| Fraction of cells set to coarsen         | 0                    |
+| Fraction of cells set to refine          | 0.8                  |
+| Maximum number of levels                 | 10                   |
+| Minimum number of levels                 | 2                    |
+| Number of refinement cycles              | 2                    |
++------------------------------------------+----------------------+
+| Hydrodynamic solver parameters                                  |
++------------------------------------------+----------------------+
+| Convective term weak form                | standard             |
+| Viscous term weak form                   | Laplacean            |
+| Stabilization type                       | apply_pspg|apply_grad_div| |
+| SUPG/PSPG stab. parameter                | 1                    |
+| Grad-Div stab. parameter                 | 1                    |
+| Mapping                                  | MappingQ<dim>(1)     |
+| Reynolds number                          | 100                  |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+
+Solving viscous topography problem
+    Make grid...
+    Initialize mapping...
+    Set boundary conditions...
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Cycle 0:
+Initial residual: 1.000507e-01
+Iteration:   0, Current residual: 7.3020e-03 (Tolerance: 1.0005e-10), Residual components: 7.1940e-03, 1.2507e-03, 
+Iteration:   1, Current residual: 1.3677e-04 (Tolerance: 1.0005e-10), Residual components: 1.3467e-04, 2.3905e-05, 
+Iteration:   2, Current residual: 6.8597e-07 (Tolerance: 1.0005e-10), Residual components: 6.7688e-07, 1.1131e-07, 
+Iteration:   3, Current residual: 1.3732e-11 (Tolerance: 1.0005e-10), Residual components: 1.3550e-11, 2.2312e-12, 
+End cycle 0
+Mesh refinement...
+    Number of cells set for refinement: 87
+    Number of cells set for coarsening: 0
+    Number of active cells: 517
+    Number of total degrees of freedom: 4978
+Cycle 1:
+Initial residual: 2.1871e-02
+Iteration:   0, Current residual: 9.6117e-06 (Tolerance: 2.1871e-11), Residual components: 9.5511e-06, 1.0777e-06, 
+Iteration:   1, Current residual: 7.0959e-09 (Tolerance: 2.1871e-11), Residual components: 7.0732e-09, 5.6645e-10, 
+Iteration:   2, Current residual: 8.3012e-15 (Tolerance: 2.1871e-11), Residual components: 8.2965e-15, 2.7885e-16, 
+End cycle 1
+Mesh refinement...
+    Number of cells set for refinement: 262
+    Number of cells set for coarsening: 0
+    Number of active cells: 1303
+    Number of total degrees of freedom: 12751

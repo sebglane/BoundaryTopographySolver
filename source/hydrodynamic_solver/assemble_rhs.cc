@@ -174,12 +174,23 @@ void Solver<dim>::assemble_local_rhs
                                nu);
 
       if (stabilization & apply_supg)
+      {
         rhs += delta * compute_supg_rhs(scratch.grad_phi_velocity[i],
                                         scratch.present_velocity_values[q],
                                         scratch.present_velocity_gradients[q],
                                         scratch.present_velocity_laplaceans[q],
                                         scratch.present_pressure_gradients[q],
                                         nu);
+        if (background_velocity_ptr != nullptr)
+        {
+          const Tensor<1, dim> projected_test_function_gradient(scratch.grad_phi_velocity[i] * scratch.background_velocity_values[q]);
+
+          rhs -= delta *
+                 (scratch.present_velocity_gradients[q] * scratch.present_velocity_values[q] -
+                  nu * scratch.present_velocity_laplaceans[q] +
+                  scratch.present_pressure_gradients[q] ) * projected_test_function_gradient;
+        }
+      }
       if (stabilization & apply_pspg)
         rhs += delta * compute_pspg_rhs(scratch.present_velocity_values[q],
                                         scratch.present_velocity_gradients[q],
@@ -197,8 +208,14 @@ void Solver<dim>::assemble_local_rhs
         Tensor<1, dim> body_force_test_function(scratch.phi_velocity[i]);
 
         if (stabilization & apply_supg)
+        {
           body_force_test_function += delta * scratch.grad_phi_velocity[i] *
                                       scratch.present_velocity_values[q];
+          if (background_velocity_ptr != nullptr)
+            body_force_test_function += delta * scratch.grad_phi_velocity[i] *
+                                        scratch.background_velocity_values[q];
+        }
+
 
         if (stabilization & apply_pspg)
           body_force_test_function += delta * scratch.grad_phi_pressure[i];
@@ -217,8 +234,8 @@ void Solver<dim>::assemble_local_rhs
         if (stabilization & apply_pspg)
           background_velocity_test_function += delta * scratch.grad_phi_pressure[i];
 
-        rhs -= (scratch.background_velocity_values[q] * scratch.present_velocity_gradients[q] +
-                scratch.present_velocity_values[q] * scratch.background_velocity_gradients[q]) *
+        rhs -= (scratch.present_velocity_gradients[q] * scratch.background_velocity_values[q] +
+                scratch.background_velocity_gradients[q] * scratch.present_velocity_values[q]) *
                background_velocity_test_function;
       }
 
@@ -229,8 +246,13 @@ void Solver<dim>::assemble_local_rhs
 
         // Coriolis stabilization terms
         if (stabilization & apply_supg)
+        {
           coriolis_term_test_function += delta * scratch.grad_phi_velocity[i] *
                                          scratch.present_velocity_values[q];
+          if (background_velocity_ptr != nullptr)
+            coriolis_term_test_function += delta * scratch.grad_phi_velocity[i] *
+                                           scratch.background_velocity_values[q];
+        }
         if (stabilization & apply_pspg)
           coriolis_term_test_function += delta * scratch.grad_phi_pressure[i];
 

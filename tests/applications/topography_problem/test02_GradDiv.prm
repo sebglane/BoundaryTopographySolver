@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 set Absolute tolerance               = 1e-12
-set Graphical output directory       = ./ResultsTopographyProblemPerturbed
+set Graphical output directory       = ./ResultsTopographyProblem
 set Mapping - Polynomial degree      = 1
 set Max. number of Newton iterations = 15
 set Print timings                    = false
@@ -12,10 +12,11 @@ set Verbose                          = false
 
 subsection Hydrodynamic solver parameters
   set Convective term weak form         = standard
+  set Froude number                     = 0.0
   set Grad-Div stabilization parameter  = 1.0
   set Reynolds number                   = 100.0
   set SUPG/PSPG stabilization parameter = 0.2
-  set Stabilization type                = none
+  set Stabilization type                = GradDiv
   set Viscous term weak form            = standard
 end
 
@@ -28,7 +29,7 @@ subsection Refinement control parameters
   set Minimum number of levels               = 2
   set Number of initial boundary refinements = 0
   set Number of initial refinements          = 4
-  set Number of refinement cycles            = 4
+  set Number of refinement cycles            = 2
 end
 
 
