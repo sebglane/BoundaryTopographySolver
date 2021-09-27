@@ -107,6 +107,8 @@ protected:
 
   virtual void set_body_force();
 
+  virtual void set_postprocessor();
+
   Triangulation<dim>      triangulation;
 
   MappingQCache<dim>      mapping;
@@ -138,6 +140,14 @@ inline void HydrodynamicProblem<dim>::set_background_velocity()
 
 template <int dim>
 inline void HydrodynamicProblem<dim>::set_body_force()
+{
+  return;
+}
+
+
+
+template <int dim>
+inline void HydrodynamicProblem<dim>::set_postprocessor()
 {
   return;
 }

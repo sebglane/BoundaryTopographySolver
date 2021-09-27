@@ -24,8 +24,8 @@
 +------------------------------------------+----------------------+
 | Convective term weak form                | standard             |
 | Viscous term weak form                   | Laplacean            |
-| Stabilization type                       |                      |
-| SUPG/PSPG stab. parameter                | 1                    |
+| Stabilization type                       | apply_pspg|          |
+| SUPG/PSPG stab. parameter                | 0.2                  |
 | Grad-Div stab. parameter                 | 1                    |
 | Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 100                  |
@@ -39,11 +39,11 @@ Solving viscous topography problem
     Number of active cells: 256
     Number of total degrees of freedom: 2467
 Cycle 0:
-Initial residual: 8.073271e-02
-Iteration:   0, Current residual: 7.2034e-03 (Tolerance: 8.0733e-11), Residual components: 7.2034e-03, 9.8375e-17, 
-Iteration:   1, Current residual: 1.4624e-04 (Tolerance: 8.0733e-11), Residual components: 1.4624e-04, 4.9221e-17, 
-Iteration:   2, Current residual: 8.0370e-07 (Tolerance: 8.0733e-11), Residual components: 8.0370e-07, 5.2699e-17, 
-Iteration:   3, Current residual: 2.1046e-11 (Tolerance: 8.0733e-11), Residual components: 2.1046e-11, 5.3879e-17, 
+Initial residual: 8.073755e-02
+Iteration:   0, Current residual: 7.3125e-03 (Tolerance: 8.0738e-11), Residual components: 7.2040e-03, 1.2552e-03, 
+Iteration:   1, Current residual: 1.4921e-04 (Tolerance: 8.0738e-11), Residual components: 1.4689e-04, 2.6177e-05, 
+Iteration:   2, Current residual: 8.0284e-07 (Tolerance: 8.0738e-11), Residual components: 7.9177e-07, 1.3286e-07, 
+Iteration:   3, Current residual: 2.1002e-11 (Tolerance: 8.0738e-11), Residual components: 2.0704e-11, 3.5259e-12, 
 End cycle 0
 Mesh refinement...
     Number of cells set for refinement: 59
@@ -51,25 +51,25 @@ Mesh refinement...
     Number of active cells: 433
     Number of total degrees of freedom: 4225
 Cycle 1:
-Initial residual: 1.5779e-03
-Iteration:   0, Current residual: 9.1429e-06 (Tolerance: 1.5779e-12), Residual components: 9.1429e-06, 5.0574e-17, 
-Iteration:   1, Current residual: 4.3540e-09 (Tolerance: 1.5779e-12), Residual components: 4.3540e-09, 4.8983e-17, 
-Iteration:   2, Current residual: 1.1601e-15 (Tolerance: 1.5779e-12), Residual components: 1.1588e-15, 5.4860e-17, 
+Initial residual: 1.5704e-03
+Iteration:   0, Current residual: 9.1495e-06 (Tolerance: 1.5704e-12), Residual components: 8.9906e-06, 1.6976e-06, 
+Iteration:   1, Current residual: 4.6210e-09 (Tolerance: 1.5704e-12), Residual components: 4.5859e-09, 5.6798e-10, 
+Iteration:   2, Current residual: 1.2041e-15 (Tolerance: 1.5704e-12), Residual components: 1.1904e-15, 1.8156e-16, 
 End cycle 1
 Mesh refinement...
     Number of cells set for refinement: 209
     Number of cells set for coarsening: 0
     Number of active cells: 1060
-    Number of total degrees of freedom: 10356
+    Number of total degrees of freedom: 10354
 
 cycle    average traction     
-    0 -1.6524e-07 -1.8130e-04 
-    1 -8.7617e-10 -6.3328e-07 
+    0 -1.6310e-07 -1.7839e-04 
+    1 -8.9377e-10 -6.4683e-07 
 
 cycle average pressure component 
-    0 -2.5401e-07    -1.8164e-04 
-    1 -2.9525e-09    -6.3377e-07 
+    0 -2.5306e-07    -1.7872e-04 
+    1 -2.9892e-09    -6.4732e-07 
 
 cycle average viscous component 
-    0 8.8775e-08     3.3609e-07 
-    1 2.0763e-09     4.9798e-10 
+    0 8.9955e-08     3.2972e-07 
+    1 2.0954e-09     4.8793e-10 

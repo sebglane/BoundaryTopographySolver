@@ -3,6 +3,8 @@ SET(TARGET_SRC
     angular_velocity.cc
     assembly_base_data.cc
     boundary_conditions.cc
+    boundary_conditions.cc
+    evaluation_boundary_traction.cc
     grid_factory.cc
     parameters.cc
     postprocessor_base.cc

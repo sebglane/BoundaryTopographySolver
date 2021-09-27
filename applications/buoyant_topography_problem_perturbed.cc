@@ -92,7 +92,7 @@ private:
 
   const ConstantTensorFunction<1, dim>  background_velocity;
 
-  ReferenceDensity<dim> reference_density;
+  const ReferenceDensity<dim> reference_density;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -264,6 +264,8 @@ void Problem<dim>::set_boundary_conditions()
     velocity_bcs.set_dirichlet_bc(bottom_bndry_id, bottom_bc_fun);
     velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
 
+    pressure_bcs.set_dirichlet_bc(bottom_bndry_id);
+
     density_bcs.set_dirichlet_bc(bottom_bndry_id);
   }
   else if (dim == 3)
@@ -274,6 +276,8 @@ void Problem<dim>::set_boundary_conditions()
 
     velocity_bcs.set_dirichlet_bc(back_bndry_id, bottom_bc_fun);
     velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
+
+    pressure_bcs.set_dirichlet_bc(bottom_bndry_id);
 
     density_bcs.set_dirichlet_bc(back_bndry_id);
   }

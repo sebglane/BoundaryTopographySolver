@@ -9,6 +9,7 @@
 #include <deal.II/grid/grid_tools.h>
 
 #include <grid_factory.h>
+#include <evaluation_boundary_traction.h>
 #include <hydrodynamic_problem.h>
 
 namespace TopographyProblem {
@@ -26,7 +27,11 @@ protected:
 
   virtual void set_boundary_conditions() override;
 
+  virtual void set_postprocessor() override;
+
 private:
+  EvaluationBoundaryTraction<dim> traction_evaluation;
+
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
   types::boundary_id  bottom_bndry_id;
@@ -43,6 +48,7 @@ template <int dim>
 Problem<dim>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
+traction_evaluation(0, dim, parameters.reynolds_number),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -70,6 +76,7 @@ void Problem<dim>::make_grid()
   front_bndry_id = topography_box.front;
 
   topographic_bndry_id = topography_box.topographic_boundary;
+  traction_evaluation.set_boundary_id(topographic_bndry_id);
 
   topography_box.create_coarse_mesh(this->triangulation);
 
@@ -147,6 +154,14 @@ void Problem<dim>::set_boundary_conditions()
 
   velocity_bcs.close();
   pressure_bcs.close();
+}
+
+
+
+template <int dim>
+void Problem<dim>::set_postprocessor()
+{
+  this->solver.set_postprocessor(traction_evaluation);
 }
 
 }  // namespace TopographyProblem

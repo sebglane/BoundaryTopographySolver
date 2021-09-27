@@ -179,6 +179,8 @@ void HydrodynamicProblem<dim>::run()
 
   this->set_body_force();
 
+  this->set_postprocessor();
+
   solver.solve();
 }
 

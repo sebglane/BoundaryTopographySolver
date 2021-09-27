@@ -84,15 +84,14 @@ inline double compute_supg_matrix
   const Tensor<1, dim> linearized_test_function_gradient(velocity_test_function_gradient * velocity_trial_function_value);
 
   return (// linearized residual
-            (velocity_trial_function_gradient * present_velocity_value) * projected_test_function_gradient
-          + (present_velocity_gradient * velocity_trial_function_value) * projected_test_function_gradient
-          - nu * velocity_trial_function_laplacean * projected_test_function_gradient
-          + pressure_trial_function_gradient * projected_test_function_gradient
+          velocity_trial_function_gradient * present_velocity_value +
+          present_velocity_gradient * velocity_trial_function_value -
+          nu * velocity_trial_function_laplacean +
+          pressure_trial_function_gradient) * projected_test_function_gradient +
           // linearized test function
-          + (present_velocity_gradient * present_velocity_value) * linearized_test_function_gradient
-          - nu * present_velocity_laplacean * linearized_test_function_gradient
-          + present_pressure_gradient * linearized_test_function_gradient
-         );
+         (present_velocity_gradient * present_velocity_value -
+          nu * present_velocity_laplacean +
+          present_pressure_gradient) * linearized_test_function_gradient;
 }
 
 

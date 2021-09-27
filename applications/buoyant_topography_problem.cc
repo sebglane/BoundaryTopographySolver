@@ -87,9 +87,9 @@ protected:
   virtual void set_reference_density() override;
 
 private:
-  ConstantTensorFunction<1, dim>  gravity_field;
+  const ConstantTensorFunction<1, dim>  gravity_field;
 
-  ReferenceDensity<dim> reference_density;
+  const ReferenceDensity<dim> reference_density;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
