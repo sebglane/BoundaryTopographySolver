@@ -28,6 +28,10 @@ void Parameters::declare_parameters(ParameterHandler &prm)
 {
   Utility::RefinementParameters::declare_parameters(prm);
 
+  prm.declare_entry("Spatial dimension",
+                    "2",
+                    Patterns::Integer(2,3));
+
   prm.declare_entry("Max. number of Newton iterations",
                     "15",
                     Patterns::Integer(1));
@@ -59,6 +63,8 @@ void Parameters::parse_parameters(ParameterHandler &prm)
 {
   refinement_parameters.parse_parameters(prm);
 
+  space_dim = prm.get_integer("Spatial dimension");
+
   n_iterations = prm.get_integer("Max. number of Newton iterations");
   AssertThrow(n_iterations >= 1, ExcLowerRangeType<unsigned >(n_iterations, 0));
   AssertIsFinite(n_iterations);
@@ -88,6 +94,10 @@ Stream& operator<<(Stream &stream, const Parameters &prm)
   Utility::add_header(stream);
   Utility::add_line(stream, "Problem parameters");
   Utility::add_header(stream);
+
+  Utility::add_line(stream,
+           "Spatial dimension",
+           prm.space_dim);
 
   Utility::add_line(stream,
            "Max. number of Newton iterations",
@@ -221,7 +231,7 @@ void Solver<dim>::postprocess_solution(const unsigned int cycle) const
 
 
 template <int dim>
-void Solver<dim>::newton_iteration(const bool is_initial_step)
+void Solver<dim>::newton_iteration(const bool is_initial_cycle)
 {
   auto compute_residual = [this](const double alpha = 0.0,
                                  const bool use_homogeneous_constraints = true)
@@ -231,11 +241,16 @@ void Solver<dim>::newton_iteration(const bool is_initial_step)
           this->evaluation_point.add(alpha, this->solution_update);
         this->nonzero_constraints.distribute(this->evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
-        return this->system_rhs.l2_norm();
+
+        std::vector<double> residual_components(this->system_rhs.n_blocks());
+        for (unsigned int i=0; i<this->system_rhs.n_blocks(); ++i)
+          residual_components[i] = this->system_rhs.block(i).l2_norm();
+
+        return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
       };
 
-  this->preprocess_newton_iteration();
-  const double initial_residual{compute_residual(0.0, false)};
+  this->preprocess_newton_iteration(0, is_initial_cycle);
+  const double initial_residual{std::get<0>(compute_residual(0.0, false))};
 
   std::cout << "Initial residual: "
             << std::scientific << initial_residual
@@ -246,8 +261,10 @@ void Solver<dim>::newton_iteration(const bool is_initial_step)
                                   relative_tolerance * initial_residual)};
 
   double current_residual = std::numeric_limits<double>::max();
+  std::vector<double> current_residual_components(this->system_rhs.n_blocks(),
+                                                  std::numeric_limits<double>::max());
   double last_residual = std::numeric_limits<double>::max();
-  bool first_step = is_initial_step;
+  bool first_step = is_initial_cycle;
 
   unsigned int iteration = 0;
 
@@ -255,7 +272,7 @@ void Solver<dim>::newton_iteration(const bool is_initial_step)
          iteration < n_maximum_iterations)
   {
 
-    this->preprocess_newton_iteration();
+    this->preprocess_newton_iteration(iteration, is_initial_cycle);
 
     if (first_step)
     {
@@ -267,7 +284,7 @@ void Solver<dim>::newton_iteration(const bool is_initial_step)
       nonzero_constraints.distribute(present_solution);
       first_step = false;
       // compute residual
-      current_residual = compute_residual(0.0, true);
+      std::tie(current_residual, current_residual_components) = compute_residual(0.0, true);
     }
     else
     {
@@ -280,7 +297,7 @@ void Solver<dim>::newton_iteration(const bool is_initial_step)
         std::cout << "   Line search: " << std::endl;
       for (double alpha = 1.0; alpha > 1e-2; alpha *= 0.5)
       {
-        current_residual = compute_residual(alpha);
+        std::tie(current_residual, current_residual_components) = compute_residual(alpha);
         if (verbose)
           std::cout << "      alpha = " << std::setw(6)
                     << std::scientific << alpha
@@ -299,8 +316,10 @@ void Solver<dim>::newton_iteration(const bool is_initial_step)
               << std::scientific << std::setprecision(4) << current_residual
               << " (Tolerance: "
               << std::scientific << std::setprecision(4) << tolerance
-              << ")"
-              << std::endl
+              << "), Residual components: ";
+    for (const auto residual_component: current_residual_components)
+      std::cout << std::scientific << std::setprecision(4) << residual_component << ", ";
+    std::cout << std::endl
               << std::defaultfloat;
 
     // update residual

@@ -9,22 +9,70 @@
 
 #include <deal.II/grid/grid_generator.h>
 
+#include <angular_velocity.h>
 #include <hydrodynamic_problem.h>
 
 using namespace Hydrodynamic;
 
+
 template <int dim>
-class CavityProblem : public HydrodynamicProblem<dim>
+class ConstantAngularVelocity : public Utility::AngularVelocity<dim>
 {
 public:
-  CavityProblem(ProblemParameters &parameters);
+  ConstantAngularVelocity(const double time = 0);
+
+  virtual typename Utility::AngularVelocity<dim>::value_type value() const;
+};
+
+
+
+template <int dim>
+ConstantAngularVelocity<dim>::ConstantAngularVelocity(const double time)
+:
+Utility::AngularVelocity<dim>(time)
+{}
+
+
+
+template <>
+typename Utility::AngularVelocity<2>::value_type
+ConstantAngularVelocity<2>::value() const
+{
+  value_type value;
+  value[0] = 1.0;
+
+  return (value);
+}
+
+
+
+template <>
+typename Utility::AngularVelocity<3>::value_type
+ConstantAngularVelocity<3>::value() const
+{
+  value_type value;
+  value[2] = 1.0;
+
+  return (value);
+}
+
+
+
+template <int dim>
+class RotatingCavityProblem : public HydrodynamicProblem<dim>
+{
+public:
+  RotatingCavityProblem(ProblemParameters &parameters);
 
 protected:
   virtual void make_grid() override;
 
   virtual void set_boundary_conditions() override;
 
+  virtual void set_angular_velocity() override;
+
 private:
+  const ConstantAngularVelocity<dim>  angular_velocity;
 
   const types::boundary_id  left_bndry_id;
   const types::boundary_id  right_bndry_id;
@@ -38,9 +86,10 @@ private:
 
 
 template <int dim>
-CavityProblem<dim>::CavityProblem(ProblemParameters &parameters)
+RotatingCavityProblem<dim>::RotatingCavityProblem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
+angular_velocity(),
 left_bndry_id(0),
 right_bndry_id(1),
 bottom_bndry_id(2),
@@ -54,7 +103,7 @@ front_bndry_id(5)
 
 
 template <int dim>
-void CavityProblem<dim>::make_grid()
+void RotatingCavityProblem<dim>::make_grid()
 {
   std::cout << "    Make grid..." << std::endl;
 
@@ -66,7 +115,7 @@ void CavityProblem<dim>::make_grid()
 
 
 template <int dim>
-void CavityProblem<dim>::set_boundary_conditions()
+void RotatingCavityProblem<dim>::set_boundary_conditions()
 {
   std::cout << "    Set boundary conditions..." << std::endl;
 
@@ -96,6 +145,14 @@ void CavityProblem<dim>::set_boundary_conditions()
 
 
 
+template <int dim>
+void RotatingCavityProblem<dim>::set_angular_velocity()
+{
+  this->solver.set_angular_velocity(angular_velocity);
+}
+
+
+
 int main(int argc, char *argv[])
 {
   try
@@ -104,17 +161,17 @@ int main(int argc, char *argv[])
     if (argc >= 2)
       parameter_filename = argv[1];
     else
-      parameter_filename = "cavity_problem.prm";
+      parameter_filename = "rotating_cavity_problem.prm";
 
     ProblemParameters parameters(parameter_filename);
     if (parameters.space_dim == 2)
     {
-      CavityProblem<2> problem(parameters);
+      RotatingCavityProblem<2> problem(parameters);
       problem.run();
     }
     else
     {
-      CavityProblem<3> problem(parameters);
+      RotatingCavityProblem<3> problem(parameters);
       problem.run();
     }
   }

@@ -69,6 +69,11 @@ struct ProblemParameters: SolverParameters
    */
   double        reynolds_number;
 
+  /*!
+   * @brief The Rossby number of the problem.
+   */
+  double        rossby_number;
+
 };
 
 
@@ -94,27 +99,49 @@ protected:
 
   void initialize_mapping();
 
+  virtual void set_angular_velocity();
+
   virtual void set_boundary_conditions() = 0;
 
-  virtual void set_body_force_term();
+  virtual void set_background_velocity();
 
-  Triangulation<dim>       triangulation;
+  virtual void set_body_force();
 
-  MappingQCache<dim>       mapping;
+  Triangulation<dim>      triangulation;
 
-  Solver<dim>  solver;
+  MappingQCache<dim>      mapping;
 
+  Solver<dim>             solver;
+
+  const unsigned int      n_initial_refinements;
+
+  const unsigned int      n_initial_bndry_refinements;
 };
 
 // inline functions
 template <int dim>
-void HydrodynamicProblem<dim>::set_body_force_term()
+inline void HydrodynamicProblem<dim>::set_angular_velocity()
+{
+  return;
+}
+
+
+
+
+template <int dim>
+inline void HydrodynamicProblem<dim>::set_background_velocity()
+{
+  return;
+}
+
+
+
+template <int dim>
+inline void HydrodynamicProblem<dim>::set_body_force()
 {
   return;
 }
 
 }  // namespace Hydrodynamic
-
-
 
 #endif /* INCLUDE_HYDRODYNAMIC_PROBLEM_H_ */

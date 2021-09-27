@@ -6,6 +6,7 @@ set Mapping - Polynomial degree      = 1
 set Max. number of Newton iterations = 15
 set Print timings                    = false
 set Relative tolerance               = 1e-9
+set Spatial dimension                = 2
 set Verbose                          = false
 
 
@@ -16,12 +17,14 @@ end
 
 
 subsection Refinement control parameters
-  set Adaptive mesh refinement         = false
-  set Fraction of cells set to coarsen = 0.0
-  set Fraction of cells set to refine  = 0.8
-  set Maximum number of levels         = 10
-  set Minimum number of levels         = 4
-  set Number of refinement cycles      = 2
+  set Adaptive mesh refinement               = false
+  set Fraction of cells set to coarsen       = 0.0
+  set Fraction of cells set to refine        = 0.8
+  set Maximum number of levels               = 10
+  set Minimum number of levels               = 4
+  set Number of initial boundary refinements = 0
+  set Number of initial refinements          = 4
+  set Number of refinement cycles            = 2
 end
 
 

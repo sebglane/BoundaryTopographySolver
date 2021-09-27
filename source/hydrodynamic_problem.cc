@@ -16,7 +16,8 @@ ProblemParameters::ProblemParameters()
 SolverParameters(),
 mapping_degree(1),
 froude_number(0.0),
-reynolds_number(1.0)
+reynolds_number(1.0),
+rossby_number(0.0)
 {}
 
 
@@ -73,6 +74,10 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("Reynolds number",
                       "1.0",
                       Patterns::Double(std::numeric_limits<double>::epsilon()));
+
+    prm.declare_entry("Rossby number",
+                      "0.0",
+                      Patterns::Double(0.0));
   }
   prm.leave_subsection();
 }
@@ -95,6 +100,10 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
     reynolds_number = prm.get_double("Reynolds number");
     AssertThrow(reynolds_number > 0.0, ExcLowerRangeType<double>(reynolds_number, 0.0));
     AssertIsFinite(reynolds_number);
+
+    rossby_number = prm.get_double("Rossby number");
+    AssertThrow(rossby_number >= 0.0, ExcLowerRangeType<double>(rossby_number, 0.0));
+    AssertIsFinite(rossby_number);
   }
   prm.leave_subsection();
 }
@@ -116,7 +125,11 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
   Utility::add_line(stream, "Reynolds number", prm.reynolds_number);
 
-  Utility::add_line(stream, "Froude number", prm.froude_number);
+  if (prm.froude_number > 0.0)
+    Utility::add_line(stream, "Froude number", prm.froude_number);
+
+  if (prm.rossby_number > 0.0)
+    Utility::add_line(stream, "Rossby number", prm.rossby_number);
 
   Utility::add_header(stream);
 
@@ -131,7 +144,10 @@ template <int dim>
 HydrodynamicProblem<dim>::HydrodynamicProblem(const ProblemParameters &parameters)
 :
 mapping(parameters.mapping_degree),
-solver(triangulation, mapping, parameters, parameters.reynolds_number, parameters.froude_number)
+solver(triangulation, mapping, parameters,
+       parameters.reynolds_number, parameters.froude_number, parameters.rossby_number),
+n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
+n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
 {
   std::cout << parameters << std::endl;
 }
@@ -157,7 +173,11 @@ void HydrodynamicProblem<dim>::run()
 
   this->set_boundary_conditions();
 
-  this->set_body_force_term();
+  this->set_angular_velocity();
+
+  this->set_background_velocity();
+
+  this->set_body_force();
 
   solver.solve();
 }

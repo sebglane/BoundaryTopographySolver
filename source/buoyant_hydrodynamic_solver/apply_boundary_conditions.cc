@@ -21,6 +21,8 @@ void Solver<dim>::apply_boundary_conditions()
               ExcMessage("The velocity boundary conditions have not been closed."));
   AssertThrow(this->pressure_boundary_conditions.closed(),
               ExcMessage("The pressure boundary conditions have not been closed."));
+  AssertThrow(density_boundary_conditions.closed(),
+              ExcMessage("The density boundary conditions have not been closed."));
 
   if (!this->velocity_boundary_conditions.periodic_bcs.empty() ||
       !this->pressure_boundary_conditions.periodic_bcs.empty() ||
@@ -110,6 +112,13 @@ void Solver<dim>::apply_boundary_conditions()
     if (!this->pressure_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(this->pressure_boundary_conditions.dirichlet_bcs,
                                         this->fe_system->component_mask(pressure));
+  }
+  {
+    const FEValuesExtractors::Scalar  density(dim+1);
+
+    if (!density_boundary_conditions.dirichlet_bcs.empty())
+      this->apply_dirichlet_constraints(density_boundary_conditions.dirichlet_bcs,
+                                        this->fe_system->component_mask(density));
   }
 }
 

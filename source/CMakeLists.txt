@@ -1,6 +1,7 @@
 # Set the source files to be compiled
 SET(TARGET_SRC
     angular_velocity.cc
+    assembly_base_data.cc
     boundary_conditions.cc
     grid_factory.cc
     parameters.cc
@@ -15,18 +16,19 @@ SET(TARGET_SRC
     hydrodynamic_postprocessor.cc
     hydrodynamic_problem.cc
     hydrodynamic_solver/apply_boundary_conditions.cc
-    hydrodynamic_solver/assemble_system.cc
+    hydrodynamic_solver/assembly_data.cc
     hydrodynamic_solver/assemble_rhs.cc
+    hydrodynamic_solver/assemble_system.cc
     hydrodynamic_solver/hydrodynamic_solver.cc
     hydrodynamic_solver/setup.cc
     # buoyant hydrodynamic solver
     buoyant_hydrodynamic_problem.cc
     buoyant_hydrodynamic_solver/apply_boundary_conditions.cc
+    buoyant_hydrodynamic_solver/assembly_data.cc
     buoyant_hydrodynamic_solver/assemble_system.cc
     buoyant_hydrodynamic_solver/assemble_rhs.cc
     buoyant_hydrodynamic_solver/buoyant_hydrodynamic_solver.cc
     buoyant_hydrodynamic_solver/setup.cc
-    buoyant_hydrodynamic_solver/stabilization.cc
     # buoyant hydrodynamic solver
     advection_problem.cc
     advection_solver/apply_boundary_conditions.cc
@@ -35,18 +37,7 @@ SET(TARGET_SRC
     advection_solver/advection_solver.cc
     advection_solver/setup.cc
     advection_solver/stabilization.cc
-    # assemble_system.cc
-    # assembly_data.cc
-    # entropy_viscosity.cc
-    # equation_data.cc
-    # linear_solver.cc
-    # local_assemble.cc
-    # make_grid.cc
-    # newton_iteration.cc
-    # postprocessor.cc
     # postprocessing.cc
-    # setup.cc
-    # solver.cc
 )
 ADD_LIBRARY(boundary_topography SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(boundary_topography)

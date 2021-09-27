@@ -7,9 +7,14 @@ INCLUDE_DIRECTORIES(
 
 SET(SOURCE_FILES
     advection_problem.cc
+    buoyant_topography_problem.cc
+    buoyant_topography_problem_perturbed.cc
     cavity_problem.cc
-    viscous_topography_problem.cc
-    viscous_buoyant_topography_problem.cc
+    rotating_cavity_problem.cc
+    rotating_topography_problem.cc
+    topography_problem.cc
+    topography_problem_perturbed.cc
+    topography_mesh.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})

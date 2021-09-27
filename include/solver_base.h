@@ -67,6 +67,11 @@ struct Parameters
   Utility::RefinementParameters refinement_parameters;
 
   /*!
+   * @brief The spatial dimension of the problem.
+   */
+  unsigned int        space_dim;
+
+  /*!
    * @brief The maximum number of Newton iterations.
    */
   unsigned int        n_iterations;
@@ -155,7 +160,8 @@ protected:
 
   void setup_vectors(const std::vector<types::global_dof_index> &dofs_per_block);
 
-  virtual void preprocess_newton_iteration();
+  virtual void preprocess_newton_iteration(const unsigned int iteration,
+                                           const bool         is_initial_cycle);
 
   virtual void output_results(const unsigned int cycle = 0) const = 0;
 
@@ -220,7 +226,7 @@ inline void Solver<dim>::set_postprocessor(EvaluationBase<dim> &postprocessor)
 
 
 template <int dim>
-inline void Solver<dim>::preprocess_newton_iteration()
+inline void Solver<dim>::preprocess_newton_iteration(const unsigned int, const bool)
 {
   return;
 }

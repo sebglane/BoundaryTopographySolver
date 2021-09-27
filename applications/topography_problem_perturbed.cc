@@ -1,67 +1,21 @@
 /*
- * advection_problem.cc
+ * topography_problem_perturbed.cc
  *
- *  Created on: Sep 1, 2021
+ *  Created on: Sep 26, 2021
  *      Author: sg
  */
-
 #include <deal.II/base/function_lib.h>
-#include <deal.II/base/tensor.h>
 #include <deal.II/grid/grid_tools.h>
 
-#include <advection_problem.h>
 #include <grid_factory.h>
+#include <hydrodynamic_problem.h>
 
-namespace AdvectionProblem {
+namespace TopographyProblem {
 
-using namespace Advection;
-
-template <int dim>
-class SourceFunction : public Function<dim>
-{
-public:
-  SourceFunction(const double wavenumber,
-                 const double offset = 1.0);
-
-  virtual double value(const Point<dim>  &point,
-                       const unsigned int component) const;
-
-private:
-  const double wavenumber;
-
-  const double offset;
-
-};
-
-
+using namespace Hydrodynamic;
 
 template <int dim>
-SourceFunction<dim>::SourceFunction
-(const double wavenumber,
- const double offset)
-:
-Function<dim>(),
-wavenumber(wavenumber),
-offset(offset)
-{}
-
-
-
-template <int dim>
-double SourceFunction<dim>::value
-(const Point<dim>  &point,
- const unsigned int /* component */) const
-{
-  double coord{point[dim-1]};
-  coord -= offset;
-
-  return std::sin(wavenumber * point[0]) * std::exp(4.0 * coord);
-}
-
-
-
-template <int dim>
-class Problem : public AdvectionProblem<dim>
+class Problem : public HydrodynamicProblem<dim>
 {
 public:
   Problem(ProblemParameters &parameters);
@@ -69,16 +23,12 @@ public:
 protected:
   virtual void make_grid() override;
 
+  virtual void set_background_velocity() override;
+
   virtual void set_boundary_conditions() override;
 
-  virtual void set_advection_field() override;
-
-  virtual void set_source_term() override;
-
 private:
-  ConstantTensorFunction<1, dim>  advection_field;
-
-  SourceFunction<dim>             source_term;
+  const ConstantTensorFunction<1, dim>  background_velocity;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -87,6 +37,7 @@ private:
   types::boundary_id  topographic_bndry_id;
   types::boundary_id  back_bndry_id;
   types::boundary_id  front_bndry_id;
+
 };
 
 
@@ -94,11 +45,17 @@ private:
 template <>
 Problem<2>::Problem(ProblemParameters &parameters)
 :
-AdvectionProblem<2>(parameters),
-advection_field(Tensor<1, 2>({numbers::SQRT1_2, numbers::SQRT1_2})),
-source_term(2.0 * numbers::PI)
+HydrodynamicProblem<2>(parameters),
+background_velocity(Tensor<1, 2>({1.0, 0.0})),
+left_bndry_id(numbers::invalid_boundary_id),
+right_bndry_id(numbers::invalid_boundary_id),
+bottom_bndry_id(numbers::invalid_boundary_id),
+top_bndry_id(numbers::invalid_boundary_id),
+topographic_bndry_id(numbers::invalid_boundary_id),
+back_bndry_id(numbers::invalid_boundary_id),
+front_bndry_id(numbers::invalid_boundary_id)
 {
-  std::cout << "Solving viscous buoyant topography problem" << std::endl;
+  std::cout << "Solving perturbed topography problem" << std::endl;
 }
 
 
@@ -106,29 +63,17 @@ source_term(2.0 * numbers::PI)
 template <>
 Problem<3>::Problem(ProblemParameters &parameters)
 :
-AdvectionProblem<3>(parameters),
-advection_field(Tensor<1, 3>({1.0 / std::sqrt(3.0),
-                              1.0 / std::sqrt(3.0),
-                              1.0 / std::sqrt(3.0)})),
-source_term(2.0 * numbers::PI)
+HydrodynamicProblem<3>(parameters),
+background_velocity(Tensor<1, 3>({1.0, 0.0, 0.0})),
+left_bndry_id(numbers::invalid_boundary_id),
+right_bndry_id(numbers::invalid_boundary_id),
+bottom_bndry_id(numbers::invalid_boundary_id),
+top_bndry_id(numbers::invalid_boundary_id),
+topographic_bndry_id(numbers::invalid_boundary_id),
+back_bndry_id(numbers::invalid_boundary_id),
+front_bndry_id(numbers::invalid_boundary_id)
 {
-  std::cout << "Solving viscous buoyant topography problem" << std::endl;
-}
-
-
-
-template <int dim>
-void Problem<dim>::set_advection_field()
-{
-  this->solver.set_advection_field(advection_field);
-}
-
-
-
-template <int dim>
-void Problem<dim>::set_source_term()
-{
-  this->solver.set_source_term(source_term);
+  std::cout << "Solving perturbed topography problem" << std::endl;
 }
 
 
@@ -182,7 +127,6 @@ void Problem<dim>::make_grid()
       this->triangulation.execute_coarsening_and_refinement();
     }
   }
-
 }
 
 
@@ -192,33 +136,54 @@ void Problem<dim>::set_boundary_conditions()
 {
   std::cout << "    Set boundary conditions..." << std::endl;
 
-  ScalarBoundaryConditions<dim> &bcs = this->solver.get_bcs();
+  VectorBoundaryConditions<dim> &velocity_bcs = this->solver.get_velocity_bcs();
+  ScalarBoundaryConditions<dim> &pressure_bcs = this->solver.get_pressure_bcs();
 
-  bcs.clear();
+  velocity_bcs.clear();
+  pressure_bcs.clear();
 
-  bcs.extract_boundary_ids();
+  velocity_bcs.extract_boundary_ids();
+  pressure_bcs.extract_boundary_ids();
 
-  bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
+  velocity_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
+  pressure_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
 
-  const std::shared_ptr<Function<dim>> function =
-      std::make_shared<Functions::ConstantFunction<dim>>(1.0);
-  bcs.set_dirichlet_bc(topographic_bndry_id, function);
+  const std::shared_ptr<Function<dim>> bottom_bc_fun =
+      std::make_shared<Functions::ZeroFunction<dim>>(dim);
+  std::vector<double> value(dim);
+  value[0] = -1.0;
+  const std::shared_ptr<Function<dim>> topographic_bc_fun =
+      std::make_shared<Functions::ConstantFunction<dim>>(value);
 
   if (dim == 2)
   {
-    bcs.set_dirichlet_bc(bottom_bndry_id);
+    velocity_bcs.set_dirichlet_bc(bottom_bndry_id, bottom_bc_fun);
+    velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
   }
   else if (dim == 3)
   {
-    bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
+    velocity_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
+    pressure_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
 
-    bcs.set_dirichlet_bc(back_bndry_id);
+    velocity_bcs.set_dirichlet_bc(back_bndry_id, bottom_bc_fun);
+    velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
   }
 
-  bcs.close();
+  velocity_bcs.close();
+  pressure_bcs.close();
 }
 
-}  // namespace AdvectionProblem
+
+
+template <int dim>
+void Problem<dim>::set_background_velocity()
+{
+  this->solver.set_background_velocity(background_velocity);
+}
+
+}  // namespace TopographyProblem
+
+
 
 int main(int argc, char *argv[])
 {
@@ -228,17 +193,17 @@ int main(int argc, char *argv[])
     if (argc >= 2)
       parameter_filename = argv[1];
     else
-      parameter_filename = "advection_problem.prm";
+      parameter_filename = "topography_problem_perturbed.prm";
 
-    Advection::ProblemParameters parameters(parameter_filename);
+    TopographyProblem::ProblemParameters parameters(parameter_filename);
     if (parameters.space_dim == 2)
     {
-      AdvectionProblem::Problem<2> problem(parameters);
+      TopographyProblem::Problem<2> problem(parameters);
       problem.run();
     }
     else
     {
-      AdvectionProblem::Problem<3> problem(parameters);
+      TopographyProblem::Problem<3> problem(parameters);
       problem.run();
     }
   }
@@ -267,3 +232,6 @@ int main(int argc, char *argv[])
   }
   return 0;
 }
+
+
+

@@ -51,6 +51,12 @@ void Solver<dim>::setup_dofs()
         coupling_table[c][d] = DoFTools::always;
       else
         coupling_table[c][d] = DoFTools::none;
+  if (this->stabilization & apply_pspg)
+  {
+    coupling_table[dim][dim] = DoFTools::always;
+    coupling_table[dim][dim+1] = DoFTools::always;
+  }
+
   // density-velocity coupling
   for (unsigned int c=0; c<dim; ++c)
   {

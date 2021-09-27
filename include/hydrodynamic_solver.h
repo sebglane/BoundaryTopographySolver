@@ -8,14 +8,15 @@
 #ifndef INCLUDE_HYDRODYNAMIC_SOLVER_H_
 #define INCLUDE_HYDRODYNAMIC_SOLVER_H_
 
+#include <angular_velocity.h>
+#include <assembly_base_data.h>
 #include <boundary_conditions.h>
-
 #include <solver_base.h>
+#include <stabilization_flags.h>
 
 namespace Hydrodynamic {
 
 using namespace BoundaryConditions;
-
 
 /*!
  * @brief Enumeration for the weak form of the convective term.
@@ -24,7 +25,7 @@ using namespace BoundaryConditions;
  * Nonetheless Volker John and Helene Dallmann define the skew-symmetric
  * and the divergence form differently.
  */
-enum class ConvectiveTermWeakForm
+enum ConvectiveTermWeakForm
 {
   /*!
    * @brief The standard form.
@@ -85,7 +86,7 @@ enum class ConvectiveTermWeakForm
  * Nonetheless Volker John and Helene Dallmann define the skew-symmetric
  * and the divergence form differently.
  */
-enum class ViscousTermWeakForm
+enum ViscousTermWeakForm
 {
   /*!
    * @brief The Laplacean form.
@@ -146,15 +147,31 @@ struct SolverParameters: SolverBase::Parameters
 
   /*!
    * @brief Enumerator controlling which weak form of the convective
-   * term is to be implemented.
+   * term is applied.
    */
-  ConvectiveTermWeakForm convective_term_weak_form;
+  ConvectiveTermWeakForm  convective_term_weak_form;
 
   /*!
    * @brief Enumeration controlling which weak form of the viscous
-   * term is to be implemented.
+   * term is applied.
    */
-  ViscousTermWeakForm    viscous_term_weak_form;
+  ViscousTermWeakForm     viscous_term_weak_form;
+
+  /*!
+   * @brief Enumeration controlling which weak form of the viscous
+   * term is applied.
+   */
+  StabilizationFlags      stabilization;
+
+  /*!
+   * @brief Stabilization parameter controlling the SUPG and PSPG terms.
+   */
+  double  c;
+
+  /*!
+   * @brief Stabilization parameter controlling the grad-div term.
+   */
+  double  mu;
 
 };
 
@@ -168,6 +185,119 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 
+namespace AssemblyData {
+
+namespace Matrix {
+
+template <int dim>
+struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &fe,
+          const UpdateFlags         update_flags,
+          const Quadrature<dim-1>  &face_quadrature_formula,
+          const UpdateFlags         face_update_flags,
+          const StabilizationFlags  stabilization_flags,
+          const bool                allocate_body_force,
+          const bool                allocate_traction,
+          const bool                allocate_background_velocity);
+
+  Scratch(const Scratch<dim>  &data);
+
+  FEFaceValues<dim>   fe_face_values;
+
+  const unsigned int  n_face_q_points;
+
+  // shape functions
+  std::vector<Tensor<1, dim>> phi_velocity;
+  std::vector<Tensor<2, dim>> grad_phi_velocity;
+  std::vector<double>         div_phi_velocity;
+  std::vector<double>         phi_pressure;
+
+  // stabilization related shape functions
+  std::vector<Tensor<1, dim>> grad_phi_pressure;
+  std::vector<Tensor<1, dim>> laplace_phi_velocity;
+
+  // solution values
+  std::vector<Tensor<1, dim>> present_velocity_values;
+  std::vector<Tensor<2, dim>> present_velocity_gradients;
+  std::vector<double>         present_pressure_values;
+
+  std::vector<Tensor<1, dim>> background_velocity_values;
+  std::vector<Tensor<2, dim>> background_velocity_gradients;
+
+  // stabilization related solution values
+  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
+  std::vector<Tensor<1, dim>> present_pressure_gradients;
+
+  // source term values
+  std::vector<Tensor<1,dim>>  body_force_values;
+  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
+
+  // source term face values
+  std::vector<Tensor<1, dim>> boundary_traction_values;
+};
+
+} // namespace Matrix
+
+namespace RightHandSide
+{
+
+template <int dim>
+struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &fe,
+          const UpdateFlags         update_flags,
+          const Quadrature<dim-1>  &face_quadrature_formula,
+          const UpdateFlags         face_update_flags,
+          const StabilizationFlags  stabilization_flags,
+          const bool                allocate_body_force,
+          const bool                allocate_traction,
+          const bool                allocate_background_velocity);
+
+  Scratch(const Scratch<dim>  &data);
+
+  FEFaceValues<dim>   fe_face_values;
+
+  const unsigned int  n_face_q_points;
+
+  // shape functions
+  std::vector<Tensor<1, dim>> phi_velocity;
+  std::vector<Tensor<2, dim>> grad_phi_velocity;
+  std::vector<double>         div_phi_velocity;
+  std::vector<double>         phi_pressure;
+
+  // stabilization related shape functions
+  std::vector<Tensor<1, dim>> grad_phi_pressure;
+
+  // solution values
+  std::vector<Tensor<1, dim>> present_velocity_values;
+  std::vector<Tensor<2, dim>> present_velocity_gradients;
+  std::vector<double>         present_pressure_values;
+
+  std::vector<Tensor<1, dim>> background_velocity_values;
+  std::vector<Tensor<2, dim>> background_velocity_gradients;
+
+  // stabilization related solution values
+  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
+  std::vector<Tensor<1, dim>> present_pressure_gradients;
+
+  // source term values
+  std::vector<Tensor<1,dim>>  body_force_values;
+  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
+
+  // source term face values
+  std::vector<Tensor<1, dim>> boundary_traction_values;
+};
+
+} // namespace RightHandSide
+
+} // namespace AssemblyData
+
+
 template <int dim>
 class Solver: public SolverBase::Solver<dim>
 {
@@ -176,9 +306,14 @@ public:
          Mapping<dim>        &mapping,
          const SolverParameters &parameters,
          const double         reynolds_number = 1.0,
-         const double         froude_number = 0.0);
+         const double         froude_number = 0.0,
+         const double         rossby_number = 0.0);
+
+  void set_angular_velocity(const Utility::AngularVelocity<dim> &angular_velocity);
 
   void set_body_force(const TensorFunction<1, dim> &body_force);
+
+  void set_background_velocity(const TensorFunction<1, dim> &background_velocity);
 
   VectorBoundaryConditions<dim>&  get_velocity_bcs();
   const VectorBoundaryConditions<dim>&  get_velocity_bcs() const;
@@ -201,32 +336,81 @@ private:
 
   virtual void assemble_rhs(const bool initial_step);
 
+  void assemble_local_system
+  (const typename DoFHandler<dim>::active_cell_iterator &cell,
+   AssemblyData::Matrix::Scratch<dim> &scratch,
+   AssemblyBaseData::Matrix::Copy     &data) const;
+
+  void assemble_local_rhs
+  (const typename DoFHandler<dim>::active_cell_iterator &cell,
+   AssemblyData::RightHandSide::Scratch<dim> &scratch,
+   AssemblyBaseData::RightHandSide::Copy     &data) const;
+
   virtual void output_results(const unsigned int cycle = 0) const;
 
 protected:
+  void copy_local_to_global_system
+  (const AssemblyBaseData::Matrix::Copy     &data,
+   const bool use_homogeneous_constraints);
+
+  void copy_local_to_global_rhs
+  (const AssemblyBaseData::RightHandSide::Copy     &data,
+   const bool use_homogeneous_constraints);
+
   VectorBoundaryConditions<dim> velocity_boundary_conditions;
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;
 
-  const TensorFunction<1, dim> *body_force_ptr;
+  const Utility::AngularVelocity<dim> *angular_velocity_ptr;
 
-  ConvectiveTermWeakForm     convective_term_weak_form;
+  const TensorFunction<1, dim>        *body_force_ptr;
 
-  ViscousTermWeakForm        viscous_term_weak_form;
+  const TensorFunction<1, dim>        *background_velocity_ptr;
+
+  const ConvectiveTermWeakForm  convective_term_weak_form;
+
+  const ViscousTermWeakForm     viscous_term_weak_form;
+
+  const StabilizationFlags      stabilization;
 
   const unsigned int  velocity_fe_degree;
 
   const double        reynolds_number;
 
   const double        froude_number;
+
+  const double        rossby_number;
+
+  const double        c;
+
+  const double        mu;
 };
 
+
 // inline functions
+template <int dim>
+inline void Solver<dim>::set_angular_velocity
+(const Utility::AngularVelocity<dim> &angular_velocity)
+{
+  angular_velocity_ptr = &angular_velocity;
+}
+
+
+
 template <int dim>
 inline void Solver<dim>::set_body_force
 (const TensorFunction<1, dim> &body_force)
 {
   body_force_ptr = &body_force;
+}
+
+
+
+template <int dim>
+inline void Solver<dim>::set_background_velocity
+(const TensorFunction<1, dim> &velocity)
+{
+  background_velocity_ptr = &velocity;
 }
 
 

@@ -1,12 +1,12 @@
 /*
- * cavity_problem.cc
+ * topography_problem.cc
  *
  *  Created on: Sep 1, 2021
  *      Author: sg
  */
-
 #include <deal.II/base/function_lib.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/grid_out.h>
 
 #include <grid_factory.h>
 #include <hydrodynamic_problem.h>
@@ -16,17 +16,52 @@ namespace TopographyProblem {
 using namespace Hydrodynamic;
 
 template <int dim>
-class ViscousProblem : public HydrodynamicProblem<dim>
+class ConstantAngularVelocity : public Utility::AngularVelocity<dim>
 {
 public:
-  ViscousProblem(ProblemParameters &parameters);
+  ConstantAngularVelocity(const double time = 0);
+
+  virtual typename Utility::AngularVelocity<dim>::value_type value() const;
+};
+
+
+
+template <int dim>
+ConstantAngularVelocity<dim>::ConstantAngularVelocity(const double time)
+:
+Utility::AngularVelocity<dim>(time)
+{}
+
+
+
+template <>
+typename Utility::AngularVelocity<3>::value_type
+ConstantAngularVelocity<3>::value() const
+{
+  value_type value;
+  value[2] = 1.0;
+
+  return (value);
+}
+
+
+
+template <int dim>
+class Problem : public HydrodynamicProblem<dim>
+{
+public:
+  Problem(ProblemParameters &parameters);
 
 protected:
   virtual void make_grid() override;
 
+  virtual void set_angular_velocity();
+
   virtual void set_boundary_conditions() override;
 
 private:
+  const ConstantAngularVelocity<dim>  angular_velocity;
+
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
   types::boundary_id  bottom_bndry_id;
@@ -34,14 +69,23 @@ private:
   types::boundary_id  topographic_bndry_id;
   types::boundary_id  back_bndry_id;
   types::boundary_id  front_bndry_id;
+
 };
 
 
 
 template <int dim>
-ViscousProblem<dim>::ViscousProblem(ProblemParameters &parameters)
+Problem<dim>::Problem(ProblemParameters &parameters)
 :
-HydrodynamicProblem<dim>(parameters)
+HydrodynamicProblem<dim>(parameters),
+angular_velocity(),
+left_bndry_id(numbers::invalid_boundary_id),
+right_bndry_id(numbers::invalid_boundary_id),
+bottom_bndry_id(numbers::invalid_boundary_id),
+top_bndry_id(numbers::invalid_boundary_id),
+topographic_bndry_id(numbers::invalid_boundary_id),
+back_bndry_id(numbers::invalid_boundary_id),
+front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving viscous topography problem" << std::endl;
 }
@@ -49,11 +93,11 @@ HydrodynamicProblem<dim>(parameters)
 
 
 template <int dim>
-void ViscousProblem<dim>::make_grid()
+void Problem<dim>::make_grid()
 {
   std::cout << "    Make grid..." << std::endl;
 
-  GridFactory::TopographyBox<dim> topography_box(2.0 * numbers::PI, 0.1);
+  GridFactory::TopographyBox<dim> topography_box(2.0 * numbers::PI, 0.1, 0.0, false);
   left_bndry_id = topography_box.left;
   right_bndry_id = topography_box.right;
   bottom_bndry_id = topography_box.bottom;
@@ -82,14 +126,27 @@ void ViscousProblem<dim>::make_grid()
 
   this->triangulation.add_periodicity(periodicity_vector);
 
-  this->triangulation.refine_global(4);
+  this->triangulation.refine_global(this->n_initial_refinements);
 
+  // initial boundary refinements
+  if (this->n_initial_bndry_refinements > 0)
+  {
+    for (unsigned int step=0; step<this->n_initial_bndry_refinements; ++step)
+    {
+      for (const auto &cell: this->triangulation.active_cell_iterators())
+        if (cell->at_boundary())
+          for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+            if (cell->face(f)->boundary_id() == topographic_bndry_id)
+              cell->set_refine_flag();
+      this->triangulation.execute_coarsening_and_refinement();
+    }
+  }
 }
 
 
 
 template <int dim>
-void ViscousProblem<dim>::set_boundary_conditions()
+void Problem<dim>::set_boundary_conditions()
 {
   std::cout << "    Set boundary conditions..." << std::endl;
 
@@ -128,6 +185,15 @@ void ViscousProblem<dim>::set_boundary_conditions()
   pressure_bcs.close();
 }
 
+
+
+template <int dim>
+void Problem<dim>::set_angular_velocity()
+{
+  this->solver.set_angular_velocity(angular_velocity);
+}
+
+
 }  // namespace TopographyProblem
 
 int main(int argc, char *argv[])
@@ -138,11 +204,12 @@ int main(int argc, char *argv[])
     if (argc >= 2)
       parameter_filename = argv[1];
     else
-      parameter_filename = "viscous_topography_problem.prm";
+      parameter_filename = "rotating_topography_problem.prm";
 
     TopographyProblem::ProblemParameters parameters(parameter_filename);
-
-    TopographyProblem::ViscousProblem<2> problem(parameters);
+    AssertThrow(parameters.space_dim == 3,
+                dealii::ExcMessage("Rotating problem only make sense in 3D."));
+    TopographyProblem::Problem<3> problem(parameters);
     problem.run();
   }
   catch (std::exception &exc)

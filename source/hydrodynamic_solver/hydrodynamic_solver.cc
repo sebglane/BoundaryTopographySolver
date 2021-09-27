@@ -1,5 +1,5 @@
 /*
- * setup.cc
+ * hydrodynamic_solver.cc
  *
  *  Created on: Aug 31, 2021
  *      Author: sg
@@ -20,7 +20,10 @@ SolverParameters::SolverParameters()
 :
 SolverBase::Parameters(),
 convective_term_weak_form(ConvectiveTermWeakForm::standard),
-viscous_term_weak_form(ViscousTermWeakForm::laplacean)
+viscous_term_weak_form(ViscousTermWeakForm::laplacean),
+stabilization(apply_none),
+c(1.0),
+mu(1.0)
 {}
 
 
@@ -38,6 +41,24 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("Viscous term weak form",
                       "standard",
                       Patterns::Selection("standard|laplacean|stress"));
+
+    prm.declare_entry("Stabilization type",
+                      "none",
+                      Patterns::Selection("none|SUPG|PSPG|GradDiv|"
+                          "SUPG_PSPG|PSPG_SUPG|"
+                          "SUPG_GradDiv|GradDiv_SUPG|"
+                          "PSPG_GradDiv|GradDiv_PSPG|"
+                          "SUPG_PSPG_GradDiv|GradDiv_SUPG_PSPG|PSPG_GradDiv_SUPG|"
+                          "SUPG_GradDiv_PSPG|GradDiv_PSPG_SUPG|PSPG_SUPG_GradDiv"));
+
+    prm.declare_entry("SUPG/PSPG stabilization parameter",
+                      "1.0",
+                      Patterns::Double(std::numeric_limits<double>::epsilon()));
+
+    prm.declare_entry("Grad-Div stabilization parameter",
+                      "1.0",
+                      Patterns::Double(std::numeric_limits<double>::epsilon()));
+
   }
   prm.leave_subsection();
 }
@@ -77,6 +98,25 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
       AssertThrow(false,
                   ExcMessage("Unexpected identifier for the weak form "
                              "of the viscous term."));
+
+    const std::string stabilization_str = prm.get("Stabilization type");
+
+    stabilization = apply_none;
+    if (stabilization_str.find("SUPG") != std::string::npos)
+      stabilization |= apply_supg;
+    if (stabilization_str.find("PSPG") != std::string::npos)
+          stabilization |= apply_pspg;
+    if (stabilization_str.find("GradDiv") != std::string::npos)
+          stabilization |= apply_grad_div;
+
+    c = prm.get_double("SUPG/PSPG stabilization parameter");
+    AssertIsFinite(c);
+    Assert(c > 0.0, ExcLowerRangeType<double>(c, 0.0));
+
+    mu = prm.get_double("Grad-Div stabilization parameter");
+    AssertIsFinite(mu);
+    Assert(mu > 0.0, ExcLowerRangeType<double>(mu, 0.0));
+
   }
   prm.leave_subsection();
 }
@@ -126,6 +166,13 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
       break;
   }
 
+  std::stringstream sstream;
+  sstream << prm.stabilization;
+  Utility::add_line(stream, "Stabilization type", sstream.str().c_str());
+
+  Utility::add_line(stream, "SUPG/PSPG stab. parameter", prm.c);
+  Utility::add_line(stream, "Grad-Div stab. parameter", prm.mu);
+
   return (stream);
 }
 
@@ -137,17 +184,24 @@ Solver<dim>::Solver
  Mapping<dim>           &mapping,
  const SolverParameters &parameters,
  const double           reynolds,
- const double           froude)
+ const double           froude,
+ const double           rossby)
 :
 SolverBase::Solver<dim>(tria, mapping, parameters),
 velocity_boundary_conditions(this->triangulation),
 pressure_boundary_conditions(this->triangulation),
+angular_velocity_ptr(nullptr),
 body_force_ptr(nullptr),
+background_velocity_ptr(nullptr),
 convective_term_weak_form(parameters.convective_term_weak_form),
 viscous_term_weak_form(parameters.viscous_term_weak_form),
+stabilization(parameters.stabilization),
 velocity_fe_degree(2),
 reynolds_number(reynolds),
-froude_number(froude)
+froude_number(froude),
+rossby_number(rossby),
+c(1.0),
+mu(1.0)
 {}
 
 
@@ -186,11 +240,13 @@ template Solver<2>::Solver
  Mapping<2>        &,
  const SolverParameters &,
  const double       ,
+ const double       ,
  const double        );
 template Solver<3>::Solver
 (Triangulation<3>  &,
  Mapping<3>        &,
  const SolverParameters &,
+ const double       ,
  const double       ,
  const double        );
 
