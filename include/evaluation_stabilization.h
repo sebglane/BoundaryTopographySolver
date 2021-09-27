@@ -144,6 +144,11 @@ public:
   virtual void operator()(const Mapping<dim>        &mapping,
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
+                          const Vector<double>      &solution) override;
+
+  virtual void operator()(const Mapping<dim>        &mapping,
+                          const FiniteElement<dim>  &fe,
+                          const DoFHandler<dim>     &dof_handler,
                           const BlockVector<double> &solution) override;
 
 private:

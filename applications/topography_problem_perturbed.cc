@@ -69,6 +69,7 @@ front_bndry_id(numbers::invalid_boundary_id)
   std::cout << "Solving perturbed topography problem" << std::endl;
 
   stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu);
+  stabilization_evaluation.set_background_velocity(background_velocity);
 }
 
 
@@ -90,6 +91,9 @@ back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving perturbed topography problem" << std::endl;
+
+  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu);
+  stabilization_evaluation.set_background_velocity(background_velocity);
 }
 
 

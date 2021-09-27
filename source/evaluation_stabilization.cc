@@ -107,13 +107,18 @@ void EvaluationStabilization<dim>::operator()
 
   QGauss<dim>   quadrature(fe.degree + 1);
 
+  UpdateFlags update_flags{update_values|
+                           update_gradients|
+                           update_hessians|
+                           update_JxW_values};
+  if ((angular_velocity_ptr != nullptr) ||
+      (background_velocity_ptr != nullptr))
+    update_flags |= update_quadrature_points;
+
   FEValues<dim> fe_values(mapping,
                           fe,
                           quadrature,
-                          update_values|
-                          update_gradients|
-                          update_hessians|
-                          update_JxW_values);
+                          update_flags);
 
   const FEValuesExtractors::Vector  velocity(velocity_start_index);
   const FEValuesExtractors::Scalar  pressure(pressure_index);
@@ -437,6 +442,18 @@ c_density(std::numeric_limits<double>::min())
 
 template <int dim>
 void EvaluationStabilization<dim>::operator()
+(const Mapping<dim>        &/* mapping */,
+ const FiniteElement<dim>  &/* fe */,
+ const DoFHandler<dim>     &/* dof_handler */,
+ const Vector<double>      &/* solution */)
+{
+  AssertThrow(false, ExcInternalError());
+}
+
+
+
+template <int dim>
+void EvaluationStabilization<dim>::operator()
 (const Mapping<dim>        &mapping,
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,
@@ -469,6 +486,7 @@ void EvaluationStabilization<dim>::operator()
                           update_values|
                           update_gradients|
                           update_hessians|
+                          update_quadrature_points|
                           update_JxW_values);
 
   const FEValuesExtractors::Vector  velocity(this->velocity_start_index);

@@ -196,6 +196,8 @@ void BuoyantHydrodynamicProblem<dim>::run()
 
   this->set_reference_density();
 
+  this->set_postprocessor();
+
   solver.solve();
 }
 

@@ -52,9 +52,9 @@ Reseting density solution...
 Iteration:   0, Current residual: 2.3874e-01 (Tolerance: 8.0733e-11), Residual components: 7.2034e-03, 1.0518e-16, 2.3863e-01, 
 Reseting density solution...
 Iteration:   1, Current residual: 2.6567e-04 (Tolerance: 8.0733e-11), Residual components: 1.4624e-04, 5.6082e-17, 2.2180e-04, 
-Iteration:   2, Current residual: 1.7309e-05 (Tolerance: 8.0733e-11), Residual components: 8.0370e-07, 5.4600e-17, 1.7291e-05, 
-Iteration:   3, Current residual: 3.5549e-08 (Tolerance: 8.0733e-11), Residual components: 2.1021e-11, 4.8968e-17, 3.5549e-08, 
-Iteration:   4, Current residual: 2.0022e-14 (Tolerance: 8.0733e-11), Residual components: 2.0019e-14, 5.2683e-17, 3.3113e-16, 
+Iteration:   2, Current residual: 1.7309e-05 (Tolerance: 8.0733e-11), Residual components: 8.0370e-07, 5.3888e-17, 1.7291e-05, 
+Iteration:   3, Current residual: 3.5549e-08 (Tolerance: 8.0733e-11), Residual components: 2.1046e-11, 5.3405e-17, 3.5549e-08, 
+Iteration:   4, Current residual: 4.2343e-16 (Tolerance: 8.0733e-11), Residual components: 2.5781e-16, 5.6485e-17, 3.3112e-16, 
 End cycle 0
 Mesh refinement...
     Number of cells set for refinement: 59
@@ -63,9 +63,9 @@ Mesh refinement...
     Number of total degrees of freedom: 4714
 Cycle 1:
 Initial residual: 1.5779e-03
-Iteration:   0, Current residual: 9.1554e-06 (Tolerance: 1.5779e-12), Residual components: 9.1429e-06, 5.2935e-17, 4.7696e-07, 
-Iteration:   1, Current residual: 6.3789e-09 (Tolerance: 1.5779e-12), Residual components: 4.3540e-09, 5.3313e-17, 4.6619e-09, 
-Iteration:   2, Current residual: 8.2819e-14 (Tolerance: 1.5779e-12), Residual components: 1.7060e-15, 5.3455e-17, 8.2802e-14, 
+Iteration:   0, Current residual: 9.1554e-06 (Tolerance: 1.5779e-12), Residual components: 9.1429e-06, 5.0330e-17, 4.7696e-07, 
+Iteration:   1, Current residual: 6.3789e-09 (Tolerance: 1.5779e-12), Residual components: 4.3540e-09, 5.4999e-17, 4.6619e-09, 
+Iteration:   2, Current residual: 8.2810e-14 (Tolerance: 1.5779e-12), Residual components: 1.1579e-15, 5.1402e-17, 8.2802e-14, 
 End cycle 1
 Mesh refinement...
     Number of cells set for refinement: 210
@@ -74,12 +74,32 @@ Mesh refinement...
     Number of total degrees of freedom: 11564
 Cycle 2:
 Initial residual: 2.4475e-04
-Iteration:   0, Current residual: 1.2498e-07 (Tolerance: 1.0000e-12), Residual components: 1.2423e-07, 5.3373e-17, 1.3627e-08, 
-Iteration:   1, Current residual: 1.8076e-12 (Tolerance: 1.0000e-12), Residual components: 1.6466e-14, 4.8527e-17, 1.8076e-12, 
-Iteration:   2, Current residual: 5.0461e-15 (Tolerance: 1.0000e-12), Residual components: 5.0458e-15, 5.0943e-17, 1.0539e-19, 
+Iteration:   0, Current residual: 1.2498e-07 (Tolerance: 1.0000e-12), Residual components: 1.2423e-07, 5.2290e-17, 1.3627e-08, 
+Iteration:   1, Current residual: 1.8076e-12 (Tolerance: 1.0000e-12), Residual components: 1.5597e-14, 5.2137e-17, 1.8076e-12, 
+Iteration:   2, Current residual: 1.3564e-16 (Tolerance: 1.0000e-12), Residual components: 1.2658e-16, 4.8722e-17, 1.0681e-19, 
 End cycle 2
 Mesh refinement...
     Number of cells set for refinement: 623
     Number of cells set for coarsening: 0
     Number of active cells: 2932
     Number of total degrees of freedom: 31928
+
+cycle       viscosity          momentum residual       mass residual       density viscosity     density residual    
+    0 2.2251e-308 0.0000e+00 5.8187e-01 1.8697e-03 3.6665e-01 7.1378e-04 1.6772e-17 3.7252e-17 1.9063e-13 0.0000e+00 
+    1 2.2251e-308 0.0000e+00 2.5770e-01 3.3200e-04 9.2820e-02 6.4796e-04 1.5855e-08 3.9478e-08 2.0626e-04 0.0000e+00 
+    2 2.2251e-308 0.0000e+00 1.5741e-01 5.8814e-04 1.0275e-01 1.1613e-03 5.1698e-09 1.4119e-08 1.2026e-04 0.0000e+00 
+
+cycle    average traction     
+    0 -6.3408e-03 -6.7562e-01 
+    1 -6.3658e-03 -1.9851e-03 
+    2 -6.3521e-03  8.4062e-02 
+
+cycle average pressure component 
+    0 -3.4833e-03    -6.7681e-01 
+    1 -3.4735e-03    -1.9939e-03 
+    2 -3.4765e-03     8.4053e-02 
+
+cycle average viscous component 
+    0 -2.8575e-03    1.1954e-03 
+    1 -2.8923e-03    8.7691e-06 
+    2 -2.8757e-03    8.9702e-06 
