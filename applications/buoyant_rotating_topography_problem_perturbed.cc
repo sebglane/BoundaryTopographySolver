@@ -1,5 +1,5 @@
 /*
- * buoyant_rotating_topography_problem.cc
+ * buoyant_rotating_topography_problem_perturbed.cc
  *
  *  Created on: Sep 27, 2021
  *      Author: sg
@@ -133,6 +133,8 @@ private:
 
   const ConstantTensorFunction<1, dim>  gravity_field;
 
+  const ConstantTensorFunction<1, dim>  background_velocity;
+
   const ReferenceDensity<dim> reference_density;
 
   types::boundary_id  left_bndry_id;
@@ -156,6 +158,7 @@ stabilization_evaluation(parameters.stabilization, 0, 3, 3 + 1,
                          parameters.froude_number, parameters.rossby_number),
 angular_velocity(),
 gravity_field(Tensor<1, 3>({0.0, 0.0, -1.0})),
+background_velocity(Tensor<1, 3>({1.0, 0.0, 0.0})),
 reference_density(),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
@@ -173,6 +176,7 @@ front_bndry_id(numbers::invalid_boundary_id)
 
   stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu, parameters.c_density);
   stabilization_evaluation.set_angular_velocity(angular_velocity);
+  stabilization_evaluation.set_background_velocity(background_velocity);
   stabilization_evaluation.set_gravity_field(gravity_field);
   stabilization_evaluation.set_reference_density(reference_density);
 }
@@ -327,7 +331,7 @@ int main(int argc, char *argv[])
     if (argc >= 2)
       parameter_filename = argv[1];
     else
-      parameter_filename = "buoyant_rotating_topography_problem.prm";
+      parameter_filename = "buoyant_rotating_topography_problem_perturbed.prm";
 
     TopographyProblem::ProblemParameters parameters(parameter_filename);
     AssertThrow(parameters.space_dim == 3,
