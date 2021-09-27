@@ -124,7 +124,7 @@ void EvaluationStabilization<dim>::operator()
   // stabilization related shape functions
   std::vector<Tensor<2, dim>>  grad_phi_velocity;
   std::vector<Tensor<1, dim>>  grad_phi_pressure;
-  if (stabilization & apply_supg|apply_grad_div)
+  if (stabilization & (apply_supg|apply_grad_div))
     grad_phi_velocity.resize(dofs_per_cell);
   if (stabilization & apply_pspg)
     grad_phi_pressure.resize(dofs_per_cell);
@@ -214,7 +214,7 @@ void EvaluationStabilization<dim>::operator()
       for (const auto i: fe_values.dof_indices())
       {
         // stabilization related shape functions
-        if (stabilization & apply_supg|apply_grad_div)
+        if (stabilization & (apply_supg|apply_grad_div))
           grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
         if (stabilization & apply_pspg)
           grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
@@ -483,7 +483,7 @@ void EvaluationStabilization<dim>::operator()
   std::vector<Tensor<2, dim>> grad_phi_velocity;
   std::vector<Tensor<1, dim>> grad_phi_pressure;
   std::vector<Tensor<1, dim>> grad_phi_density(dofs_per_cell);
-  if (this->stabilization & apply_supg|apply_grad_div)
+  if (this->stabilization & (apply_supg|apply_grad_div))
     grad_phi_velocity.resize(dofs_per_cell);
   if (this->stabilization & apply_pspg)
     grad_phi_pressure.resize(dofs_per_cell);
@@ -604,7 +604,7 @@ void EvaluationStabilization<dim>::operator()
         grad_phi_density[i] = fe_values[density].gradient(i, q);
 
         // stabilization related shape functions
-        if (this->stabilization & apply_supg|apply_grad_div)
+        if (this->stabilization & (apply_supg|apply_grad_div))
           grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
         if (this->stabilization & apply_pspg)
           grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);

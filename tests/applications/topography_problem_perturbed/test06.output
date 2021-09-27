@@ -60,3 +60,19 @@ Mesh refinement...
     Number of cells set for coarsening: 0
     Number of active cells: 1207
     Number of total degrees of freedom: 11852
+
+cycle       viscosity          momentum residual       mass residual     
+    0 2.2251e-308 0.0000e+00 1.9440e+00 1.9666e-01 1.2006e-01 1.3384e-03 
+    1 2.2251e-308 0.0000e+00 2.0314e+00 1.9810e-01 2.3348e-01 1.5976e-03 
+
+cycle    average traction     
+    0 -6.4071e-03 -1.1306e-04 
+    1 -6.3631e-03  1.1594e-05 
+
+cycle average pressure component 
+    0 -3.4389e-03    -5.7428e-05 
+    1 -3.4665e-03     1.7724e-05 
+
+cycle average viscous component 
+    0 -2.9682e-03   -5.5629e-05 
+    1 -2.8966e-03   -6.1303e-06 

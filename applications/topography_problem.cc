@@ -8,9 +8,9 @@
 #include <deal.II/base/function_lib.h>
 #include <deal.II/grid/grid_tools.h>
 
-#include <grid_factory.h>
 #include <evaluation_boundary_traction.h>
 #include <evaluation_stabilization.h>
+#include <grid_factory.h>
 #include <hydrodynamic_problem.h>
 
 namespace TopographyProblem {
