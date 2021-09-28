@@ -292,15 +292,19 @@ void Problem<dim>::set_boundary_conditions()
   pressure_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
   density_bcs.set_periodic_bc(left_bndry_id, right_bndry_id, 0);
 
+  const std::shared_ptr<Function<dim>> bottom_bc_fun =
+      std::make_shared<Functions::ZeroFunction<dim>>(dim);
   std::vector<double> value(dim);
-  value[0] = 1.0;
-  const std::shared_ptr<Function<dim>> velocity_function =
+  value[0] = -1.0;
+  const std::shared_ptr<Function<dim>> topographic_bc_fun =
       std::make_shared<Functions::ConstantFunction<dim>>(value);
 
   if (dim == 2)
   {
-    velocity_bcs.set_dirichlet_bc(bottom_bndry_id, velocity_function);
-    velocity_bcs.set_normal_flux_bc(topographic_bndry_id);
+    velocity_bcs.set_dirichlet_bc(bottom_bndry_id, bottom_bc_fun);
+    velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
+
+    pressure_bcs.set_dirichlet_bc(bottom_bndry_id);
 
     density_bcs.set_dirichlet_bc(bottom_bndry_id);
   }
@@ -310,8 +314,10 @@ void Problem<dim>::set_boundary_conditions()
     pressure_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
     density_bcs.set_periodic_bc(bottom_bndry_id, top_bndry_id, 1);
 
-    velocity_bcs.set_dirichlet_bc(back_bndry_id, velocity_function);
-    velocity_bcs.set_normal_flux_bc(topographic_bndry_id);
+    velocity_bcs.set_dirichlet_bc(back_bndry_id, bottom_bc_fun);
+    velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
+
+    pressure_bcs.set_dirichlet_bc(bottom_bndry_id);
 
     density_bcs.set_dirichlet_bc(back_bndry_id);
   }
