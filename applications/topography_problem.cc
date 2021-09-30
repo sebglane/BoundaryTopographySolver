@@ -8,8 +8,9 @@
 #include <deal.II/base/function_lib.h>
 #include <deal.II/grid/grid_tools.h>
 
-#include <grid_factory.h>
 #include <evaluation_boundary_traction.h>
+#include <evaluation_stabilization.h>
+#include <grid_factory.h>
 #include <hydrodynamic_problem.h>
 
 namespace TopographyProblem {
@@ -32,6 +33,8 @@ protected:
 private:
   EvaluationBoundaryTraction<dim> traction_evaluation;
 
+  EvaluationStabilization<dim>    stabilization_evaluation;
+
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
   types::boundary_id  bottom_bndry_id;
@@ -49,6 +52,8 @@ Problem<dim>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
 traction_evaluation(0, dim, parameters.reynolds_number),
+stabilization_evaluation(parameters.stabilization, 0, dim,
+                         parameters.reynolds_number, parameters.froude_number, parameters.rossby_number),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -58,6 +63,8 @@ back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving viscous topography problem" << std::endl;
+
+  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu);
 }
 
 
@@ -161,7 +168,8 @@ void Problem<dim>::set_boundary_conditions()
 template <int dim>
 void Problem<dim>::set_postprocessor()
 {
-  this->solver.set_postprocessor(traction_evaluation);
+  this->solver.add_postprocessor(traction_evaluation);
+  this->solver.add_postprocessor(stabilization_evaluation);
 }
 
 }  // namespace TopographyProblem

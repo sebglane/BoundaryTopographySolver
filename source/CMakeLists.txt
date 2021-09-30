@@ -5,6 +5,7 @@ SET(TARGET_SRC
     boundary_conditions.cc
     boundary_conditions.cc
     evaluation_boundary_traction.cc
+    evaluation_stabilization.cc
     grid_factory.cc
     parameters.cc
     postprocessor_base.cc

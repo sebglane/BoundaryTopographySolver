@@ -62,14 +62,15 @@ Mesh refinement...
     Number of active cells: 1180
     Number of total degrees of freedom: 11475
 
+
 cycle    average traction     
-    0 -1.4218e-07 -1.6406e-04 
-    1 -2.2405e-09  9.5397e-07 
+    0 -6.2885e-03 -8.2322e-01 
+    1 -6.3534e-03  1.9155e-02 
 
 cycle average pressure component 
-    0 -1.8934e-07    -1.6436e-04 
-    1 -7.0489e-09     9.5411e-07 
+    0 -3.5042e-03    -8.2458e-01 
+    1 -3.4729e-03     1.9168e-02 
 
 cycle average viscous component 
-    0 4.7160e-08     2.9862e-07 
-    1 4.8084e-09    -1.4054e-10 
+    0 -2.7844e-03    1.3589e-03 
+    1 -2.8805e-03   -1.2059e-05 

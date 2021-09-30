@@ -10,6 +10,8 @@
 #include <deal.II/grid/grid_tools.h>
 
 #include <buoyant_hydrodynamic_problem.h>
+#include <evaluation_boundary_traction.h>
+#include <evaluation_stabilization.h>
 #include <grid_factory.h>
 
 namespace TopographyProblem {
@@ -86,7 +88,14 @@ protected:
 
   virtual void set_reference_density() override;
 
+  virtual void set_postprocessor() override;
+
 private:
+  Hydrodynamic::
+  EvaluationBoundaryTraction<dim> traction_evaluation;
+
+  EvaluationStabilization<dim>    stabilization_evaluation;
+
   const ConstantTensorFunction<1, dim>  gravity_field;
 
   const ReferenceDensity<dim> reference_density;
@@ -106,6 +115,10 @@ template <>
 Problem<2>::Problem(ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<2>(parameters),
+traction_evaluation(0, 2, parameters.reynolds_number),
+stabilization_evaluation(parameters.stabilization, 0, 2, 2 + 1,
+                         parameters.reynolds_number, parameters.stratification_number,
+                         parameters.froude_number, parameters.rossby_number),
 gravity_field(Tensor<1, 2>({0.0, -1.0})),
 reference_density(),
 left_bndry_id(numbers::invalid_boundary_id),
@@ -121,6 +134,10 @@ front_bndry_id(numbers::invalid_boundary_id)
   Point<2> point;
   Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
+
+  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu, parameters.c_density);
+  stabilization_evaluation.set_gravity_field(gravity_field);
+  stabilization_evaluation.set_reference_density(reference_density);
 }
 
 
@@ -129,6 +146,10 @@ template <>
 Problem<3>::Problem(ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<3>(parameters),
+traction_evaluation(0, 3, parameters.reynolds_number),
+stabilization_evaluation(parameters.stabilization, 0, 3, 3 + 1,
+                         parameters.reynolds_number, parameters.stratification_number,
+                         parameters.froude_number, parameters.rossby_number),
 gravity_field(Tensor<1, 3>({0.0, 0.0, -1.0})),
 reference_density(),
 left_bndry_id(numbers::invalid_boundary_id),
@@ -144,6 +165,10 @@ front_bndry_id(numbers::invalid_boundary_id)
   Point<3> point;
   Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
+
+  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu, parameters.c_density);
+  stabilization_evaluation.set_gravity_field(gravity_field);
+  stabilization_evaluation.set_reference_density(reference_density);
 }
 
 
@@ -165,6 +190,15 @@ void Problem<dim>::set_reference_density()
 
 
 template <int dim>
+void Problem<dim>::set_postprocessor()
+{
+  this->solver.add_postprocessor(traction_evaluation);
+  this->solver.add_postprocessor(stabilization_evaluation);
+}
+
+
+
+template <int dim>
 void Problem<dim>::make_grid()
 {
   std::cout << "    Make grid..." << std::endl;
@@ -178,6 +212,7 @@ void Problem<dim>::make_grid()
   front_bndry_id = topography_box.front;
 
   topographic_bndry_id = topography_box.topographic_boundary;
+  traction_evaluation.set_boundary_id(topographic_bndry_id);
 
   topography_box.create_coarse_mesh(this->triangulation);
 

@@ -1,12 +1,12 @@
 # Listing of Parameters
 # ---------------------
 set Absolute tolerance               = 1e-12
-set Graphical output directory       = ./ResultsBuoyantTopographyProblemPerturbed
+set Graphical output directory       = ./ResultsBuoyantRotatingTopographyProblemPerturbed
 set Mapping - Polynomial degree      = 1
 set Max. number of Newton iterations = 30
 set Print timings                    = true
 set Relative tolerance               = 1e-9
-set Spatial dimension                = 2
+set Spatial dimension                = 3
 set Verbose                          = false
 
 
@@ -14,6 +14,7 @@ subsection Buoyant hydrodynamic solver parameters
   set Froude number                        = 1.0e2
   set Minimal viscosity (density)          = 1.0e-4
   set Reynolds number                      = 100.0
+  set Rossby number                        = 1.0e1
   set SUPG density stabilization parameter = 1.0
   set Stratification number                = 2.0e-2
 end
@@ -23,7 +24,7 @@ subsection Hydrodynamic solver parameters
   set Convective term weak form         = standard
   set Grad-Div stabilization parameter  = 1.0
   set SUPG/PSPG stabilization parameter = 0.2
-  set Stabilization type                = SUPG
+  set Stabilization type                = none
   set Viscous term weak form            = standard
 end
 
@@ -34,8 +35,8 @@ subsection Refinement control parameters
   set Fraction of cells set to refine        = 0.8
   set Maximum number of levels               = 10
   set Minimum number of levels               = 2
-  set Number of initial boundary refinements = 0
-  set Number of initial refinements          = 5
+  set Number of initial boundary refinements = 2
+  set Number of initial refinements          = 3
   set Number of refinement cycles            = 3
 end
 

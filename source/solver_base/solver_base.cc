@@ -140,7 +140,6 @@ dof_handler(triangulation),
 computing_timer(std::cout,
                 TimerOutput::summary,
                 TimerOutput::wall_times),
-postprocessor_ptr(nullptr),
 refinement_parameters(parameters.refinement_parameters),
 n_maximum_iterations(parameters.n_iterations),
 absolute_tolerance(parameters.absolute_tolerance),
@@ -199,7 +198,7 @@ void Solver<dim>::solve()
   {
     std::cout << "Cycle " << cycle << ':' << std::endl;
 
-    newton_iteration(cycle == 0? true: false);
+    newton_iteration(cycle == 0);
 
     this->postprocess_solution(cycle);
 
@@ -216,17 +215,20 @@ void Solver<dim>::solve()
 template<int dim>
 void Solver<dim>::postprocess_solution(const unsigned int cycle) const
 {
-  if (postprocessor_ptr == nullptr)
+  if (postprocessor_ptrs.empty())
     return;
 
   if (verbose)
     std::cout << "    Postprocess solution..." << std::endl;
 
-  postprocessor_ptr->set_cycle(cycle);
-  (*postprocessor_ptr)(mapping,
-                       *fe_system,
-                       dof_handler,
-                       solution_update);
+  for (const auto &ptr: postprocessor_ptrs)
+  {
+    ptr->set_cycle(cycle);
+    (*ptr)(mapping,
+           *fe_system,
+           dof_handler,
+           present_solution);
+  }
 }
 
 

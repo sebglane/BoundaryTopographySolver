@@ -116,6 +116,8 @@ protected:
 
   virtual void set_reference_density() = 0;
 
+  virtual void set_postprocessor();
+
   Triangulation<dim>       triangulation;
 
   MappingQCache<dim>       mapping;
@@ -150,6 +152,13 @@ void BuoyantHydrodynamicProblem<dim>::set_body_force_term()
   return;
 }
 
+
+
+template <int dim>
+void BuoyantHydrodynamicProblem<dim>::set_postprocessor()
+{
+  return;
+}
 
 }  // namespace BuoyantHydrodynamic
 

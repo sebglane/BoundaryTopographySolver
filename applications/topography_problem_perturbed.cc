@@ -8,6 +8,8 @@
 #include <deal.II/grid/grid_tools.h>
 
 #include <grid_factory.h>
+#include <evaluation_boundary_traction.h>
+#include <evaluation_stabilization.h>
 #include <hydrodynamic_problem.h>
 
 namespace TopographyProblem {
@@ -27,8 +29,14 @@ protected:
 
   virtual void set_boundary_conditions() override;
 
+  virtual void set_postprocessor() override;
+
 private:
   const ConstantTensorFunction<1, dim>  background_velocity;
+
+  EvaluationBoundaryTraction<dim> traction_evaluation;
+
+  EvaluationStabilization<dim>    stabilization_evaluation;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -47,6 +55,9 @@ Problem<2>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<2>(parameters),
 background_velocity(Tensor<1, 2>({1.0, 0.0})),
+traction_evaluation(0, 2, parameters.reynolds_number),
+stabilization_evaluation(parameters.stabilization, 0, 2,
+                         parameters.reynolds_number, parameters.froude_number, parameters.rossby_number),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -56,6 +67,9 @@ back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving perturbed topography problem" << std::endl;
+
+  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu);
+  stabilization_evaluation.set_background_velocity(background_velocity);
 }
 
 
@@ -65,6 +79,9 @@ Problem<3>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<3>(parameters),
 background_velocity(Tensor<1, 3>({1.0, 0.0, 0.0})),
+traction_evaluation(0, 3, parameters.reynolds_number),
+stabilization_evaluation(parameters.stabilization, 0, 3,
+                         parameters.reynolds_number, parameters.froude_number, parameters.rossby_number),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -74,6 +91,9 @@ back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving perturbed topography problem" << std::endl;
+
+  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu);
+  stabilization_evaluation.set_background_velocity(background_velocity);
 }
 
 
@@ -92,6 +112,7 @@ void Problem<dim>::make_grid()
   front_bndry_id = topography_box.front;
 
   topographic_bndry_id = topography_box.topographic_boundary;
+  traction_evaluation.set_boundary_id(topographic_bndry_id);
 
   topography_box.create_coarse_mesh(this->triangulation);
 
@@ -170,7 +191,7 @@ void Problem<dim>::set_boundary_conditions()
     velocity_bcs.set_dirichlet_bc(back_bndry_id, bottom_bc_fun);
     velocity_bcs.set_normal_flux_bc(topographic_bndry_id, topographic_bc_fun);
 
-    pressure_bcs.set_dirichlet_bc(bottom_bndry_id);
+    pressure_bcs.set_dirichlet_bc(back_bndry_id);
   }
 
   velocity_bcs.close();
@@ -183,6 +204,15 @@ template <int dim>
 void Problem<dim>::set_background_velocity()
 {
   this->solver.set_background_velocity(background_velocity);
+}
+
+
+
+template <int dim>
+void Problem<dim>::set_postprocessor()
+{
+  this->solver.add_postprocessor(traction_evaluation);
+  this->solver.add_postprocessor(stabilization_evaluation);
 }
 
 }  // namespace TopographyProblem

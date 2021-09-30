@@ -126,7 +126,7 @@ public:
          Mapping<dim>       &mapping,
          const Parameters &parameters);
 
-  void set_postprocessor(EvaluationBase<dim> &postprocessor);
+  void add_postprocessor(EvaluationBase<dim> &postprocessor);
 
   void solve();
 
@@ -198,7 +198,7 @@ private:
 
   void solve_linear_system(const bool initial_step);
 
-  EvaluationBase<dim> *postprocessor_ptr;
+  std::vector<EvaluationBase<dim> *>  postprocessor_ptrs;
 
   const Utility::RefinementParameters refinement_parameters;
 
@@ -218,9 +218,9 @@ protected:
 
 // inline methods
 template <int dim>
-inline void Solver<dim>::set_postprocessor(EvaluationBase<dim> &postprocessor)
+inline void Solver<dim>::add_postprocessor(EvaluationBase<dim> &postprocessor)
 {
-  postprocessor_ptr = &postprocessor;
+  postprocessor_ptrs.push_back(&postprocessor);
 }
 
 
