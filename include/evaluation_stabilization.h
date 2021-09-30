@@ -28,7 +28,8 @@ public:
                           const unsigned int pressure_index,
                           const double reynolds_number,
                           const double froude_number = 0.0,
-                          const double rossby_number = 0.0);
+                          const double rossby_number = 0.0,
+                          const bool   print_table = false);
   ~EvaluationStabilization();
 
   void set_angular_velocity(const Utility::AngularVelocity<dim> &angular_velocity);
@@ -69,6 +70,8 @@ protected:
   const double       froude_number;
 
   const double       rossby_number;
+
+  const bool  print_table;
 
   double c;
 

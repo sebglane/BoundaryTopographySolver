@@ -22,7 +22,8 @@ EvaluationStabilization<dim>::EvaluationStabilization
  const unsigned int pressure_index,
  const double reynolds_number,
  const double froude_number,
- const double rossby_number)
+ const double rossby_number,
+ const bool print_table)
 :
 angular_velocity_ptr(nullptr),
 body_force_ptr(nullptr),
@@ -33,6 +34,7 @@ pressure_index(pressure_index),
 reynolds_number(reynolds_number),
 froude_number(froude_number),
 rossby_number(rossby_number),
+print_table(print_table),
 c(std::numeric_limits<double>::min()),
 mu(std::numeric_limits<double>::min())
 {
@@ -66,7 +68,8 @@ template <int dim>
 EvaluationStabilization<dim>::~EvaluationStabilization()
 {
   std::cout << std::endl;
-  data_table.write_text(std::cout);
+  if (print_table)
+    data_table.write_text(std::cout);
 }
 
 

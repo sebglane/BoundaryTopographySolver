@@ -62,9 +62,6 @@ Mesh refinement...
     Number of active cells: 1060
     Number of total degrees of freedom: 10356
 
-cycle       viscosity          momentum residual       mass residual     
-    0 2.2251e-308 0.0000e+00 5.8187e-01 1.8697e-03 3.6665e-01 7.1378e-04 
-    1 2.2251e-308 0.0000e+00 2.5770e-01 3.3200e-04 9.2820e-02 6.4796e-04 
 
 cycle    average traction     
     0 -6.3408e-03 -6.7562e-01 
