@@ -234,20 +234,20 @@ void EvaluationStabilization<dim>::operator()
 
       for (const auto i: fe_values.dof_indices())
       {
-        if (stabilization & apply_supg)
-          rhs += delta * compute_supg_rhs(grad_phi_velocity[i],
-                                          present_velocity_values[q],
-                                          present_velocity_gradients[q],
-                                          present_velocity_laplaceans[q],
-                                          present_pressure_gradients[q],
-                                          nu);
-        if (stabilization & apply_pspg)
-          rhs += delta * compute_pspg_rhs(present_velocity_values[q],
-                                          present_velocity_gradients[q],
-                                          present_velocity_laplaceans[q],
-                                          grad_phi_pressure[i],
-                                          present_pressure_gradients[q],
-                                          nu);
+//        if (stabilization & apply_supg)
+//          rhs += delta * compute_supg_rhs(grad_phi_velocity[i],
+//                                          present_velocity_values[q],
+//                                          present_velocity_gradients[q],
+//                                          present_velocity_laplaceans[q],
+//                                          present_pressure_gradients[q],
+//                                          nu);
+//        if (stabilization & apply_pspg)
+//          rhs += delta * compute_pspg_rhs(present_velocity_values[q],
+//                                          present_velocity_gradients[q],
+//                                          present_velocity_laplaceans[q],
+//                                          grad_phi_pressure[i],
+//                                          present_pressure_gradients[q],
+//                                          nu);
         if (stabilization & apply_grad_div)
           rhs += mu * compute_grad_div_rhs(present_velocity_gradients[q],
                                            grad_phi_velocity[i]);
@@ -638,23 +638,23 @@ void EvaluationStabilization<dim>::operator()
 
       for (const auto i: fe_values.dof_indices())
       {
-        // rhs step 1: momentum part
-        if (this->stabilization & apply_supg)
-          rhs += delta * Hydrodynamic::
-                 compute_supg_rhs(grad_phi_velocity[i],
-                                  present_velocity_values[q],
-                                  present_velocity_gradients[q],
-                                  present_velocity_laplaceans[q],
-                                  present_pressure_gradients[q],
-                                  nu);
-        if (this->stabilization & apply_pspg)
-          rhs += delta * Hydrodynamic::
-                 compute_pspg_rhs(present_velocity_values[q],
-                                  present_velocity_gradients[q],
-                                  present_velocity_laplaceans[q],
-                                  grad_phi_pressure[i],
-                                  present_pressure_gradients[q],
-                                  nu);
+//        // rhs step 1: momentum part
+//        if (this->stabilization & apply_supg)
+//          rhs += delta * Hydrodynamic::
+//                 compute_supg_rhs(grad_phi_velocity[i],
+//                                  present_velocity_values[q],
+//                                  present_velocity_gradients[q],
+//                                  present_velocity_laplaceans[q],
+//                                  present_pressure_gradients[q],
+//                                  nu);
+//        if (this->stabilization & apply_pspg)
+//          rhs += delta * Hydrodynamic::
+//                 compute_pspg_rhs(present_velocity_values[q],
+//                                  present_velocity_gradients[q],
+//                                  present_velocity_laplaceans[q],
+//                                  grad_phi_pressure[i],
+//                                  present_pressure_gradients[q],
+//                                  nu);
         if (this->stabilization & apply_grad_div)
           rhs += this->mu * Hydrodynamic::
                  compute_grad_div_rhs(present_velocity_gradients[q],

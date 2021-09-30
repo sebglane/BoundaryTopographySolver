@@ -14,6 +14,8 @@
 #include <solver_base.h>
 #include <stabilization_flags.h>
 
+#include <optional>
+
 namespace Hydrodynamic {
 
 using namespace BoundaryConditions;
@@ -199,9 +201,9 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
           const Quadrature<dim-1>  &face_quadrature_formula,
           const UpdateFlags         face_update_flags,
           const StabilizationFlags  stabilization_flags,
-          const bool                allocate_body_force,
-          const bool                allocate_traction,
-          const bool                allocate_background_velocity);
+          const bool                allocate_body_force = false,
+          const bool                allocate_traction = false,
+          const bool                allocate_background_velocity = false);
 
   Scratch(const Scratch<dim>  &data);
 
@@ -216,27 +218,30 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
   std::vector<double>         phi_pressure;
 
   // stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_phi_pressure;
-  std::vector<Tensor<1, dim>> laplace_phi_velocity;
+  std::optional<std::vector<Tensor<1, dim>>>  grad_phi_pressure;
+  std::optional<std::vector<Tensor<1, dim>>>  laplace_phi_velocity;
 
   // solution values
   std::vector<Tensor<1, dim>> present_velocity_values;
   std::vector<Tensor<2, dim>> present_velocity_gradients;
   std::vector<double>         present_pressure_values;
 
-  std::vector<Tensor<1, dim>> background_velocity_values;
-  std::vector<Tensor<2, dim>> background_velocity_gradients;
+  std::optional<std::vector<Tensor<1, dim>>>  background_velocity_values;
+  std::optional<std::vector<Tensor<2, dim>>>  background_velocity_gradients;
 
   // stabilization related solution values
-  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
-  std::vector<Tensor<1, dim>> present_pressure_gradients;
+  std::optional<std::vector<Tensor<1, dim>>>  present_velocity_laplaceans;
+  std::optional<std::vector<Tensor<1, dim>>>  present_pressure_gradients;
+
+  // stabilization related quantities
+  std::optional<std::vector<Tensor<1, dim>>>  present_strong_residuals;
 
   // source term values
-  std::vector<Tensor<1,dim>>  body_force_values;
-  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
+  std::optional<std::vector<Tensor<1, dim>>>  body_force_values;
+  std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity_value;
 
   // source term face values
-  std::vector<Tensor<1, dim>> boundary_traction_values;
+  std::optional<std::vector<Tensor<1, dim>>>  boundary_traction_values;
 };
 
 } // namespace Matrix
@@ -254,9 +259,9 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
           const Quadrature<dim-1>  &face_quadrature_formula,
           const UpdateFlags         face_update_flags,
           const StabilizationFlags  stabilization_flags,
-          const bool                allocate_body_force,
-          const bool                allocate_traction,
-          const bool                allocate_background_velocity);
+          const bool                allocate_body_force = false,
+          const bool                allocate_traction = false,
+          const bool                allocate_background_velocity = false);
 
   Scratch(const Scratch<dim>  &data);
 
@@ -271,26 +276,29 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
   std::vector<double>         phi_pressure;
 
   // stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_phi_pressure;
+  std::optional<std::vector<Tensor<1, dim>>>  grad_phi_pressure;
 
   // solution values
   std::vector<Tensor<1, dim>> present_velocity_values;
   std::vector<Tensor<2, dim>> present_velocity_gradients;
   std::vector<double>         present_pressure_values;
 
-  std::vector<Tensor<1, dim>> background_velocity_values;
-  std::vector<Tensor<2, dim>> background_velocity_gradients;
+  std::optional<std::vector<Tensor<1, dim>>>  background_velocity_values;
+  std::optional<std::vector<Tensor<2, dim>>>  background_velocity_gradients;
 
   // stabilization related solution values
-  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
-  std::vector<Tensor<1, dim>> present_pressure_gradients;
+  std::optional<std::vector<Tensor<1, dim>>>  present_velocity_laplaceans;
+  std::optional<std::vector<Tensor<1, dim>>>  present_pressure_gradients;
+
+  // stabilization related quantity
+  std::optional<std::vector<Tensor<1, dim>>>  present_strong_residuals;
 
   // source term values
-  std::vector<Tensor<1,dim>>  body_force_values;
-  typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
+  std::optional<std::vector<Tensor<1, dim>>>  body_force_values;
+  std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity_value;
 
   // source term face values
-  std::vector<Tensor<1, dim>> boundary_traction_values;
+  std::optional<std::vector<Tensor<1, dim>>>  boundary_traction_values;
 };
 
 } // namespace RightHandSide

@@ -7,10 +7,10 @@ INCLUDE_DIRECTORIES(
 
 SET(SOURCE_FILES
     advection_problem.cc
-    buoyant_topography_problem.cc
-    buoyant_topography_problem_perturbed.cc
-    buoyant_rotating_topography_problem.cc
-    buoyant_rotating_topography_problem_perturbed.cc
+#    buoyant_topography_problem.cc
+#    buoyant_topography_problem_perturbed.cc
+#    buoyant_rotating_topography_problem.cc
+#    buoyant_rotating_topography_problem_perturbed.cc
     cavity_problem.cc
     rotating_cavity_problem.cc
     rotating_topography_problem.cc
