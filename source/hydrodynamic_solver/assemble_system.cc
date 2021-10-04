@@ -264,12 +264,12 @@ void Solver<dim>::assemble_local_system
         data.local_matrix(i, j) +=  matrix * JxW;
       }
 
-      double rhs = compute_rhs(scratch.phi_velocity[i],
-                               scratch.grad_phi_velocity[i],
+      double rhs = compute_rhs(velocity_test_function,
+                               velocity_test_function_gradient,
                                scratch.present_velocity_values[q],
                                scratch.present_velocity_gradients[q],
                                scratch.present_pressure_values[q],
-                               scratch.phi_pressure[i],
+                               pressure_test_function,
                                nu,
                                background_velocity_value,
                                background_velocity_gradient,
@@ -284,9 +284,9 @@ void Solver<dim>::assemble_local_system
 
         if (stabilization & apply_supg)
         {
-          stabilization_test_function += scratch.grad_phi_velocity[i] * scratch.present_velocity_values[q];
+          stabilization_test_function += velocity_test_function_gradient * scratch.present_velocity_values[q];
           if (background_velocity_value)
-            stabilization_test_function += scratch.grad_phi_velocity[i] * *background_velocity_value;
+            stabilization_test_function += velocity_test_function_gradient * *background_velocity_value;
         }
         if (stabilization & apply_pspg)
           stabilization_test_function += scratch.grad_phi_pressure->at(i);
@@ -296,7 +296,7 @@ void Solver<dim>::assemble_local_system
 
       if (stabilization & apply_grad_div)
         rhs += mu * compute_grad_div_rhs(scratch.present_velocity_gradients[q],
-                                         scratch.grad_phi_velocity[i]);
+                                         velocity_test_function_gradient);
       data.local_rhs(i) += rhs * JxW;
     }
   } // end loop over cell quadrature points

@@ -93,40 +93,19 @@ phi_velocity(data.phi_velocity),
 grad_phi_velocity(data.grad_phi_velocity),
 div_phi_velocity(data.div_phi_velocity),
 phi_pressure(data.phi_pressure),
+grad_phi_pressure(data.grad_phi_pressure),
+laplace_phi_velocity(data.laplace_phi_velocity),
 present_velocity_values(data.present_velocity_values),
 present_velocity_gradients(data.present_velocity_gradients),
-present_pressure_values(data.present_pressure_values)
-{
-  // stabilization related shape functions
-  if (data.grad_phi_pressure->size() > 0)
-    grad_phi_pressure.emplace(data.grad_phi_pressure->size());
-  if (data.laplace_phi_velocity->size() > 0)
-    laplace_phi_velocity.emplace(data.laplace_phi_velocity->size());
-
-  // stabilization related solution values
-  if (data.present_velocity_laplaceans->size() > 0)
-    present_velocity_laplaceans.emplace(data.present_velocity_laplaceans->size());
-  if (data.present_pressure_gradients->size() > 0)
-    present_pressure_gradients.emplace(data.present_pressure_gradients->size());
-
-  // stabilization related quantity
-  if (data.present_strong_residuals->size() > 0)
-    present_strong_residuals.emplace(data.present_strong_residuals->size());
-
-  // solution values
-  if (data.background_velocity_values->size() > 0)
-    background_velocity_values.emplace(data.background_velocity_values->size());
-  if (data.background_velocity_gradients->size() > 0)
-    background_velocity_gradients.emplace(data.background_velocity_gradients->size());
-
-  // source term values
-  if (data.body_force_values->size() > 0)
-    body_force_values.emplace(data.body_force_values->size());
-
-  // source term face values
-  if (data.boundary_traction_values->size() > 0)
-    boundary_traction_values.emplace(data.boundary_traction_values->size());
-}
+present_pressure_values(data.present_pressure_values),
+background_velocity_values(data.background_velocity_values),
+background_velocity_gradients(data.background_velocity_gradients),
+present_velocity_laplaceans(data.present_velocity_laplaceans),
+present_pressure_gradients(data.present_pressure_gradients),
+present_strong_residuals(data.present_strong_residuals),
+body_force_values(data.body_force_values),
+boundary_traction_values(data.boundary_traction_values)
+{}
 
 template struct Scratch<2>;
 template struct Scratch<3>;

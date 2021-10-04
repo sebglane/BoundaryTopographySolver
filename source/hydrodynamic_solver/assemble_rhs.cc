@@ -106,10 +106,9 @@ void Solver<dim>::assemble_local_rhs
   const FEValuesExtractors::Scalar  pressure(dim);
 
   const double nu{1.0 / reynolds_number};
+  const double delta{c * std::pow(cell->diameter(), 2)};
 
   scratch.fe_values.reinit(cell);
-
-  const double delta{c * std::pow(cell->diameter(), 2)};
 
   data.local_rhs = 0;
 
@@ -147,6 +146,7 @@ void Solver<dim>::assemble_local_rhs
   if (angular_velocity_ptr != nullptr)
     scratch.angular_velocity_value = angular_velocity_ptr->value();
 
+  // stabilization
   if (stabilization & (apply_supg|apply_pspg))
     compute_strong_residual(scratch.present_velocity_values,
                             scratch.present_velocity_gradients,
