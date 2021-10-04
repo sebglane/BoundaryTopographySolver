@@ -190,6 +190,10 @@ inline void compute_strong_residual
 
 
 
+
+
+
+
 template <int dim>
 inline double compute_residual_linearization_matrix
 (const Tensor<1, dim> &velocity_trial_function_value,
@@ -285,18 +289,105 @@ namespace BuoyantHydrodynamic {
 using namespace dealii;
 
 template <int dim>
+inline void compute_strong_hydrodynamic_residual
+(const std::vector<Tensor<1, dim>> &present_velocity_values,
+ const std::vector<Tensor<2, dim>> &present_velocity_gradients,
+ const std::vector<Tensor<1, dim>> &present_velocity_laplaceans,
+ const std::vector<Tensor<1, dim>> &present_pressure_gradients,
+ const std::vector<Tensor<1, dim>> &gravity_field_values,
+ const std::vector<double>         &present_density_values,
+ std::vector<Tensor<1, dim>>       &strong_residuals,
+ const double                       nu,
+ const double                       froude_number,
+ const std::optional<std::vector<Tensor<1, dim>>> &background_velocity_values = std::nullopt,
+ const std::optional<std::vector<Tensor<2, dim>>> &background_velocity_gradients = std::nullopt,
+ const std::optional<std::vector<Tensor<1, dim>>> &body_force_values = std::nullopt,
+ const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
+ const std::optional<double>                       rossby_number = std::nullopt)
+{
+  Hydrodynamic::
+  compute_strong_residual(present_velocity_values,
+                          present_velocity_gradients,
+                          present_velocity_laplaceans,
+                          present_pressure_gradients,
+                          strong_residuals,
+                          nu,
+                          background_velocity_values,
+                          background_velocity_gradients,
+                          body_force_values,
+                          froude_number,
+                          angular_velocity,
+                          rossby_number);
+
+  for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+    strong_residuals[q] -= present_density_values[q] * gravity_field_values[q] / std::pow(froude_number, 2);
+
+}
+
+
+
+template <int dim>
+inline void compute_strong_density_residual
+(const std::vector<Tensor<1, dim>> &present_density_gradients,
+ const std::vector<Tensor<1, dim>> &present_velocity_values,
+ std::vector<double>               &strong_residuals,
+ const std::optional<std::vector<Tensor<1, dim>>> &reference_density_gradients = std::nullopt,
+ const std::optional<double>                       stratification_number = std::nullopt,
+ const std::optional<std::vector<Tensor<1, dim>>> &background_velocity_values = std::nullopt)
+{
+  for (std::size_t q=0; q<present_density_gradients.size(); ++q)
+    strong_residuals[q] = present_velocity_values[q] * present_density_gradients[q];
+
+  if (reference_density_gradients)
+  {
+    Assert(stratification_number, ExcInternalError());
+
+    for (std::size_t q=0; q<present_density_gradients.size(); ++q)
+      strong_residuals[q] += *stratification_number * present_velocity_values[q] *
+                             reference_density_gradients->at(q);
+  }
+
+  if (background_velocity_values)
+  {
+    for (std::size_t q=0; q<present_density_gradients.size(); ++q)
+      strong_residuals[q] += background_velocity_values->at(q) * present_density_gradients[q];
+
+    if (reference_density_gradients)
+      for (std::size_t q=0; q<present_density_gradients.size(); ++q)
+        strong_residuals[q] += *stratification_number * background_velocity_values->at(q) *
+                               reference_density_gradients->at(q);
+  }
+}
+
+
+
+template <int dim>
 inline double compute_density_matrix
 (const Tensor<1, dim> &density_trial_function_gradient,
  const Tensor<1, dim> &velocity_trial_function_value,
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
- const Tensor<1, dim> &reference_density_gradient,
  const double          density_test_function_value,
- const double          stratification_parameter)
+ const std::optional<Tensor<1, dim>> &reference_density_gradient = std::nullopt,
+ const std::optional<double>          stratification_number = std::nullopt,
+ const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt)
 {
-  return (stratification_parameter * velocity_trial_function_value * reference_density_gradient +
-          velocity_trial_function_value * present_density_gradient +
-          present_velocity_value * density_trial_function_gradient) * density_test_function_value;
+  double linearized_residual =
+      velocity_trial_function_value * present_density_gradient +
+      present_velocity_value * density_trial_function_gradient;
+
+  if (reference_density_gradient)
+  {
+    Assert(stratification_number, ExcInternalError());
+
+    linearized_residual += *stratification_number * velocity_trial_function_value *
+                           *reference_density_gradient;
+  }
+
+  if (background_velocity_value)
+    linearized_residual += *background_velocity_value * density_trial_function_gradient;
+
+  return (linearized_residual * density_test_function_value);
 }
 
 
@@ -305,41 +396,91 @@ template <int dim>
 inline double compute_density_rhs
 (const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
- const Tensor<1, dim> &reference_density_gradient,
  const double          density_test_function_value,
- const double          stratification_parameter)
+ const std::optional<Tensor<1, dim>> &reference_density_gradient = std::nullopt,
+ const std::optional<double>          stratification_number = std::nullopt,
+ const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt)
 {
-  return -(stratification_parameter * present_velocity_value * reference_density_gradient +
-           present_velocity_value * present_density_gradient) * density_test_function_value;
+  double residual = -(present_velocity_value * present_density_gradient);
+
+  if (reference_density_gradient)
+  {
+    Assert(stratification_number, ExcInternalError());
+
+    residual -= *stratification_number * present_velocity_value *
+                *reference_density_gradient;
+  }
+
+  if (background_velocity_value)
+  {
+    residual -= *background_velocity_value * present_density_gradient;
+
+    if (reference_density_gradient)
+      residual -= *stratification_number * *background_velocity_value * *reference_density_gradient;
+  }
+
+  return (residual * density_test_function_value);
 }
 
 
 
 template <int dim>
-inline double compute_density_supg_matrix
+inline double compute_density_residual_linearization_matrix
 (const Tensor<1, dim> &density_trial_function_gradient,
  const Tensor<1, dim> &density_test_function_gradient,
  const Tensor<1, dim> &velocity_trial_function_value,
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
- const Tensor<1, dim> &reference_density_gradient,
- const double          stratification_parameter,
- const double          nu)
+ const double          nu,
+ const std::optional<Tensor<1, dim>> &reference_density_gradient = std::nullopt,
+ const std::optional<double>          stratification_number = std::nullopt,
+ const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt)
 {
-  const double projected_test_function{density_test_function_gradient * present_velocity_value};
-  const double linearized_test_function{density_test_function_gradient * velocity_trial_function_value};
-
   if (present_velocity_value.norm() > 0.0)
-    return (// linearized residual
-            (  stratification_parameter * velocity_trial_function_value * reference_density_gradient
-             + velocity_trial_function_value * present_density_gradient
-             + present_velocity_value * density_trial_function_gradient
-            ) * projected_test_function +
-            // linearized test function
-            (  stratification_parameter * present_velocity_value * reference_density_gradient
-             + present_velocity_value * present_density_gradient
-            ) * linearized_test_function
-           );
+  {
+    double linearized_residual =
+        velocity_trial_function_value * present_density_gradient +
+        present_velocity_value * density_trial_function_gradient;
+
+    if (reference_density_gradient)
+    {
+      Assert(stratification_number, ExcInternalError());
+
+
+      linearized_residual += *stratification_number * velocity_trial_function_value *
+                             *reference_density_gradient;
+    }
+
+    if (background_velocity_value)
+    {
+      linearized_residual += *background_velocity_value * density_trial_function_gradient;
+
+      const double test_function{density_test_function_gradient *
+                                 (present_velocity_value + *background_velocity_value)};
+
+      return (linearized_residual *  test_function);
+    }
+    else
+      return (linearized_residual * (density_test_function_gradient * present_velocity_value));
+  }
+  else if (background_velocity_value && (background_velocity_value->norm() > 0.0))
+  {
+    double linearized_residual = velocity_trial_function_value * present_density_gradient +
+                                 *background_velocity_value * density_trial_function_gradient;
+
+    if (reference_density_gradient)
+    {
+      Assert(stratification_number, ExcInternalError());
+
+      linearized_residual += *stratification_number * velocity_trial_function_value *
+                             *reference_density_gradient;
+    }
+
+    const double test_function{density_test_function_gradient * *background_velocity_value};
+
+    return (linearized_residual *  test_function);
+
+  }
   else
     return (nu * density_trial_function_gradient * density_test_function_gradient);
 }
@@ -347,22 +488,142 @@ inline double compute_density_supg_matrix
 
 
 template <int dim>
-inline double compute_density_supg_rhs
-(const Tensor<1, dim> &density_test_function_gradient,
- const Tensor<1, dim> &present_density_gradient,
+inline double compute_hydrodynamic_matrix
+(const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<2, dim> &velocity_trial_function_gradient,
+ const Tensor<1, dim> &velocity_test_function_value,
+ const Tensor<2, dim> &velocity_test_function_gradient,
  const Tensor<1, dim> &present_velocity_value,
- const Tensor<1, dim> &reference_density_gradient,
- const double          stratification_parameter,
- const double          nu)
+ const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<1, dim> &present_gravity_field_value,
+ const double          pressure_trial_function,
+ const double          density_trial_function_value,
+ const double          pressure_test_function,
+ const double          nu,
+ const double          froude_number,
+ const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
+ const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
+ const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
+ const std::optional<double>          rossby_number = std::nullopt)
 {
-  const double projected_test_function{density_test_function_gradient * present_velocity_value};
+  double matrix = Hydrodynamic::
+                  compute_matrix(velocity_trial_function_value,
+                                 velocity_trial_function_gradient,
+                                 velocity_test_function_value,
+                                 velocity_test_function_gradient,
+                                 present_velocity_value,
+                                 present_velocity_gradient,
+                                 pressure_trial_function,
+                                 pressure_test_function,
+                                 nu,
+                                 background_velocity_value,
+                                 background_velocity_gradient,
+                                 angular_velocity,
+                                 rossby_number);
 
-  if (present_velocity_value.norm() > 0.0)
-    return (-(  stratification_parameter * present_velocity_value * reference_density_gradient
-              + present_velocity_value * present_density_gradient
-             ) * projected_test_function);
-  else
-    return (-nu * present_density_gradient * density_test_function_gradient);
+  matrix -= density_trial_function_value *  present_gravity_field_value / std::pow(froude_number, 2) *
+            velocity_test_function_value;
+
+  return (matrix);
+}
+
+
+
+template <int dim>
+inline double compute_hydrodynamic_rhs
+(const Tensor<1, dim> &velocity_test_function_value,
+ const Tensor<2, dim> &velocity_test_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<1, dim> &present_gravity_field_value,
+ const double          present_pressure_value,
+ const double          present_density_value,
+ const double          pressure_test_function,
+ const double          nu,
+ const double          froude_number,
+ const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
+ const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
+ const std::optional<Tensor<1, dim>> &body_force_value = std::nullopt,
+ const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
+ const std::optional<double>          rossby_number = std::nullopt)
+{
+  double rhs = Hydrodynamic::
+               compute_rhs(velocity_test_function_value,
+                           velocity_test_function_gradient,
+                           present_velocity_value,
+                           present_velocity_gradient,
+                           present_pressure_value,
+                           pressure_test_function,
+                           nu,
+                           background_velocity_value,
+                           background_velocity_gradient,
+                           body_force_value,
+                           froude_number,
+                           angular_velocity,
+                           rossby_number);
+
+  rhs += present_density_value *  present_gravity_field_value / std::pow(froude_number, 2) *
+         velocity_test_function_value;
+
+  return (rhs);
+}
+
+
+
+template <int dim>
+inline double compute_hydrodynamic_residual_linearization_matrix
+(const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<2, dim> &velocity_trial_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_laplacean,
+ const Tensor<1, dim> &pressure_trial_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<1, dim> &present_gravity_field_value,
+ const double          density_trial_function_value,
+ const double          nu,
+ const double          froude_number,
+ const std::optional<Tensor<2, dim>>  &velocity_test_function_gradient,
+ const std::optional<Tensor<1, dim>>  &pressure_test_function_gradient,
+ const std::optional<Tensor<1, dim>>  &background_velocity_value = std::nullopt,
+ const std::optional<Tensor<2, dim>>  &background_velocity_gradient = std::nullopt,
+ const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
+ const std::optional<double>           rossby_number = std::nullopt)
+{
+  if (!velocity_test_function_gradient &&
+      !pressure_test_function_gradient)
+    return (0.0);
+
+  double matrix = Hydrodynamic::
+                  compute_residual_linearization_matrix(velocity_trial_function_value,
+                                                        velocity_trial_function_gradient,
+                                                        velocity_trial_function_laplacean,
+                                                        pressure_trial_function_gradient,
+                                                        present_velocity_value,
+                                                        present_velocity_gradient,
+                                                        nu,
+                                                        velocity_test_function_gradient,
+                                                        pressure_test_function_gradient,
+                                                        background_velocity_value,
+                                                        background_velocity_gradient,
+                                                        angular_velocity,
+                                                        rossby_number);
+  Tensor<1, dim> test_function;
+
+  if (velocity_test_function_gradient)
+  {
+    test_function += *velocity_test_function_gradient * present_velocity_value;
+
+    if (background_velocity_value)
+      test_function += *velocity_test_function_gradient * *background_velocity_value;
+  }
+  if (pressure_test_function_gradient)
+    test_function += *pressure_test_function_gradient;
+
+  matrix -= density_trial_function_value *  present_gravity_field_value / std::pow(froude_number, 2) *
+            test_function;
+
+  return (matrix);
+
 }
 
 }  // namespace BuoyantHydrodynamic

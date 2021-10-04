@@ -757,13 +757,13 @@ void EvaluationStabilization<dim>::operator()
         }
 
         // rhs step 2: density part
-        rhs_density += delta_density *
-                       compute_density_supg_rhs(grad_phi_density[i],
-                                                present_density_gradients[q],
-                                                present_velocity_values[q],
-                                                reference_density_gradients[q],
-                                                stratification_number,
-                                                0.0);
+//        rhs_density += delta_density *
+//                       compute_density_supg_rhs(grad_phi_density[i],
+//                                                present_density_gradients[q],
+//                                                present_velocity_values[q],
+//                                                reference_density_gradients[q],
+//                                                stratification_number,
+//                                                0.0);
 
         // background field term
         if (this->background_velocity_ptr != nullptr)

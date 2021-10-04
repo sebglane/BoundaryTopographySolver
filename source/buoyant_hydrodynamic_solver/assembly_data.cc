@@ -25,6 +25,7 @@ Scratch<dim>::Scratch
  const bool                allocate_body_force,
  const bool                allocate_traction,
  const bool                allocate_background_velocity,
+ const bool                allocate_reference_density,
  const bool                allocate_density_bc)
 :
 Hydrodynamic::AssemblyData::Matrix::Scratch<dim>(mapping,
@@ -41,18 +42,26 @@ phi_density(this->dofs_per_cell),
 grad_phi_density(this->dofs_per_cell),
 present_density_values(this->n_q_points),
 present_density_gradients(this->n_q_points),
-reference_density_gradients(this->n_q_points),
-gravity_field_values(this->n_q_points)
+reference_density_gradients(),
+gravity_field_values(this->n_q_points),
+present_strong_density_residuals(this->n_q_points),
+present_density_face_values(),
+present_velocity_face_values(),
+face_normal_vectors(),
+density_boundary_values()
 {
+  if (allocate_reference_density)
+    reference_density_gradients.emplace(this->n_q_points);
+
   if (allocate_density_bc)
   {
     // solution face values
-    present_density_face_values.resize(this->n_face_q_points);
-    face_normal_vectors.resize(this->n_face_q_points);
-    present_velocity_face_values.resize(this->n_face_q_points);
+    present_density_face_values.emplace(this->n_face_q_points);
+    face_normal_vectors.emplace(this->n_face_q_points);
+    present_velocity_face_values.emplace(this->n_face_q_points);
 
     // source term face values
-    density_boundary_values.resize(this->n_face_q_points);
+    density_boundary_values.emplace(this->n_face_q_points);
   }
 }
 
@@ -67,20 +76,13 @@ grad_phi_density(data.grad_phi_density),
 present_density_values(data.present_density_values),
 present_density_gradients(data.present_density_gradients),
 reference_density_gradients(data.reference_density_gradients),
-gravity_field_values(data.gravity_field_values)
-{
-  // solution face values
-  if (data.present_density_face_values.size() > 0)
-    present_density_face_values.resize(data.present_density_face_values.size());
-  if (data.face_normal_vectors.size() > 0)
-    face_normal_vectors.resize(data.face_normal_vectors.size());
-  if (data.present_velocity_face_values.size() > 0)
-    present_velocity_face_values.resize(data.present_velocity_face_values.size());
-
-  // source term face values
-  if (data.density_boundary_values.size() > 0)
-    density_boundary_values.resize(data.density_boundary_values.size());
-}
+gravity_field_values(data.gravity_field_values),
+present_strong_density_residuals(data.present_strong_density_residuals),
+present_density_face_values(data.present_density_face_values),
+present_velocity_face_values(data.present_velocity_face_values),
+face_normal_vectors(data.face_normal_vectors),
+density_boundary_values(data.density_boundary_values)
+{}
 
 template struct Scratch<2>;
 template struct Scratch<3>;
@@ -102,6 +104,7 @@ Scratch<dim>::Scratch
  const bool                allocate_body_force,
  const bool                allocate_traction,
  const bool                allocate_background_velocity,
+ const bool                allocate_reference_density,
  const bool                allocate_density_bc)
 :
 Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>(mapping,
@@ -118,18 +121,26 @@ phi_density(this->dofs_per_cell),
 grad_phi_density(this->dofs_per_cell),
 present_density_values(this->n_q_points),
 present_density_gradients(this->n_q_points),
-reference_density_gradients(this->n_q_points),
-gravity_field_values(this->n_q_points)
+reference_density_gradients(),
+gravity_field_values(this->n_q_points),
+present_strong_density_residuals(this->n_q_points),
+present_density_face_values(),
+present_velocity_face_values(),
+face_normal_vectors(),
+density_boundary_values()
 {
+  if (allocate_reference_density)
+    reference_density_gradients.emplace(this->n_q_points);
+
   if (allocate_density_bc)
   {
     // solution face values
-    present_density_face_values.resize(this->n_face_q_points);
-    face_normal_vectors.resize(this->n_face_q_points);
-    present_velocity_face_values.resize(this->n_face_q_points);
+    present_density_face_values.emplace(this->n_face_q_points);
+    face_normal_vectors.emplace(this->n_face_q_points);
+    present_velocity_face_values.emplace(this->n_face_q_points);
 
     // source term face values
-    density_boundary_values.resize(this->n_face_q_points);
+    density_boundary_values.emplace(this->n_face_q_points);
   }
 }
 
@@ -144,20 +155,13 @@ grad_phi_density(data.grad_phi_density),
 present_density_values(data.present_density_values),
 present_density_gradients(data.present_density_gradients),
 reference_density_gradients(data.reference_density_gradients),
-gravity_field_values(data.gravity_field_values)
-{
-  // solution face values
-  if (data.present_density_face_values.size() > 0)
-    present_density_face_values.resize(data.present_density_face_values.size());
-  if (data.face_normal_vectors.size() > 0)
-    face_normal_vectors.resize(data.face_normal_vectors.size());
-  if (data.face_normal_vectors.size() > 0)
-    present_velocity_face_values.resize(data.face_normal_vectors.size());
-
-  // source term face values
-  if (data.density_boundary_values.size() > 0)
-    density_boundary_values.resize(data.density_boundary_values.size());
-}
+gravity_field_values(data.gravity_field_values),
+present_strong_density_residuals(data.present_strong_density_residuals),
+present_density_face_values(data.present_density_face_values),
+present_velocity_face_values(data.present_velocity_face_values),
+face_normal_vectors(data.face_normal_vectors),
+density_boundary_values(data.density_boundary_values)
+{}
 
 template struct Scratch<2>;
 template struct Scratch<3>;
