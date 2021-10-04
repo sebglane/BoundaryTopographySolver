@@ -211,8 +211,8 @@ void Solver<dim>::assemble_local_rhs
         if (stabilization & apply_supg)
         {
           stabilization_test_function += scratch.grad_phi_velocity[i] * scratch.present_velocity_values[q];
-          if (background_velocity_ptr != nullptr)
-            stabilization_test_function += scratch.grad_phi_velocity[i] * scratch.background_velocity_values->at(q);
+          if (background_velocity_value)
+            stabilization_test_function += scratch.grad_phi_velocity[i] * *background_velocity_value;
         }
         if (stabilization & apply_pspg)
           stabilization_test_function += scratch.grad_phi_pressure->at(i);

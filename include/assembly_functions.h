@@ -206,7 +206,7 @@ inline double compute_residual_linearization_matrix
  const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
  const std::optional<double>           rossby_number = std::nullopt)
 {
-  if (!velocity_test_function_gradient ||
+  if (!velocity_test_function_gradient &&
       !pressure_test_function_gradient)
     return (0.0);
 
