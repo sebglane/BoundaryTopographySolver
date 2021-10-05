@@ -452,7 +452,7 @@ void Solver<dim>::picard_iteration()
 
 
     // output residual
-    std::cout << "Iteration: " << std::setw(3) << std::right << iteration
+    std::cout << "Picard  Iteration: " << std::setw(3) << std::right << iteration
               << ", Current residual: "
               << std::scientific << std::setprecision(4) << current_residual
               << " (Tolerance: "
