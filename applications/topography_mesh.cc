@@ -30,12 +30,33 @@ void make_grid<2>()
   Triangulation<dim>  triangulation;
   topography_box.create_coarse_mesh(triangulation);
 
-  triangulation.refine_global(4);
+  const unsigned int n_global_refinements{4};
+  const unsigned int n_boundary_refinements{2};
+  for (unsigned int i=0; i<n_global_refinements; ++i)
+  {
+    triangulation.refine_global();
 
-  std::string fname("Mesh2D.vtk");
-  std::ofstream out(fname);
+    std::string fname("Mesh2D_level" + Utilities::to_string(i, 2) + ".vtk");
+    std::ofstream out(fname);
 
-  GridOut().write(triangulation, out, GridOut::OutputFormat::vtk);
+    GridOut().write(triangulation, out, GridOut::OutputFormat::vtk);
+  }
+
+  for (unsigned int step=0; step<n_boundary_refinements; ++step)
+  {
+    for (const auto &cell: triangulation.active_cell_iterators())
+      if (cell->at_boundary())
+        for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+          if (cell->face(f)->boundary_id() == topography_box.topographic_boundary)
+            cell->set_refine_flag();
+    triangulation.execute_coarsening_and_refinement();
+
+    std::string fname("Mesh2D_level" + Utilities::to_string(step + n_global_refinements, 2) + ".vtk");
+    std::ofstream out(fname);
+
+    GridOut().write(triangulation, out, GridOut::OutputFormat::vtk);
+  }
+
 }
 
 
