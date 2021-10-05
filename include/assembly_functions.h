@@ -29,6 +29,7 @@ inline double compute_matrix
  const double          pressure_trial_function,
  const double          pressure_test_function,
  const double          nu,
+ const bool            apply_newton_linearization = true,
  const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
  const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
  const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
@@ -37,22 +38,38 @@ inline double compute_matrix
   const double velocity_trial_function_divergence{trace(velocity_trial_function_gradient)};
   const double velocity_test_function_divergence{trace(velocity_test_function_gradient)};
 
-  double matrix = // incompressibility equation
-                  - velocity_trial_function_divergence * pressure_test_function +
-                  // momentum equation
-                  (velocity_trial_function_gradient * present_velocity_value +
-                   present_velocity_gradient * velocity_trial_function_value ) *
-                   velocity_test_function_value -
-                  pressure_trial_function * velocity_test_function_divergence +
-                  nu * scalar_product(velocity_trial_function_gradient,
-                                      velocity_test_function_gradient);
+  double matrix;
+  if (apply_newton_linearization)
+    matrix = // incompressibility equation
+             - velocity_trial_function_divergence * pressure_test_function +
+             // momentum equation
+             (present_velocity_gradient * velocity_trial_function_value +
+              velocity_trial_function_gradient * present_velocity_value) *
+              velocity_test_function_value -
+             pressure_trial_function * velocity_test_function_divergence +
+             nu * scalar_product(velocity_trial_function_gradient,
+                                 velocity_test_function_gradient);
+  else
+    matrix = // incompressibility equation
+             - velocity_trial_function_divergence * pressure_test_function +
+             // momentum equation
+             velocity_trial_function_gradient * present_velocity_value *
+               velocity_test_function_value -
+             pressure_trial_function * velocity_test_function_divergence +
+             nu * scalar_product(velocity_trial_function_gradient,
+                                 velocity_test_function_gradient);
 
   if (background_velocity_value)
   {
     Assert(background_velocity_gradient, ExcInternalError());
 
-    matrix += (velocity_trial_function_gradient * *background_velocity_value +
-               *background_velocity_gradient * velocity_trial_function_value) * velocity_test_function_value;
+    if (apply_newton_linearization)
+      matrix += (velocity_trial_function_gradient * *background_velocity_value +
+                 *background_velocity_gradient * velocity_trial_function_value) *
+                velocity_test_function_value;
+    else
+      matrix += velocity_trial_function_gradient * *background_velocity_value *
+                velocity_test_function_value;
   }
 
   if (angular_velocity)
@@ -190,10 +207,6 @@ inline void compute_strong_residual
 
 
 
-
-
-
-
 template <int dim>
 inline double compute_residual_linearization_matrix
 (const Tensor<1, dim> &velocity_trial_function_value,
@@ -203,6 +216,7 @@ inline double compute_residual_linearization_matrix
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<2, dim> &present_velocity_gradient,
  const double          nu,
+ const bool            apply_newton_linearization,
  const std::optional<Tensor<2, dim>>  &velocity_test_function_gradient,
  const std::optional<Tensor<1, dim>>  &pressure_test_function_gradient,
  const std::optional<Tensor<1, dim>>  &background_velocity_value = std::nullopt,
@@ -215,18 +229,26 @@ inline double compute_residual_linearization_matrix
     return (0.0);
 
   // linearized residual
-  Tensor<1, dim> linearized_residual =
-      velocity_trial_function_gradient * present_velocity_value +
-      present_velocity_gradient * velocity_trial_function_value -
-      nu * velocity_trial_function_laplacean +
-      pressure_trial_function_gradient;
+  Tensor<1, dim> linearized_residual;
+  if (apply_newton_linearization)
+    linearized_residual = velocity_trial_function_gradient * present_velocity_value +
+                          present_velocity_gradient * velocity_trial_function_value -
+                          nu * velocity_trial_function_laplacean +
+                          pressure_trial_function_gradient;
+  else
+    linearized_residual = velocity_trial_function_gradient * present_velocity_value +
+                          nu * velocity_trial_function_laplacean +
+                          pressure_trial_function_gradient;
 
   if (background_velocity_value)
   {
     Assert(background_velocity_gradient, ExcInternalError());
 
-    linearized_residual += present_velocity_gradient * *background_velocity_value +
-                           *background_velocity_gradient * present_velocity_value;
+    if (apply_newton_linearization)
+      linearized_residual += velocity_trial_function_gradient * *background_velocity_value +
+                             *background_velocity_gradient * velocity_trial_function_value;
+    else
+      linearized_residual += velocity_trial_function_gradient * *background_velocity_value;
   }
 
   if (angular_velocity)
@@ -368,15 +390,18 @@ inline double compute_density_matrix
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
+ const bool            apply_newton_linearization = true,
  const std::optional<Tensor<1, dim>> &reference_density_gradient = std::nullopt,
  const std::optional<double>          stratification_number = std::nullopt,
  const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt)
 {
   double linearized_residual =
-      velocity_trial_function_value * present_density_gradient +
-      present_velocity_value * density_trial_function_gradient;
+      present_velocity_value * density_trial_function_gradient +
+      (apply_newton_linearization?
+          velocity_trial_function_value * present_density_gradient:
+          0.0);
 
-  if (reference_density_gradient)
+  if (reference_density_gradient && apply_newton_linearization)
   {
     Assert(stratification_number, ExcInternalError());
 
@@ -432,6 +457,7 @@ inline double compute_density_residual_linearization_matrix
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const double          nu,
+ const bool            apply_newton_linearization = true,
  const std::optional<Tensor<1, dim>> &reference_density_gradient = std::nullopt,
  const std::optional<double>          stratification_number = std::nullopt,
  const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt)
@@ -439,10 +465,13 @@ inline double compute_density_residual_linearization_matrix
   if (present_velocity_value.norm() > 0.0)
   {
     double linearized_residual =
-        velocity_trial_function_value * present_density_gradient +
-        present_velocity_value * density_trial_function_gradient;
+        present_velocity_value * density_trial_function_gradient +
+        (apply_newton_linearization?
+            velocity_trial_function_value * present_density_gradient:
+            0.0);
 
-    if (reference_density_gradient)
+
+    if (reference_density_gradient && apply_newton_linearization)
     {
       Assert(stratification_number, ExcInternalError());
 
@@ -465,10 +494,13 @@ inline double compute_density_residual_linearization_matrix
   }
   else if (background_velocity_value && (background_velocity_value->norm() > 0.0))
   {
-    double linearized_residual = velocity_trial_function_value * present_density_gradient +
-                                 *background_velocity_value * density_trial_function_gradient;
+    double linearized_residual =
+        *background_velocity_value * density_trial_function_gradient +
+        (apply_newton_linearization?
+            velocity_trial_function_value * present_density_gradient:
+            0.0);
 
-    if (reference_density_gradient)
+    if (reference_density_gradient && apply_newton_linearization)
     {
       Assert(stratification_number, ExcInternalError());
 
@@ -501,6 +533,7 @@ inline double compute_hydrodynamic_matrix
  const double          pressure_test_function,
  const double          nu,
  const double          froude_number,
+ const bool            apply_newton_linearization = true,
  const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
  const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
  const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
@@ -516,6 +549,7 @@ inline double compute_hydrodynamic_matrix
                                  pressure_trial_function,
                                  pressure_test_function,
                                  nu,
+                                 apply_newton_linearization,
                                  background_velocity_value,
                                  background_velocity_gradient,
                                  angular_velocity,
@@ -582,6 +616,7 @@ inline double compute_hydrodynamic_residual_linearization_matrix
  const double          density_trial_function_value,
  const double          nu,
  const double          froude_number,
+ const bool            apply_newton_linearization,
  const std::optional<Tensor<2, dim>>  &velocity_test_function_gradient,
  const std::optional<Tensor<1, dim>>  &pressure_test_function_gradient,
  const std::optional<Tensor<1, dim>>  &background_velocity_value = std::nullopt,
@@ -601,6 +636,7 @@ inline double compute_hydrodynamic_residual_linearization_matrix
                                                         present_velocity_value,
                                                         present_velocity_gradient,
                                                         nu,
+                                                        apply_newton_linearization,
                                                         velocity_test_function_gradient,
                                                         pressure_test_function_gradient,
                                                         background_velocity_value,

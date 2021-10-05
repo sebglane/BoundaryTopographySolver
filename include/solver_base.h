@@ -89,6 +89,16 @@ struct Parameters
   double              relative_tolerance;
 
   /*!
+   * @brief Number of Picard iterations performed.
+   */
+  unsigned int        n_picard_iterations;
+
+  /*!
+   * @brief Boolean flag to switch the Picard iteration on or off.
+   */
+  bool                apply_picard_iteration;
+
+  /*!
    * @brief Boolean flag to enable verbose output on the terminal.
    */
   bool                 verbose;
@@ -146,7 +156,8 @@ protected:
   void apply_periodicity_constraints
   (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs);
 
-  virtual void assemble_system(const bool use_homogenenous_constraints = false) = 0;
+  virtual void assemble_system(const bool use_homogenenous_constraints = false,
+                               const bool use_newton_linearization = true) = 0;
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints = false) = 0;
 
@@ -162,6 +173,8 @@ protected:
 
   virtual void preprocess_newton_iteration(const unsigned int iteration,
                                            const bool         is_initial_cycle);
+
+  virtual void preprocess_picard_iteration(const unsigned int iteration);
 
   virtual void output_results(const unsigned int cycle = 0) const = 0;
 
@@ -192,6 +205,8 @@ protected:
 private:
   void newton_iteration(const bool is_initial_step);
 
+  void picard_iteration();
+
   void postprocess_solution(const unsigned int cycle = 0) const;
 
   virtual void refine_mesh();
@@ -204,11 +219,15 @@ private:
 
   const unsigned int  n_maximum_iterations;
 
+  const unsigned int  n_picard_iterations;
+
   const double        absolute_tolerance;
 
   const double        relative_tolerance;
 
   const bool          print_timings;
+
+  const bool          apply_picard_iteration;
 
 protected:
   const std::string   graphical_output_directory;
@@ -227,6 +246,14 @@ inline void Solver<dim>::add_postprocessor(EvaluationBase<dim> &postprocessor)
 
 template <int dim>
 inline void Solver<dim>::preprocess_newton_iteration(const unsigned int, const bool)
+{
+  return;
+}
+
+
+
+template <int dim>
+inline void Solver<dim>::preprocess_picard_iteration(const unsigned int)
 {
   return;
 }

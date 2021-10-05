@@ -200,14 +200,16 @@ private:
 
   virtual void apply_boundary_conditions();
 
-  virtual void assemble_system(const bool initial_step);
+  virtual void assemble_system(const bool use_homogenenous_constraints,
+                               const bool use_newton_linearization);
 
-  virtual void assemble_rhs(const bool initial_step);
+  virtual void assemble_rhs(const bool use_homogenenous_constraints);
 
   void assemble_local_system
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
    AssemblyData::Matrix::Scratch<dim> &scratch,
-   AssemblyBaseData::Matrix::Copy     &data) const;
+   AssemblyBaseData::Matrix::Copy     &data,
+   const bool use_picard_linearization = false) const;
 
   void assemble_local_rhs
   (const typename DoFHandler<dim>::active_cell_iterator &cell,

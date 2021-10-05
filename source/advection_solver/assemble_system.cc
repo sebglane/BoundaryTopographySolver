@@ -14,7 +14,9 @@
 namespace Advection {
 
 template <int dim>
-void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
+void Solver<dim>::assemble_system
+(const bool use_homogeneous_constraints,
+ const bool /* use_newton_linearization */)
 {
   if (this->verbose)
     std::cout << "    Assemble linear system..." << std::endl;
@@ -211,8 +213,8 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
 }
 
 // explicit instantiation
-template void Solver<2>::assemble_system(const bool);
-template void Solver<3>::assemble_system(const bool);
+template void Solver<2>::assemble_system(const bool, const bool);
+template void Solver<3>::assemble_system(const bool, const bool);
 
 }  // namespace Advection
 

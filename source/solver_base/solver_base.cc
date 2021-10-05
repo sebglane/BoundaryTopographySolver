@@ -15,8 +15,12 @@ namespace SolverBase {
 Parameters::Parameters()
 :
 refinement_parameters(),
+space_dim(2),
+n_iterations(15),
 absolute_tolerance(1e-12),
 relative_tolerance(1e-9),
+n_picard_iterations(5),
+apply_picard_iteration(false),
 verbose(false),
 print_timings(false),
 graphical_output_directory("./")
@@ -43,6 +47,14 @@ void Parameters::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Relative tolerance",
                     "1e-9",
                     Patterns::Double(std::numeric_limits<double>::epsilon()));
+
+  prm.declare_entry("Number of Picard iterations",
+                    "5",
+                    Patterns::Integer());
+
+  prm.declare_entry("Apply Picard iteration",
+                    "false",
+                    Patterns::Bool());
 
   prm.declare_entry("Verbose",
                     "false",
@@ -79,6 +91,16 @@ void Parameters::parse_parameters(ParameterHandler &prm)
   AssertThrow(absolute_tolerance < relative_tolerance,
               ExcLowerRangeType<double>(absolute_tolerance, relative_tolerance));
 
+  n_picard_iterations = prm.get_integer("Number of Picard iterations");
+
+  apply_picard_iteration = prm.get_bool("Apply Picard iteration");
+
+  if (apply_picard_iteration)
+  {
+    AssertThrow(n_picard_iterations > 0, ExcLowerRangeType<unsigned >(n_picard_iterations, 0));
+    AssertIsFinite(n_iterations);
+  }
+
   verbose = prm.get_bool("Verbose");
 
   print_timings = prm.get_bool("Print timings");
@@ -103,7 +125,6 @@ Stream& operator<<(Stream &stream, const Parameters &prm)
            "Max. number of Newton iterations",
            prm.n_iterations);
 
-
   Utility::add_line(stream,
            "Absolute tolerance",
            prm.absolute_tolerance);
@@ -111,6 +132,13 @@ Stream& operator<<(Stream &stream, const Parameters &prm)
   Utility::add_line(stream,
            "Relative tolerance",
            prm.relative_tolerance);
+
+  if (prm.apply_picard_iteration)
+  {
+    Utility::add_line(stream, "Number of Picard iterations", prm.n_picard_iterations);
+
+    Utility::add_line(stream, "Apply Picard iteration", (prm.apply_picard_iteration? "true": "false"));
+  }
 
   Utility::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
 
@@ -131,7 +159,7 @@ template <int dim>
 Solver<dim>::Solver
 (Triangulation<dim>  &tria,
  Mapping<dim>        &mapping,
- const Parameters &parameters)
+ const Parameters    &parameters)
 :
 triangulation(tria),
 mapping(mapping),
@@ -142,9 +170,11 @@ computing_timer(std::cout,
                 TimerOutput::wall_times),
 refinement_parameters(parameters.refinement_parameters),
 n_maximum_iterations(parameters.n_iterations),
+n_picard_iterations(parameters.n_picard_iterations),
 absolute_tolerance(parameters.absolute_tolerance),
 relative_tolerance(parameters.relative_tolerance),
 print_timings(parameters.print_timings),
+apply_picard_iteration(parameters.apply_picard_iteration),
 graphical_output_directory(parameters.graphical_output_directory),
 verbose(parameters.verbose)
 {
@@ -198,7 +228,13 @@ void Solver<dim>::solve()
   {
     std::cout << "Cycle " << cycle << ':' << std::endl;
 
-    newton_iteration(cycle == 0);
+    if (apply_picard_iteration && cycle == 0)
+    {
+      picard_iteration();
+      newton_iteration(false);
+    }
+    else
+      newton_iteration(cycle == 0);
 
     this->postprocess_solution(cycle);
 
@@ -230,6 +266,7 @@ void Solver<dim>::postprocess_solution(const unsigned int cycle) const
            present_solution);
   }
 }
+
 
 
 template <int dim>
@@ -348,6 +385,91 @@ void Solver<dim>::newton_iteration(const bool is_initial_cycle)
               ExcMessage("Newton solver did not converge!"));
 }
 
+
+
+template <int dim>
+void Solver<dim>::picard_iteration()
+{
+  auto compute_residual = [this](const bool use_homogeneous_constraints = true)
+      {
+        this->evaluation_point = this->present_solution;
+        this->nonzero_constraints.distribute(this->evaluation_point);
+        this->assemble_rhs(use_homogeneous_constraints);
+
+        std::vector<double> residual_components(this->system_rhs.n_blocks());
+        for (unsigned int i=0; i<this->system_rhs.n_blocks(); ++i)
+          residual_components[i] = this->system_rhs.block(i).l2_norm();
+
+        return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
+      };
+
+  this->preprocess_picard_iteration(0);
+  const double initial_residual{std::get<0>(compute_residual(false))};
+
+  std::cout << "Initial residual: "
+            << std::scientific << initial_residual
+            << std::endl
+            << std::defaultfloat;
+
+  const double tolerance{std::max(absolute_tolerance,
+                                  relative_tolerance * initial_residual)};
+
+  double current_residual = std::numeric_limits<double>::max();
+  std::vector<double> current_residual_components(this->system_rhs.n_blocks(),
+                                                  std::numeric_limits<double>::max());
+
+  unsigned int iteration = 0;
+
+  while ((current_residual > tolerance) &&
+         iteration < n_picard_iterations)
+  {
+    this->preprocess_picard_iteration(iteration);
+
+    if (iteration == 0)
+    {
+      // solve problem
+      evaluation_point = present_solution;
+      this->assemble_system(/* use_homogeneous_constraints ? */ false,
+                            /* use_newton_linearization ? */ false);
+      solve_linear_system(/* use_homogeneous_constraints ? */ false);
+      present_solution = solution_update;
+    }
+    else
+    {
+      // solve problem
+      evaluation_point = present_solution;
+      this->assemble_system(/* use_homogeneous_constraints ? */ true,
+                            /* use_newton_linearization ? */ false);
+      solve_linear_system(/* use_homogeneous_constraints ? */ true);
+      present_solution += solution_update;
+
+    }
+
+    nonzero_constraints.distribute(present_solution);
+
+    // compute residual
+    std::tie(current_residual, current_residual_components) = compute_residual(true);
+
+
+    // output residual
+    std::cout << "Picard  Iteration: " << std::setw(3) << std::right << iteration
+              << ", Current residual: "
+              << std::scientific << std::setprecision(4) << current_residual
+              << " (Tolerance: "
+              << std::scientific << std::setprecision(4) << tolerance
+              << "), Residual components: ";
+    for (const auto residual_component: current_residual_components)
+      std::cout << std::scientific << std::setprecision(4) << residual_component << ", ";
+    std::cout << std::endl
+              << std::defaultfloat;
+
+    // update iteration number
+    ++iteration;
+  }
+}
+
+
+
 // explicit instantiations
 template std::ostream & operator<<(std::ostream &, const Parameters &);
 
@@ -361,6 +483,9 @@ template void Solver<3>::postprocess_solution(const unsigned int) const;
 
 template void Solver<2>::newton_iteration(const bool);
 template void Solver<3>::newton_iteration(const bool);
+
+template void Solver<2>::picard_iteration();
+template void Solver<3>::picard_iteration();
 
 template void Solver<2>::solve();
 template void Solver<3>::solve();

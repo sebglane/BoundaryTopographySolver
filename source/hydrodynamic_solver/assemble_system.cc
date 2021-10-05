@@ -15,7 +15,9 @@
 namespace Hydrodynamic {
 
 template <int dim>
-void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
+void Solver<dim>::assemble_system
+(const bool use_homogeneous_constraints,
+ const bool use_newton_linearization)
 {
   if (this->verbose)
     std::cout << "    Assemble linear system..." << std::endl;
@@ -48,11 +50,12 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
   using Scratch = AssemblyData::Matrix::Scratch<dim>;
   using Copy = AssemblyBaseData::Matrix::Copy;
   auto worker =
-      [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-         Scratch  &scratch,
-         Copy     &data)
+      [this, use_newton_linearization]
+       (const typename DoFHandler<dim>::active_cell_iterator &cell,
+        Scratch  &scratch,
+        Copy     &data)
          {
-            assemble_local_system(cell, scratch, data);
+            assemble_local_system(cell, scratch, data, use_newton_linearization);
          };
 
   // Set up the lambda function for the copy local to global operation
@@ -100,7 +103,8 @@ template<int dim>
 void Solver<dim>::assemble_local_system
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<dim> &scratch,
- AssemblyBaseData::Matrix::Copy     &data) const
+ AssemblyBaseData::Matrix::Copy     &data,
+ const bool use_newton_linearization) const
 {
   scratch.fe_values.reinit(cell);
 
@@ -224,6 +228,7 @@ void Solver<dim>::assemble_local_system
                                        scratch.phi_pressure[j],
                                        pressure_test_function,
                                        nu,
+                                       use_newton_linearization,
                                        background_velocity_value,
                                        background_velocity_gradient,
                                        scratch.angular_velocity_value,
@@ -245,6 +250,7 @@ void Solver<dim>::assemble_local_system
                                                           scratch.present_velocity_values[q],
                                                           scratch.present_velocity_gradients[q],
                                                           nu,
+                                                          use_newton_linearization,
                                                           optional_velocity_test_function_gradient,
                                                           pressure_test_function_gradient,
                                                           background_velocity_value,
@@ -356,20 +362,22 @@ void Solver<dim>::copy_local_to_global_system
 // explicit instantiation
 template void Solver<2>::assemble_local_system
 (const typename DoFHandler<2>::active_cell_iterator &cell,
- AssemblyData::Matrix::Scratch<2> &scratch,
- AssemblyBaseData::Matrix::Copy     &data) const;
+ AssemblyData::Matrix::Scratch<2> &,
+ AssemblyBaseData::Matrix::Copy   &,
+ const bool) const;
 template void Solver<3>::assemble_local_system
 (const typename DoFHandler<3>::active_cell_iterator &cell,
- AssemblyData::Matrix::Scratch<3> &scratch,
- AssemblyBaseData::Matrix::Copy     &data) const;
+ AssemblyData::Matrix::Scratch<3> &,
+ AssemblyBaseData::Matrix::Copy   &,
+ const bool) const;
 
 template void Solver<2>::copy_local_to_global_system
 (const AssemblyBaseData::Matrix::Copy &, const bool);
 template void Solver<3>::copy_local_to_global_system
 (const AssemblyBaseData::Matrix::Copy &, const bool);
 
-template void Solver<2>::assemble_system(const bool);
-template void Solver<3>::assemble_system(const bool);
+template void Solver<2>::assemble_system(const bool, const bool);
+template void Solver<3>::assemble_system(const bool, const bool);
 
 }  // namespace Hydrodynamic
 
