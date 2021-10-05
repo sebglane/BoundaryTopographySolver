@@ -96,9 +96,10 @@ private:
 
   virtual void apply_boundary_conditions();
 
-  virtual void assemble_system(const bool initial_step);
+  virtual void assemble_system(const bool use_homogenenous_constraints,
+                               const bool use_newton_linearization);
 
-  virtual void assemble_rhs(const bool initial_step);
+  virtual void assemble_rhs(const bool use_homogenenous_constraints);
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
