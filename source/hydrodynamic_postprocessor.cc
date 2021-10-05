@@ -139,10 +139,10 @@ void Postprocessor<dim>::evaluate_vector_field
     {
       computed_quantities[q](cnt) = inputs.solution_gradients[q][velocity_start_index + 2][1]
                                   - inputs.solution_gradients[q][velocity_start_index + 1][2];
-      computed_quantities[q](cnt) = inputs.solution_gradients[q][velocity_start_index][2]
-                                  - inputs.solution_gradients[q][velocity_start_index + 2][0];
-      computed_quantities[q](cnt) = inputs.solution_gradients[q][velocity_start_index + 1][0]
-                                  - inputs.solution_gradients[q][velocity_start_index][1];
+      computed_quantities[q](cnt + 1) = inputs.solution_gradients[q][velocity_start_index][2]
+                                      - inputs.solution_gradients[q][velocity_start_index + 2][0];
+      computed_quantities[q](cnt + 2) = inputs.solution_gradients[q][velocity_start_index + 1][0]
+                                      - inputs.solution_gradients[q][velocity_start_index][1];
       cnt += 3;
     }
     // pressure
@@ -150,15 +150,15 @@ void Postprocessor<dim>::evaluate_vector_field
     cnt += 1;
     // pressure gradient
     for (unsigned int d=0; d<dim; ++d)
-      computed_quantities[q](cnt) = inputs.solution_gradients[q][pressure_index][d];
+      computed_quantities[q](cnt + d) = inputs.solution_gradients[q][pressure_index][d];
     cnt += dim;
     // background value
     if (background_velocity_ptr != nullptr)
     {
       background_velocity = background_velocity_ptr->value(inputs.evaluation_points[q]);
       for (unsigned int d=0; d<dim; ++d)
-        computed_quantities[q](cnt) = inputs.solution_values[q][velocity_start_index + d] +
-                                      background_velocity[d];
+        computed_quantities[q](cnt + d) = inputs.solution_values[q][velocity_start_index + d] +
+                                          background_velocity[d];
       cnt += dim;
     }
   }
