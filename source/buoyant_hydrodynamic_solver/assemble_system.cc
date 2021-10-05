@@ -26,8 +26,6 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
                            "velocity vector is specified."));
   AssertThrow(gravity_field_ptr != nullptr,
               ExcMessage("For a buoyant fluid, the gravity field must be specified."));
-  AssertThrow(reference_density_ptr != nullptr,
-              ExcMessage("For a buoyant fluid, the reference density field must be specified."));
 
   AssertThrow(this->froude_number > 0.0,
               ExcMessage("For a buoyant fluid, the Froude number must be specified."));
@@ -94,6 +92,7 @@ void Solver<dim>::assemble_system(const bool use_homogeneous_constraints)
            this->body_force_ptr != nullptr,
            !this->velocity_boundary_conditions.neumann_bcs.empty(),
            this->background_velocity_ptr != nullptr,
+           reference_density_ptr != nullptr,
            !density_boundary_conditions.dirichlet_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
 }
@@ -120,7 +119,7 @@ void Solver<dim>::assemble_local_system
   const double nu{1.0 / this->reynolds_number};
 
   const double delta{this->c * std::pow(cell->diameter(), 2)};
-  const double delta_density{c_density * cell->diameter()};
+  const double delta_density{c_density * std::pow(cell->diameter(), 2)};
 
   // solution values
   scratch.fe_values[velocity].get_function_values(this->evaluation_point,
@@ -140,17 +139,17 @@ void Solver<dim>::assemble_local_system
   if (this->stabilization & (apply_supg|apply_pspg))
   {
     scratch.fe_values[velocity].get_function_laplacians(this->evaluation_point,
-                                                        scratch.present_velocity_laplaceans);
+                                                        *scratch.present_velocity_laplaceans);
 
     scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
-                                                       scratch.present_pressure_gradients);
+                                                       *scratch.present_pressure_gradients);
   }
 
   // body force
   if (this->body_force_ptr != nullptr)
   {
     this->body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                                     scratch.body_force_values);
+                                     *scratch.body_force_values);
 
   }
 
@@ -158,9 +157,9 @@ void Solver<dim>::assemble_local_system
   if (this->background_velocity_ptr != nullptr)
   {
     this->background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                                              scratch.background_velocity_values);
+                                              *scratch.background_velocity_values);
     this->background_velocity_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                                 scratch.background_velocity_gradients);
+                                                 *scratch.background_velocity_gradients);
   }
 
   // Coriolis term
@@ -168,12 +167,46 @@ void Solver<dim>::assemble_local_system
     scratch.angular_velocity_value = this->angular_velocity_ptr->value();
 
   // reference density
-  reference_density_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                       scratch.reference_density_gradients);
+  if (reference_density_ptr != nullptr)
+    reference_density_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
+                                         *scratch.reference_density_gradients);
 
   // gravity field
   gravity_field_ptr->value_list(scratch.fe_values.get_quadrature_points(),
                                 scratch.gravity_field_values);
+
+  // stabilization
+  if (this->stabilization & (apply_supg|apply_pspg))
+    compute_strong_hydrodynamic_residual(scratch.present_velocity_values,
+                                         scratch.present_velocity_gradients,
+                                         scratch.present_velocity_laplaceans.value(),
+                                         scratch.present_pressure_gradients.value(),
+                                         scratch.gravity_field_values,
+                                         scratch.present_density_values,
+                                         scratch.present_strong_residuals.value(),
+                                         nu,
+                                         this->froude_number,
+                                         scratch.background_velocity_values,
+                                         scratch.background_velocity_gradients,
+                                         scratch.body_force_values,
+                                         scratch.angular_velocity_value,
+                                         this->rossby_number);
+
+  compute_strong_density_residual(scratch.present_density_gradients,
+                                  scratch.present_velocity_values,
+                                  scratch.present_strong_density_residuals,
+                                  scratch.reference_density_gradients,
+                                  stratification_number,
+                                  scratch.background_velocity_values);
+
+  std::optional<Tensor<1, dim>> background_velocity_value;
+  std::optional<Tensor<2, dim>> background_velocity_gradient;
+  std::optional<Tensor<1, dim>> body_force_value;
+
+  std::optional<Tensor<1 ,dim>> pressure_test_function_gradient;
+  std::optional<Tensor<2, dim>> optional_velocity_test_function_gradient;
+
+  std::optional<Tensor<1, dim>> reference_density_gradient;
 
   for (const auto q: scratch.fe_values.quadrature_point_indices())
   {
@@ -188,14 +221,23 @@ void Solver<dim>::assemble_local_system
 
       // stabilization related shape functions
       if (this->stabilization & (apply_supg|apply_pspg))
-        scratch.grad_phi_pressure[i] = scratch.fe_values[pressure].gradient(i, q);
-      if (this->stabilization & (apply_supg|apply_pspg))
       {
+        scratch.grad_phi_pressure->at(i) = scratch.fe_values[pressure].gradient(i, q);
+
         const Tensor<3, dim> shape_hessian(scratch.fe_values[velocity].hessian(i, q));
         for (unsigned int d=0; d<dim; ++d)
-          scratch.laplace_phi_velocity[i][d] = trace(shape_hessian[d]);
+          scratch.laplace_phi_velocity->at(i)[d] = trace(shape_hessian[d]);
       }
     }
+
+    if (scratch.background_velocity_values)
+      background_velocity_value = scratch.background_velocity_values->at(q);
+    if (scratch.background_velocity_gradients)
+      background_velocity_gradient = scratch.background_velocity_gradients->at(q);
+    if (scratch.body_force_values)
+      body_force_value = scratch.body_force_values->at(q);
+    if (scratch.reference_density_gradients)
+      reference_density_gradient = scratch.reference_density_gradients->at(q);
 
     const double JxW{scratch.fe_values.JxW(q)};
 
@@ -213,355 +255,141 @@ void Solver<dim>::assemble_local_system
       for (const auto j: scratch.fe_values.dof_indices())
       {
         // matrix step 1: hydrodynamic part
-        double matrix = Hydrodynamic::
-                        compute_matrix(scratch.phi_velocity[j],
-                                       scratch.grad_phi_velocity[j],
-                                       velocity_test_function,
-                                       velocity_test_function_gradient,
-                                       scratch.present_velocity_values[q],
-                                       scratch.present_velocity_gradients[q],
-                                       scratch.phi_pressure[j],
-                                       pressure_test_function,
-                                       nu);
+        double matrix = compute_hydrodynamic_matrix(scratch.phi_velocity[j],
+                                                    scratch.grad_phi_velocity[j],
+                                                    velocity_test_function,
+                                                    velocity_test_function_gradient,
+                                                    scratch.present_velocity_values[q],
+                                                    scratch.present_velocity_gradients[q],
+                                                    scratch.gravity_field_values[q],
+                                                    scratch.phi_pressure[j],
+                                                    scratch.phi_density[j],
+                                                    pressure_test_function,
+                                                    nu,
+                                                    this->froude_number,
+                                                    background_velocity_value,
+                                                    background_velocity_gradient,
+                                                    scratch.angular_velocity_value,
+                                                    this->rossby_number);
 
-        // standard stabilization terms
-        if (this->stabilization & apply_supg)
-          matrix += delta * Hydrodynamic::
-                    compute_supg_matrix(scratch.phi_velocity[j],
-                                        scratch.grad_phi_velocity[j],
-                                        scratch.laplace_phi_velocity[j],
-                                        velocity_test_function_gradient,
-                                        scratch.present_velocity_values[q],
-                                        scratch.present_velocity_gradients[q],
-                                        scratch.present_velocity_laplaceans[q],
-                                        scratch.grad_phi_pressure[j],
-                                        scratch.present_pressure_gradients[q],
-                                        nu);
-        if (this->stabilization & apply_pspg)
-          matrix += delta * Hydrodynamic::
-                    compute_pspg_matrix(scratch.phi_velocity[j],
-                                        scratch.grad_phi_velocity[j],
-                                        scratch.laplace_phi_velocity[j],
-                                        scratch.present_velocity_values[q],
-                                        scratch.present_velocity_gradients[q],
-                                        scratch.grad_phi_pressure[i],
-                                        scratch.grad_phi_pressure[j],
-                                        nu);
+        if (this->stabilization & (apply_supg|apply_pspg))
+        {
+          if (this->stabilization & apply_supg)
+            optional_velocity_test_function_gradient = velocity_test_function_gradient;
+
+          if (this->stabilization & apply_pspg)
+            pressure_test_function_gradient = scratch.grad_phi_pressure->at(i);
+
+          matrix += delta *
+                    compute_hydrodynamic_residual_linearization_matrix(scratch.phi_velocity[j],
+                                                                       scratch.grad_phi_velocity[j],
+                                                                       scratch.laplace_phi_velocity->at(j),
+                                                                       scratch.grad_phi_pressure->at(j),
+                                                                       scratch.present_velocity_values[q],
+                                                                       scratch.present_velocity_gradients[q],
+                                                                       scratch.gravity_field_values[q],
+                                                                       scratch.phi_density[j],
+                                                                       nu,
+                                                                       this->froude_number,
+                                                                       optional_velocity_test_function_gradient,
+                                                                       pressure_test_function_gradient,
+                                                                       background_velocity_value,
+                                                                       background_velocity_gradient,
+                                                                       scratch.angular_velocity_value,
+                                                                       this->rossby_number);
+
+          if (this->stabilization & apply_supg)
+            matrix += delta * scratch.present_strong_residuals->at(q) *
+                      (*optional_velocity_test_function_gradient * scratch.phi_velocity[j]);
+        }
+
         if (this->stabilization & apply_grad_div)
           matrix += this->mu * Hydrodynamic::
                     compute_grad_div_matrix(scratch.grad_phi_velocity[j],
                                             velocity_test_function_gradient);
-
-        // body force stabilization terms
-        if (this->body_force_ptr != nullptr && (this->stabilization & apply_supg))
-          matrix -= delta * scratch.body_force_values[q] *
-                    velocity_test_function_gradient * scratch.phi_velocity[j] /
-                    std::pow(this->froude_number, 2);
-
-        // buoyancy term
-        {
-          Tensor<1, dim> buoyancy_test_function(velocity_test_function);
-
-          // buoyancy stabilization terms
-          if (this->stabilization & apply_supg)
-          {
-            buoyancy_test_function += delta * velocity_test_function_gradient *
-                                      scratch.present_velocity_values[q];
-            if (this->background_velocity_ptr != nullptr)
-              buoyancy_test_function += delta * velocity_test_function_gradient *
-                                        scratch.background_velocity_values[q];
-          }
-          if (this->stabilization & apply_pspg)
-            buoyancy_test_function += delta * scratch.grad_phi_pressure[i];
-
-          matrix -= scratch.phi_density[j] * scratch.gravity_field_values[q] *
-                    buoyancy_test_function / std::pow(this->froude_number, 2);
-
-          if (this->stabilization & apply_supg)
-            matrix -= delta *
-                      scratch.present_density_values[q] * scratch.gravity_field_values[q] *
-                      velocity_test_function_gradient * scratch.phi_velocity[j] /
-                      std::pow(this->froude_number, 2);
-        }
-
-        // background field term
-        if (this->background_velocity_ptr != nullptr)
-        {
-          Tensor<1, dim> background_velocity_test_function(velocity_test_function);
-
-          // background field stabilization terms
-          if (this->stabilization & apply_supg)
-            background_velocity_test_function += delta * velocity_test_function_gradient *
-                                                 (scratch.present_velocity_values[q] +
-                                                  scratch.background_velocity_values[q]);
-          if (this->stabilization & apply_pspg)
-            background_velocity_test_function += delta * scratch.grad_phi_pressure[i];
-
-          matrix += (scratch.grad_phi_velocity[j] * scratch.background_velocity_values[q] +
-                     scratch.background_velocity_gradients[q] * scratch.phi_velocity[j]) *
-                    background_velocity_test_function;
-
-          // background field stabilization terms
-          if (this->stabilization & apply_supg)
-          {
-            const Tensor<1, dim> projected_test_function_gradient(velocity_test_function_gradient *
-                                                                  scratch.background_velocity_values[q]);
-            matrix += // background field stabilization terms
-                      delta *
-                      (scratch.present_velocity_gradients[q] * scratch.background_velocity_values[q] +
-                       scratch.background_velocity_gradients[q] * scratch.present_velocity_values[q]) *
-                      velocity_test_function_gradient * scratch.phi_velocity[j] +
-                      // standard stabilization term
-                      delta *
-                      (scratch.grad_phi_velocity[j] * scratch.present_velocity_values[q] +
-                       scratch.present_velocity_gradients[q] * scratch.phi_velocity[j] -
-                       nu * scratch.laplace_phi_velocity[j] +
-                       scratch.grad_phi_pressure[j]) * projected_test_function_gradient;
-          }
-        }
-
-        // Coriolis term
-        if (this->angular_velocity_ptr != nullptr)
-        {
-          Tensor<1, dim> coriolis_term_test_function(velocity_test_function);
-
-          // Coriolis stabilization terms
-          if (this->stabilization & apply_supg)
-          {
-            coriolis_term_test_function += delta * velocity_test_function_gradient *
-                                           scratch.present_velocity_values[q];
-            if (this->background_velocity_ptr != nullptr)
-              coriolis_term_test_function += delta * scratch.grad_phi_velocity[i] *
-                                             scratch.background_velocity_values[q];
-
-          }
-          if (this->stabilization & apply_pspg)
-            coriolis_term_test_function += delta * scratch.grad_phi_pressure[i];
-
-          if constexpr(dim == 2)
-            matrix += 2.0 / this->rossby_number * scratch.angular_velocity_value[0] *
-                      cross_product_2d(-scratch.phi_velocity[j]) *
-                      coriolis_term_test_function;
-          else if constexpr(dim == 3)
-            matrix += 2.0 / this->rossby_number *
-                      cross_product_3d(scratch.angular_velocity_value , scratch.phi_velocity[j]) *
-                      coriolis_term_test_function;
-
-          // Coriolis stabilization terms
-          if (this->stabilization & apply_supg)
-          {
-            if constexpr(dim == 2)
-              matrix += 2.0 * delta / this->rossby_number * scratch.angular_velocity_value[0] *
-                        cross_product_2d(-scratch.present_velocity_values[q]) *
-                        velocity_test_function_gradient * scratch.phi_velocity[j];
-            else if constexpr(dim == 3)
-              matrix += 2.0 * delta / this->rossby_number *
-                        cross_product_3d(scratch.angular_velocity_value, scratch.present_velocity_values[q]) *
-                        velocity_test_function_gradient * scratch.phi_velocity[j];
-          }
-        }
-
 
         // matrix step 2: density part
         matrix += compute_density_matrix(scratch.grad_phi_density[j],
                                          scratch.phi_velocity[j],
                                          scratch.present_density_gradients[q],
                                          scratch.present_velocity_values[q],
-                                         scratch.reference_density_gradients[q],
                                          density_test_function,
-                                         stratification_number);
+                                         reference_density_gradient,
+                                         stratification_number,
+                                         background_velocity_value);
         // standard stabilization terms
         matrix += delta_density *
-                  compute_density_supg_matrix(scratch.grad_phi_density[j],
-                                              density_test_function_gradient,
-                                              scratch.phi_velocity[j],
-                                              scratch.present_density_gradients[q],
-                                              scratch.present_velocity_values[q],
-                                              scratch.reference_density_gradients[q],
-                                              stratification_number,
-                                              nu_density);
-
-        // background field term
-        if (this->background_velocity_ptr != nullptr)
-        {
-          const double background_velocity_test_function
-            = density_test_function +
-              delta_density * (scratch.present_velocity_values[q] + scratch.background_velocity_values[q]) *
-              density_test_function_gradient;
-
-          matrix += scratch.background_velocity_values[q] * scratch.grad_phi_density[j] *
-                    background_velocity_test_function +
-                    delta_density *
-                    (stratification_number * scratch.background_velocity_values[q] * scratch.reference_density_gradients[q] +
-                     scratch.background_velocity_values[q] * scratch.present_density_gradients[q]) *
-                    scratch.phi_velocity[j] * density_test_function_gradient +
-                    delta_density *
-                    (stratification_number * scratch.phi_velocity[j] * scratch.reference_density_gradients[q] +
-                     scratch.phi_velocity[j] * scratch.present_density_gradients[q] +
-                     scratch.present_velocity_values[q] * scratch.grad_phi_density[j]) *
-                    (scratch.background_velocity_values[q] * density_test_function_gradient);
-        }
+                  compute_density_residual_linearization_matrix(scratch.grad_phi_density[j],
+                                                                density_test_function_gradient,
+                                                                scratch.phi_velocity[j],
+                                                                scratch.present_density_gradients[q],
+                                                                scratch.present_velocity_values[q],
+                                                                nu_density,
+                                                                reference_density_gradient,
+                                                                stratification_number,
+                                                                background_velocity_value);
+        matrix += delta_density * scratch.present_strong_density_residuals[q] *
+                  (scratch.phi_velocity[j] * density_test_function_gradient);
 
         data.local_matrix(i, j) += matrix * JxW;
 
       }
 
       // rhs step 1: hydrodynamic part
-      double rhs = Hydrodynamic::
-                   compute_rhs(velocity_test_function,
-                               velocity_test_function_gradient,
-                               scratch.present_velocity_values[q],
-                               scratch.present_velocity_gradients[q],
-                               scratch.present_pressure_values[q],
-                               pressure_test_function,
-                               nu);
+      double rhs = compute_hydrodynamic_rhs(velocity_test_function,
+                                            velocity_test_function_gradient,
+                                            scratch.present_velocity_values[q],
+                                            scratch.present_velocity_gradients[q],
+                                            scratch.gravity_field_values[q],
+                                            scratch.present_pressure_values[q],
+                                            scratch.present_density_values[q],
+                                            pressure_test_function,
+                                            nu,
+                                            this->froude_number,
+                                            background_velocity_value,
+                                            background_velocity_gradient,
+                                            body_force_value,
+                                            scratch.angular_velocity_value,
+                                            this->rossby_number);
 
-      // standard stabilization terms
-      if (this->stabilization & apply_supg)
-        rhs += delta * Hydrodynamic::
-               compute_supg_rhs(velocity_test_function_gradient,
-                                scratch.present_velocity_values[q],
-                                scratch.present_velocity_gradients[q],
-                                scratch.present_velocity_laplaceans[q],
-                                scratch.present_pressure_gradients[q],
-                                nu);
-      if (this->stabilization & apply_pspg)
-        rhs += delta * Hydrodynamic::
-               compute_pspg_rhs(scratch.present_velocity_values[q],
-                                scratch.present_velocity_gradients[q],
-                                scratch.present_velocity_laplaceans[q],
-                                scratch.grad_phi_pressure[i],
-                                scratch.present_pressure_gradients[q],
-                                nu);
+      if (this->stabilization & (apply_supg|apply_pspg))
+      {
+        Tensor<1, dim> stabilization_test_function;
+
+        if (this->stabilization & apply_supg)
+        {
+          stabilization_test_function += velocity_test_function_gradient * scratch.present_velocity_values[q];
+          if (background_velocity_value)
+            stabilization_test_function += velocity_test_function_gradient * *background_velocity_value;
+        }
+        if (this->stabilization & apply_pspg)
+          stabilization_test_function += scratch.grad_phi_pressure->at(i);
+
+        rhs -= delta * scratch.present_strong_residuals->at(q) * stabilization_test_function;
+      }
+
       if (this->stabilization & apply_grad_div)
         rhs += this->mu * Hydrodynamic::
                compute_grad_div_rhs(scratch.present_velocity_gradients[q],
                                     velocity_test_function_gradient);
 
-      // body force
-      if (this->body_force_ptr != nullptr)
-      {
-        Tensor<1, dim> body_force_test_function(scratch.phi_velocity[i]);
-
-        // body force stabilization terms
-        if (this->stabilization & apply_supg)
-        {
-          body_force_test_function += delta * velocity_test_function_gradient *
-                                      scratch.present_velocity_values[q];
-          if (this->background_velocity_ptr != nullptr)
-            body_force_test_function += delta * velocity_test_function_gradient *
-                                        scratch.background_velocity_values[q];
-        }
-        if (this->stabilization & apply_pspg)
-          body_force_test_function += delta * scratch.grad_phi_pressure[i];
-
-        rhs += scratch.body_force_values[q] * body_force_test_function / std::pow(this->froude_number, 2);
-      }
-
-      // buoyancy term
-      {
-        Tensor<1, dim> buoyancy_test_function(velocity_test_function);
-
-        // buoyancy stabilization terms
-        if (this->stabilization & apply_supg)
-        {
-          buoyancy_test_function += delta * velocity_test_function_gradient *
-                                    scratch.present_velocity_values[q];
-          if (this->background_velocity_ptr != nullptr)
-            buoyancy_test_function += delta * velocity_test_function_gradient *
-                                      scratch.background_velocity_values[q];
-        }
-        if (this->stabilization & apply_pspg)
-          buoyancy_test_function += delta * scratch.grad_phi_pressure[i];
-
-        rhs += scratch.present_density_values[q] * scratch.gravity_field_values[q] *
-               buoyancy_test_function / std::pow(this->froude_number, 2);
-      }
-
-      // background field term
-      if (this->background_velocity_ptr != nullptr)
-      {
-        Tensor<1, dim> background_velocity_test_function(velocity_test_function);
-
-        if (this->stabilization & apply_supg)
-          background_velocity_test_function += delta * velocity_test_function_gradient *
-                                               (scratch.present_velocity_values[q] + scratch.background_velocity_values[q]);
-        if (this->stabilization & apply_pspg)
-          background_velocity_test_function += delta * scratch.grad_phi_pressure[i];
-
-        rhs -= (scratch.present_velocity_gradients[q] * scratch.background_velocity_values[q] +
-                scratch.background_velocity_gradients[q] * scratch.present_velocity_values[q]) *
-               background_velocity_test_function;
-
-        if (this->stabilization & apply_supg)
-        {
-          const Tensor<1, dim> projected_test_function_gradient(velocity_test_function_gradient *
-                                                                scratch.background_velocity_values[q]);
-
-          rhs -= // standard stabilization term
-                 delta *
-                 (scratch.present_velocity_gradients[q] * scratch.present_velocity_values[q] -
-                  nu * scratch.present_velocity_laplaceans[q] +
-                  scratch.present_pressure_gradients[q] ) * projected_test_function_gradient;
-        }
-      }
-
-      // Coriolis term
-      if (this->angular_velocity_ptr != nullptr)
-      {
-        Tensor<1, dim> coriolis_term_test_function(velocity_test_function);
-
-        // Coriolis stabilization terms
-        if (this->stabilization & apply_supg)
-        {
-          coriolis_term_test_function += delta * velocity_test_function_gradient *
-                                         scratch.present_velocity_values[q];
-          if (this->background_velocity_ptr != nullptr)
-            coriolis_term_test_function += delta * velocity_test_function_gradient *
-                                           scratch.background_velocity_values[q];
-        }
-        if (this->stabilization & apply_pspg)
-          coriolis_term_test_function += delta * scratch.grad_phi_pressure[i];
-
-        if constexpr(dim == 2)
-          rhs -= 2.0 / this->rossby_number * scratch.angular_velocity_value[0] *
-                 cross_product_2d(-scratch.present_velocity_values[q]) *
-                 coriolis_term_test_function;
-        else if constexpr(dim == 3)
-          rhs -= 2.0 / this->rossby_number *
-                 cross_product_3d(scratch.angular_velocity_value, scratch.present_velocity_values[q]) *
-                 coriolis_term_test_function;
-      }
 
       // rhs step 2: density part
       rhs += compute_density_rhs(scratch.present_density_gradients[q],
                                  scratch.present_velocity_values[q],
-                                 scratch.reference_density_gradients[q],
                                  density_test_function,
-                                 stratification_number);
+                                 reference_density_gradient,
+                                 stratification_number,
+                                 background_velocity_value);
+
       // standard stabilization terms
-      rhs += delta_density * compute_density_supg_rhs(density_test_function_gradient,
-                                                      scratch.present_density_gradients[q],
-                                                      scratch.present_velocity_values[q],
-                                                      scratch.reference_density_gradients[q],
-                                                      stratification_number,
-                                                      nu_density);
-
-      // background field term
-      if (this->background_velocity_ptr != nullptr)
       {
-        const double background_velocity_test_function
-          = density_test_function +
-            delta_density * (scratch.present_velocity_values[q] + scratch.background_velocity_values[q]) *
-            density_test_function_gradient;
+        double stabilization_test_function{scratch.present_velocity_values[q] * density_test_function_gradient};
 
-        rhs -= (stratification_number * scratch.background_velocity_values[q] * scratch.reference_density_gradients[q] +
-                scratch.background_velocity_values[q] * scratch.present_density_gradients[q] ) *
-               background_velocity_test_function +
-               delta_density *
-               (stratification_number * scratch.present_velocity_values[q] * scratch.reference_density_gradients[q] +
-                scratch.present_velocity_values[q] * scratch.present_density_gradients[q]) *
-               (scratch.background_velocity_values[q] * density_test_function_gradient);
+        if (background_velocity_value)
+          stabilization_test_function += *background_velocity_value * density_test_function_gradient;
+
+        rhs -= delta_density * scratch.present_strong_density_residuals[q] * stabilization_test_function;
       }
 
       data.local_rhs(i) += rhs * JxW;
@@ -589,7 +417,7 @@ void Solver<dim>::assemble_local_system
           if (neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
           {
             neumann_bcs.at(boundary_id)->value_list(scratch.fe_face_values.get_quadrature_points(),
-                                                    scratch.boundary_traction_values);
+                                                    *scratch.boundary_traction_values);
             // Loop over face quadrature points
             for (const auto q: scratch.fe_face_values.quadrature_point_indices())
             {
@@ -602,7 +430,7 @@ void Solver<dim>::assemble_local_system
               // Loop over the degrees of freedom
               for (const auto i: scratch.fe_face_values.dof_indices())
                 data.local_rhs(i) += scratch.phi_velocity[i] *
-                                     scratch.boundary_traction_values[q] *
+                                     scratch.boundary_traction_values->at(q) *
                                      JxW_face;
 
             } // Loop over face quadrature points
@@ -612,18 +440,18 @@ void Solver<dim>::assemble_local_system
           if (dirichlet_bcs.find(face->boundary_id()) != dirichlet_bcs.end())
           {
             dirichlet_bcs.at(boundary_id)->value_list(scratch.fe_face_values.get_quadrature_points(),
-                                                      scratch.density_boundary_values);
+                                                      *scratch.density_boundary_values);
             // evaluate solution
             scratch.fe_face_values[density].get_function_values(this->evaluation_point,
-                                                                scratch.present_density_face_values);
+                                                                *scratch.present_density_face_values);
             scratch.fe_face_values[velocity].get_function_values(this->evaluation_point,
-                                                                 scratch.present_velocity_face_values);
+                                                                 *scratch.present_velocity_face_values);
             // normal vectors
             scratch.face_normal_vectors = scratch.fe_face_values.get_normal_vectors();
 
             // Loop over face quadrature points
             for (const auto q: scratch.fe_face_values.quadrature_point_indices())
-              if (scratch.face_normal_vectors[q] * scratch.present_velocity_face_values[q] < 0.)
+              if (scratch.face_normal_vectors->at(q) * scratch.present_velocity_face_values->at(q) < 0.)
               {
                 // Extract the test function's values at the face quadrature points
                 for (const auto i: scratch.fe_face_values.dof_indices())
@@ -634,15 +462,15 @@ void Solver<dim>::assemble_local_system
                 for (const auto i: scratch.fe_face_values.dof_indices())
                 {
                   for (const auto j: scratch.fe_face_values.dof_indices())
-                    data.local_matrix(i, j) -= scratch.face_normal_vectors[q] *
-                                               scratch.present_velocity_face_values[q] *
+                    data.local_matrix(i, j) -= scratch.face_normal_vectors->at(q) *
+                                               scratch.present_velocity_face_values->at(q) *
                                                scratch.phi_density[i] *
                                                scratch.phi_density[j] *
                                                JxW_face;
-                  data.local_rhs(i) += scratch.present_velocity_face_values[q] *
-                                       scratch.face_normal_vectors[q] *
+                  data.local_rhs(i) += scratch.present_velocity_face_values->at(q) *
+                                       scratch.face_normal_vectors->at(q) *
                                        scratch.phi_density[i] *
-                                       (scratch.present_density_face_values[q] - scratch.density_boundary_values[q]) *
+                                       (scratch.present_density_face_values->at(q) - scratch.density_boundary_values->at(q)) *
                                        JxW_face;
                 }
               } // Loop over face quadrature points

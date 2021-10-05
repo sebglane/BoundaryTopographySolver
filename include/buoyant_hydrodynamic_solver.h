@@ -88,6 +88,7 @@ struct Scratch : Hydrodynamic::AssemblyData::Matrix::Scratch<dim>
           const bool                allocate_body_force,
           const bool                allocate_traction,
           const bool                allocate_background_velocity,
+          const bool                allocate_reference_density,
           const bool                allocate_density_bc);
 
   Scratch(const Scratch<dim>  &data);
@@ -101,16 +102,19 @@ struct Scratch : Hydrodynamic::AssemblyData::Matrix::Scratch<dim>
   std::vector<Tensor<1, dim>> present_density_gradients;
 
   // source term values
-  std::vector<Tensor<1,dim>>  reference_density_gradients;
+  std::optional<std::vector<Tensor<1,dim>>> reference_density_gradients;
   std::vector<Tensor<1,dim>>  gravity_field_values;
 
+  // stabilization related quantities
+  std::vector<double> present_strong_density_residuals;
+
   // solution face values
-  std::vector<double>         present_density_face_values;
-  std::vector<Tensor<1, dim>> present_velocity_face_values;
-  std::vector<Tensor<1, dim>> face_normal_vectors;
+  std::optional<std::vector<double>>          present_density_face_values;
+  std::optional<std::vector<Tensor<1, dim>>>  present_velocity_face_values;
+  std::optional<std::vector<Tensor<1, dim>>>  face_normal_vectors;
 
   // source term face values
-  std::vector<double>         density_boundary_values;
+  std::optional<std::vector<double>>  density_boundary_values;
 
 };
 
@@ -132,6 +136,7 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
           const bool                allocate_body_force,
           const bool                allocate_traction,
           const bool                allocate_background_velocity,
+          const bool                allocate_reference_density,
           const bool                allocate_density_bc);
 
   Scratch(const Scratch<dim>  &data);
@@ -145,16 +150,19 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
   std::vector<Tensor<1, dim>> present_density_gradients;
 
   // source term values
-  std::vector<Tensor<1,dim>>  reference_density_gradients;
+  std::optional<std::vector<Tensor<1,dim>>> reference_density_gradients;
   std::vector<Tensor<1,dim>>  gravity_field_values;
 
+  // stabilization related quantities
+  std::vector<double> present_strong_density_residuals;
+
   // solution face values
-  std::vector<double>         present_density_face_values;
-  std::vector<Tensor<1, dim>> present_velocity_face_values;
-  std::vector<Tensor<1, dim>> face_normal_vectors;
+  std::optional<std::vector<double>>          present_density_face_values;
+  std::optional<std::vector<Tensor<1, dim>>>  present_velocity_face_values;
+  std::optional<std::vector<Tensor<1, dim>>>  face_normal_vectors;
 
   // source term face values
-  std::vector<double>         density_boundary_values;
+  std::optional<std::vector<double>>  density_boundary_values;
 
 };
 

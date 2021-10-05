@@ -235,8 +235,10 @@ void Solver<dim>::postprocess_solution(const unsigned int cycle) const
 template <int dim>
 void Solver<dim>::newton_iteration(const bool is_initial_cycle)
 {
-  auto compute_residual = [this](const double alpha = 0.0,
-                                 const bool use_homogeneous_constraints = true)
+  auto compute_residual = [this, is_initial_cycle]
+                           (const double alpha = 0.0,
+                            const bool use_homogeneous_constraints = true,
+                            const unsigned int iteration)
       {
         this->evaluation_point = this->present_solution;
         if (alpha != 0.0)
@@ -248,11 +250,24 @@ void Solver<dim>::newton_iteration(const bool is_initial_cycle)
         for (unsigned int i=0; i<this->system_rhs.n_blocks(); ++i)
           residual_components[i] = this->system_rhs.block(i).l2_norm();
 
-        return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
+        if (!is_initial_cycle || residual_components.size() < 3)
+          return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
+        else
+        {
+          if (iteration < 1)
+          {
+            residual_components[2] = 0.0;
+            return (std::make_tuple(std::sqrt(residual_components[0] * residual_components[0] +
+                                              residual_components[1] * residual_components[1]),
+                                    residual_components));
+          }
+          else
+            return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
+        }
       };
 
   this->preprocess_newton_iteration(0, is_initial_cycle);
-  const double initial_residual{std::get<0>(compute_residual(0.0, false))};
+  const double initial_residual{std::get<0>(compute_residual(0.0, false, 0))};
 
   std::cout << "Initial residual: "
             << std::scientific << initial_residual
@@ -286,7 +301,7 @@ void Solver<dim>::newton_iteration(const bool is_initial_cycle)
       nonzero_constraints.distribute(present_solution);
       first_step = false;
       // compute residual
-      std::tie(current_residual, current_residual_components) = compute_residual(0.0, true);
+      std::tie(current_residual, current_residual_components) = compute_residual(0.0, true, iteration);
     }
     else
     {
@@ -299,7 +314,7 @@ void Solver<dim>::newton_iteration(const bool is_initial_cycle)
         std::cout << "   Line search: " << std::endl;
       for (double alpha = 1.0; alpha > 1e-2; alpha *= 0.5)
       {
-        std::tie(current_residual, current_residual_components) = compute_residual(alpha);
+        std::tie(current_residual, current_residual_components) = compute_residual(alpha, true, iteration);
         if (verbose)
           std::cout << "      alpha = " << std::setw(6)
                     << std::scientific << alpha
