@@ -43,15 +43,15 @@ Solving cavity problem
 Cycle 0:
 Initial residual: 6.635085e-03
 Picard  Iteration:   0, Current residual: 1.4651e-02 (Tolerance: 6.6351e-12), Residual components: 1.4651e-02, 1.7504e-15, 
-Picard  Iteration:   1, Current residual: 7.2018e-03 (Tolerance: 6.6351e-12), Residual components: 7.2018e-03, 3.8460e-17, 
-Picard  Iteration:   2, Current residual: 3.4828e-03 (Tolerance: 6.6351e-12), Residual components: 3.4828e-03, 4.5775e-17, 
-Picard  Iteration:   3, Current residual: 2.2933e-03 (Tolerance: 6.6351e-12), Residual components: 2.2933e-03, 5.9909e-17, 
-Picard  Iteration:   4, Current residual: 1.5457e-03 (Tolerance: 6.6351e-12), Residual components: 1.5457e-03, 2.6769e-17, 
-Initial residual: 1.5457e-03
-Iteration:   0, Current residual: 1.1556e-04 (Tolerance: 1.5457e-12), Residual components: 1.1556e-04, 3.2458e-17, 
-Iteration:   1, Current residual: 1.3080e-06 (Tolerance: 1.5457e-12), Residual components: 1.3080e-06, 1.3768e-15, 
-Iteration:   2, Current residual: 3.5122e-10 (Tolerance: 1.5457e-12), Residual components: 3.5122e-10, 1.8829e-17, 
-Iteration:   3, Current residual: 1.5458e-16 (Tolerance: 1.5457e-12), Residual components: 1.0304e-16, 1.1524e-16, 
+Picard  Iteration:   1, Current residual: 7.3191e-03 (Tolerance: 6.6351e-12), Residual components: 7.3191e-03, 3.6291e-17, 
+Picard  Iteration:   2, Current residual: 3.7229e-03 (Tolerance: 6.6351e-12), Residual components: 3.7229e-03, 1.5611e-17, 
+Picard  Iteration:   3, Current residual: 2.6541e-03 (Tolerance: 6.6351e-12), Residual components: 2.6541e-03, 2.2211e-17, 
+Picard  Iteration:   4, Current residual: 2.0002e-03 (Tolerance: 6.6351e-12), Residual components: 2.0002e-03, 1.4849e-17, 
+Initial residual: 2.0002e-03
+Iteration:   0, Current residual: 2.0120e-04 (Tolerance: 2.0002e-12), Residual components: 2.0120e-04, 3.0518e-16, 
+Iteration:   1, Current residual: 3.6192e-06 (Tolerance: 2.0002e-12), Residual components: 3.6192e-06, 4.5387e-17, 
+Iteration:   2, Current residual: 2.5110e-09 (Tolerance: 2.0002e-12), Residual components: 2.5110e-09, 1.8268e-17, 
+Iteration:   3, Current residual: 9.8181e-16 (Tolerance: 2.0002e-12), Residual components: 9.7972e-16, 6.4017e-17, 
 End cycle 0
 Mesh refinement...
     Number of cells set for refinement: 44
@@ -60,10 +60,10 @@ Mesh refinement...
     Number of total degrees of freedom: 3852
 Cycle 1:
 Initial residual: 9.8685e-03
-Iteration:   0, Current residual: 1.6074e-03 (Tolerance: 9.8685e-12), Residual components: 1.6074e-03, 1.1445e-16, 
-Iteration:   1, Current residual: 5.5160e-05 (Tolerance: 9.8685e-12), Residual components: 5.5160e-05, 1.4689e-16, 
-Iteration:   2, Current residual: 6.8669e-08 (Tolerance: 9.8685e-12), Residual components: 6.8669e-08, 8.1053e-16, 
-Iteration:   3, Current residual: 4.7289e-13 (Tolerance: 9.8685e-12), Residual components: 4.7288e-13, 4.0821e-15, 
+Iteration:   0, Current residual: 1.6074e-03 (Tolerance: 9.8685e-12), Residual components: 1.6074e-03, 3.4358e-17, 
+Iteration:   1, Current residual: 5.5160e-05 (Tolerance: 9.8685e-12), Residual components: 5.5160e-05, 1.2034e-16, 
+Iteration:   2, Current residual: 6.8669e-08 (Tolerance: 9.8685e-12), Residual components: 6.8669e-08, 7.1137e-16, 
+Iteration:   3, Current residual: 4.7287e-13 (Tolerance: 9.8685e-12), Residual components: 4.7287e-13, 3.5890e-16, 
 End cycle 1
 Mesh refinement...
     Number of cells set for refinement: 121
@@ -72,10 +72,10 @@ Mesh refinement...
     Number of total degrees of freedom: 7615
 Cycle 2:
 Initial residual: 4.9328e-03
-Iteration:   0, Current residual: 6.9973e-04 (Tolerance: 4.9328e-12), Residual components: 6.9973e-04, 1.3436e-16, 
-Iteration:   1, Current residual: 1.1997e-05 (Tolerance: 4.9328e-12), Residual components: 1.1997e-05, 2.2894e-15, 
-Iteration:   2, Current residual: 2.1878e-09 (Tolerance: 4.9328e-12), Residual components: 2.1878e-09, 7.1087e-16, 
-Iteration:   3, Current residual: 8.5727e-16 (Tolerance: 4.9328e-12), Residual components: 5.9584e-16, 6.1635e-16, 
+Iteration:   0, Current residual: 6.9973e-04 (Tolerance: 4.9328e-12), Residual components: 6.9973e-04, 1.8925e-16, 
+Iteration:   1, Current residual: 1.1997e-05 (Tolerance: 4.9328e-12), Residual components: 1.1997e-05, 1.5037e-15, 
+Iteration:   2, Current residual: 2.1878e-09 (Tolerance: 4.9328e-12), Residual components: 2.1878e-09, 8.2643e-16, 
+Iteration:   3, Current residual: 8.0881e-16 (Tolerance: 4.9328e-12), Residual components: 7.3976e-16, 3.2698e-16, 
 End cycle 2
 Mesh refinement...
     Number of cells set for refinement: 283

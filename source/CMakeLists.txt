@@ -16,6 +16,7 @@ SET(TARGET_SRC
     solver_base/solve_linear_system.cc
     solver_base/solver_base.cc
     # hydrodynamic solver
+    hydrodynamic_options.cc
     hydrodynamic_postprocessor.cc
     hydrodynamic_problem.cc
     hydrodynamic_solver/apply_boundary_conditions.cc
@@ -25,13 +26,13 @@ SET(TARGET_SRC
     hydrodynamic_solver/hydrodynamic_solver.cc
     hydrodynamic_solver/setup.cc
     # buoyant hydrodynamic solver
-    buoyant_hydrodynamic_problem.cc
-    buoyant_hydrodynamic_solver/apply_boundary_conditions.cc
-    buoyant_hydrodynamic_solver/assembly_data.cc
-    buoyant_hydrodynamic_solver/assemble_system.cc
-    buoyant_hydrodynamic_solver/assemble_rhs.cc
-    buoyant_hydrodynamic_solver/buoyant_hydrodynamic_solver.cc
-    buoyant_hydrodynamic_solver/setup.cc
+#    buoyant_hydrodynamic_problem.cc
+#    buoyant_hydrodynamic_solver/apply_boundary_conditions.cc
+#    buoyant_hydrodynamic_solver/assembly_data.cc
+#    buoyant_hydrodynamic_solver/assemble_system.cc
+#    buoyant_hydrodynamic_solver/assemble_rhs.cc
+#    buoyant_hydrodynamic_solver/buoyant_hydrodynamic_solver.cc
+#    buoyant_hydrodynamic_solver/setup.cc
     # advection solver
     advection_problem.cc
     advection_solver/apply_boundary_conditions.cc

@@ -37,6 +37,8 @@ void Solver<dim>::assemble_system
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 
+  const bool use_stress_tensor{viscous_term_weak_form == ViscousTermWeakForm::stress};
+
   this->system_matrix = 0;
   this->system_rhs = 0;
 
@@ -50,12 +52,13 @@ void Solver<dim>::assemble_system
   using Scratch = AssemblyData::Matrix::Scratch<dim>;
   using Copy = AssemblyBaseData::Matrix::Copy;
   auto worker =
-      [this, use_newton_linearization]
+      [this, use_newton_linearization, use_stress_tensor]
        (const typename DoFHandler<dim>::active_cell_iterator &cell,
         Scratch  &scratch,
         Copy     &data)
          {
-            assemble_local_system(cell, scratch, data, use_newton_linearization);
+            assemble_local_system(cell, scratch, data, use_newton_linearization,
+                                  use_stress_tensor);
          };
 
   // Set up the lambda function for the copy local to global operation
@@ -90,9 +93,10 @@ void Solver<dim>::assemble_system
            face_quadrature_formula,
            face_update_flags,
            stabilization,
+           use_stress_tensor,
+           background_velocity_ptr != nullptr,
            body_force_ptr != nullptr,
-           !velocity_boundary_conditions.neumann_bcs.empty(),
-           background_velocity_ptr != nullptr),
+           !velocity_boundary_conditions.neumann_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
 
 }
@@ -104,7 +108,8 @@ void Solver<dim>::assemble_local_system
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<dim> &scratch,
  AssemblyBaseData::Matrix::Copy     &data,
- const bool use_newton_linearization) const
+ const bool use_newton_linearization,
+ const bool use_stress_tensor) const
 {
   scratch.fe_values.reinit(cell);
 
@@ -117,8 +122,12 @@ void Solver<dim>::assemble_local_system
   const FEValuesExtractors::Scalar  pressure(dim);
 
   const double nu{1.0 / reynolds_number};
-
   const double delta{c * std::pow(cell->diameter(), 2)};
+
+  OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.optional_arguments_weak_from;
+  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.optional_arguments_strong_from;
+  weak_form_options.use_stress_form = use_stress_tensor;
+  strong_form_options.use_stress_form = use_stress_tensor;
 
   // solution values
   scratch.fe_values[velocity].get_function_values(this->evaluation_point,
@@ -129,57 +138,72 @@ void Solver<dim>::assemble_local_system
   scratch.fe_values[pressure].get_function_values(this->evaluation_point,
                                                   scratch.present_pressure_values);
 
+  if (use_stress_tensor)
+    scratch.fe_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
+                                                                 scratch.present_sym_velocity_gradients);
+
   // stabilization related solution values
   if (stabilization & (apply_supg|apply_pspg))
   {
     scratch.fe_values[velocity].get_function_laplacians(this->evaluation_point,
-                                                        *scratch.present_velocity_laplaceans);
+                                                        scratch.present_velocity_laplaceans);
 
     scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
-                                                       *scratch.present_pressure_gradients);
+                                                       scratch.present_pressure_gradients);
+
+    if (use_stress_tensor)
+    {
+      std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
+      scratch.fe_values[velocity].get_function_hessians(this->evaluation_point,
+                                                        present_hessians);
+
+      std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
+          strong_form_options.present_velocity_grad_divergences.value();
+      for (std::size_t q=0; q<present_hessians.size(); ++q)
+      {
+        present_velocity_grad_divergences[q] = 0;
+        for (unsigned int d=0; d<dim; ++d)
+          present_velocity_grad_divergences[q] += present_hessians[q][d][d];
+      }
+    }
   }
 
   // body force
   if (body_force_ptr != nullptr)
   {
     body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                               *scratch.body_force_values);
-
+                               *strong_form_options.body_force_values);
+    strong_form_options.froude_number = froude_number;
+    weak_form_options.froude_number = froude_number;
   }
 
   // background field
   if (background_velocity_ptr != nullptr)
   {
     background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                                        *scratch.background_velocity_values);
+                                        *strong_form_options.background_velocity_values);
     background_velocity_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                           *scratch.background_velocity_gradients);
+                                           *strong_form_options.background_velocity_gradients);
   }
 
   // Coriolis term
   if (angular_velocity_ptr != nullptr)
-    scratch.angular_velocity_value = angular_velocity_ptr->value();
+  {
+    strong_form_options.angular_velocity = angular_velocity_ptr->value();
+    strong_form_options.rossby_number = rossby_number;
+
+    weak_form_options.angular_velocity = angular_velocity_ptr->value();
+    weak_form_options.rossby_number = rossby_number;
+  }
 
   if (stabilization & (apply_supg|apply_pspg))
     compute_strong_residual(scratch.present_velocity_values,
                             scratch.present_velocity_gradients,
-                            scratch.present_velocity_laplaceans.value(),
-                            scratch.present_pressure_gradients.value(),
-                            scratch.present_strong_residuals.value(),
+                            scratch.present_velocity_laplaceans,
+                            scratch.present_pressure_gradients,
+                            scratch.present_strong_residuals,
                             nu,
-                            scratch.background_velocity_values,
-                            scratch.background_velocity_gradients,
-                            scratch.body_force_values,
-                            froude_number,
-                            scratch.angular_velocity_value,
-                            rossby_number);
-
-  std::optional<Tensor<1,dim>> background_velocity_value;
-  std::optional<Tensor<2,dim>> background_velocity_gradient;
-  std::optional<Tensor<1,dim>> body_force_value;
-
-  std::optional<Tensor<1,dim>> pressure_test_function_gradient;
-  std::optional<Tensor<2,dim>> optional_velocity_test_function_gradient;
+                            strong_form_options);
 
   for (const auto q: scratch.fe_values.quadrature_point_indices())
   {
@@ -190,23 +214,39 @@ void Solver<dim>::assemble_local_system
       scratch.div_phi_velocity[i] = scratch.fe_values[velocity].divergence(i, q);
       scratch.phi_pressure[i] = scratch.fe_values[pressure].value(i, q);
 
+      if (use_stress_tensor)
+        scratch.sym_grad_phi_velocity[i] = scratch.fe_values[velocity].symmetric_gradient(i, q);
+
       // stabilization related shape functions
       if (stabilization & (apply_supg|apply_pspg))
       {
-        scratch.grad_phi_pressure->at(i) = scratch.fe_values[pressure].gradient(i, q);
+        scratch.grad_phi_pressure[i] = scratch.fe_values[pressure].gradient(i, q);
 
         const Tensor<3, dim> shape_hessian(scratch.fe_values[velocity].hessian(i, q));
         for (unsigned int d=0; d<dim; ++d)
-          scratch.laplace_phi_velocity->at(i)[d] = trace(shape_hessian[d]);
+          scratch.laplace_phi_velocity[i][d] = trace(shape_hessian[d]);
+
+        if (use_stress_tensor)
+        {
+          scratch.grad_div_phi_velocity[i] = 0;
+          for (unsigned int d=0; d<dim; ++d)
+            scratch.grad_div_phi_velocity[i] += shape_hessian[d][d];
+        }
       }
     }
 
-    if (scratch.background_velocity_values)
-      background_velocity_value = scratch.background_velocity_values->at(q);
-    if (scratch.background_velocity_gradients)
-      background_velocity_gradient = scratch.background_velocity_gradients->at(q);
-    if (scratch.body_force_values)
-      body_force_value = scratch.body_force_values->at(q);
+    if (strong_form_options.background_velocity_values)
+      weak_form_options.background_velocity_value =
+          strong_form_options.background_velocity_values->at(q);
+    if (strong_form_options.background_velocity_gradients)
+      weak_form_options.background_velocity_gradient =
+          strong_form_options.background_velocity_gradients->at(q);
+    if (strong_form_options.body_force_values)
+      weak_form_options.body_force_value =
+          strong_form_options.body_force_values->at(q);
+    if (use_stress_tensor)
+      weak_form_options.present_symmetric_velocity_gradient =
+          scratch.present_sym_velocity_gradients[q];
 
     const double JxW{scratch.fe_values.JxW(q)};
 
@@ -217,8 +257,16 @@ void Solver<dim>::assemble_local_system
 
       const double          pressure_test_function = scratch.phi_pressure[i];
 
+      if (use_stress_tensor)
+        weak_form_options.velocity_test_function_symmetric_gradient =
+            scratch.sym_grad_phi_velocity[i];
+
       for (const auto j: scratch.fe_values.dof_indices())
       {
+        if (use_stress_tensor)
+          weak_form_options.velocity_trial_function_symmetric_gradient =
+                scratch.sym_grad_phi_velocity[j];
+
         double matrix = compute_matrix(scratch.phi_velocity[j],
                                        scratch.grad_phi_velocity[j],
                                        velocity_test_function,
@@ -228,39 +276,36 @@ void Solver<dim>::assemble_local_system
                                        scratch.phi_pressure[j],
                                        pressure_test_function,
                                        nu,
-                                       use_newton_linearization,
-                                       background_velocity_value,
-                                       background_velocity_gradient,
-                                       scratch.angular_velocity_value,
-                                       rossby_number);
+                                       weak_form_options,
+                                       use_newton_linearization);
 
         if (stabilization & (apply_supg|apply_pspg))
         {
           if (stabilization & apply_supg)
-            optional_velocity_test_function_gradient = velocity_test_function_gradient;
+            weak_form_options.velocity_test_function_gradient =
+                velocity_test_function_gradient;
 
           if (stabilization & apply_pspg)
-            pressure_test_function_gradient = scratch.grad_phi_pressure->at(i);
+            weak_form_options.pressure_test_function_gradient =
+                scratch.grad_phi_pressure[i];
+
+          if (use_stress_tensor)
+            weak_form_options.velocity_trial_function_grad_divergence =
+                  scratch.grad_div_phi_velocity[j];
 
           matrix += delta *
                     compute_residual_linearization_matrix(scratch.phi_velocity[j],
                                                           scratch.grad_phi_velocity[j],
-                                                          scratch.laplace_phi_velocity->at(j),
-                                                          scratch.grad_phi_pressure->at(j),
+                                                          scratch.laplace_phi_velocity[j],
+                                                          scratch.grad_phi_pressure[j],
                                                           scratch.present_velocity_values[q],
                                                           scratch.present_velocity_gradients[q],
                                                           nu,
-                                                          use_newton_linearization,
-                                                          optional_velocity_test_function_gradient,
-                                                          pressure_test_function_gradient,
-                                                          background_velocity_value,
-                                                          background_velocity_gradient,
-                                                          scratch.angular_velocity_value,
-                                                          rossby_number);
-
+                                                          weak_form_options,
+                                                          use_newton_linearization);
           if (stabilization & apply_supg)
-            matrix += delta * scratch.present_strong_residuals->at(q) *
-                      (*optional_velocity_test_function_gradient * scratch.phi_velocity[j]);
+            matrix += delta * scratch.present_strong_residuals[q] *
+                      (velocity_test_function_gradient * scratch.phi_velocity[j]);
         }
 
         if (stabilization & apply_grad_div)
@@ -277,12 +322,7 @@ void Solver<dim>::assemble_local_system
                                scratch.present_pressure_values[q],
                                pressure_test_function,
                                nu,
-                               background_velocity_value,
-                               background_velocity_gradient,
-                               body_force_value,
-                               froude_number,
-                               scratch.angular_velocity_value,
-                               rossby_number);
+                               weak_form_options);
 
       if (stabilization & (apply_supg|apply_pspg))
       {
@@ -290,14 +330,16 @@ void Solver<dim>::assemble_local_system
 
         if (stabilization & apply_supg)
         {
-          stabilization_test_function += velocity_test_function_gradient * scratch.present_velocity_values[q];
-          if (background_velocity_value)
-            stabilization_test_function += velocity_test_function_gradient * *background_velocity_value;
+          stabilization_test_function += velocity_test_function_gradient *
+                                         scratch.present_velocity_values[q];
+          if (background_velocity_ptr != nullptr)
+            stabilization_test_function += velocity_test_function_gradient *
+                                           *weak_form_options.background_velocity_value;
         }
         if (stabilization & apply_pspg)
-          stabilization_test_function += scratch.grad_phi_pressure->at(i);
+          stabilization_test_function += scratch.grad_phi_pressure[i];
 
-        rhs -= delta * scratch.present_strong_residuals->at(q) * stabilization_test_function;
+        rhs -= delta * scratch.present_strong_residuals[q] * stabilization_test_function;
       }
 
       if (stabilization & apply_grad_div)
@@ -321,7 +363,7 @@ void Solver<dim>::assemble_local_system
 
           const types::boundary_id  boundary_id{face->boundary_id()};
           neumann_bcs.at(boundary_id)->value_list(scratch.fe_face_values.get_quadrature_points(),
-                                                  *scratch.boundary_traction_values);
+                                                  scratch.boundary_traction_values);
 
           // Loop over face quadrature points
           for (const auto q: scratch.fe_face_values.quadrature_point_indices())
@@ -335,7 +377,7 @@ void Solver<dim>::assemble_local_system
             // Loop over the degrees of freedom
             for (const auto i: scratch.fe_face_values.dof_indices())
               data.local_rhs(i) += scratch.phi_velocity[i] *
-                                   scratch.boundary_traction_values->at(q) *
+                                   scratch.boundary_traction_values[q] *
                                    JxW_face;
 
           } // Loop over face quadrature points
@@ -364,12 +406,12 @@ template void Solver<2>::assemble_local_system
 (const typename DoFHandler<2>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<2> &,
  AssemblyBaseData::Matrix::Copy   &,
- const bool) const;
+ const bool, const bool) const;
 template void Solver<3>::assemble_local_system
 (const typename DoFHandler<3>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<3> &,
  AssemblyBaseData::Matrix::Copy   &,
- const bool) const;
+ const bool, const bool) const;
 
 template void Solver<2>::copy_local_to_global_system
 (const AssemblyBaseData::Matrix::Copy &, const bool);

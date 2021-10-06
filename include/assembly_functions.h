@@ -11,6 +11,7 @@
 #include <deal.II/base/tensor.h>
 
 #include <angular_velocity.h>
+#include <hydrodynamic_options.h>
 
 #include <optional>
 
@@ -29,60 +30,59 @@ inline double compute_matrix
  const double          pressure_trial_function,
  const double          pressure_test_function,
  const double          nu,
- const bool            apply_newton_linearization = true,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
- const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>          rossby_number = std::nullopt)
+ const OptionalArgumentsWeakForm<dim> &options,
+ const bool            apply_newton_linearization = true)
 {
   const double velocity_trial_function_divergence{trace(velocity_trial_function_gradient)};
   const double velocity_test_function_divergence{trace(velocity_test_function_gradient)};
 
-  double matrix;
-  if (apply_newton_linearization)
-    matrix = // incompressibility equation
-             - velocity_trial_function_divergence * pressure_test_function +
-             // momentum equation
-             (present_velocity_gradient * velocity_trial_function_value +
-              velocity_trial_function_gradient * present_velocity_value) *
-              velocity_test_function_value -
-             pressure_trial_function * velocity_test_function_divergence +
-             nu * scalar_product(velocity_trial_function_gradient,
-                                 velocity_test_function_gradient);
-  else
-    matrix = // incompressibility equation
-             - velocity_trial_function_divergence * pressure_test_function +
-             // momentum equation
-             velocity_trial_function_gradient * present_velocity_value *
-               velocity_test_function_value -
-             pressure_trial_function * velocity_test_function_divergence +
-             nu * scalar_product(velocity_trial_function_gradient,
-                                 velocity_test_function_gradient);
+  double matrix{-(velocity_trial_function_divergence * pressure_test_function +
+                  pressure_trial_function * velocity_test_function_divergence)};
 
-  if (background_velocity_value)
+  if (apply_newton_linearization)
+    matrix += (present_velocity_gradient * velocity_trial_function_value +
+               velocity_trial_function_gradient * present_velocity_value) *
+               velocity_test_function_value;
+  else
+    matrix += velocity_trial_function_gradient * present_velocity_value *
+              velocity_test_function_value;
+
+  if (options.use_stress_form)
   {
-    Assert(background_velocity_gradient, ExcInternalError());
+    Assert(options.velocity_trial_function_symmetric_gradient, ExcInternalError());
+    Assert(options.velocity_test_function_symmetric_gradient, ExcInternalError());
+
+    matrix += 2.0 * nu * scalar_product(*options.velocity_trial_function_symmetric_gradient,
+                                        *options.velocity_test_function_symmetric_gradient);
+  }
+  else
+    matrix += nu * scalar_product(velocity_trial_function_gradient,
+                                  velocity_test_function_gradient);
+
+  if (options.background_velocity_value)
+  {
+    Assert(options.background_velocity_gradient, ExcInternalError());
 
     if (apply_newton_linearization)
-      matrix += (velocity_trial_function_gradient * *background_velocity_value +
-                 *background_velocity_gradient * velocity_trial_function_value) *
+      matrix += (velocity_trial_function_gradient * *options.background_velocity_value +
+                 *options.background_velocity_gradient * velocity_trial_function_value) *
                 velocity_test_function_value;
     else
-      matrix += velocity_trial_function_gradient * *background_velocity_value *
+      matrix += velocity_trial_function_gradient * *options.background_velocity_value *
                 velocity_test_function_value;
   }
 
-  if (angular_velocity)
+  if (options.angular_velocity)
   {
-    Assert(rossby_number, ExcInternalError());
+    Assert(options.rossby_number, ExcInternalError());
 
     if constexpr(dim == 2)
-      matrix += 2.0 / *rossby_number * angular_velocity.value()[0] *
+      matrix += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
                 cross_product_2d(-velocity_trial_function_value) *
                 velocity_test_function_value;
     else if constexpr(dim == 3)
-      matrix += 2.0 / *rossby_number *
-                cross_product_3d(*angular_velocity, velocity_trial_function_value) *
+      matrix += 2.0 / *options.rossby_number *
+                cross_product_3d(*options.angular_velocity, velocity_trial_function_value) *
                 velocity_test_function_value;
   }
 
@@ -100,55 +100,59 @@ inline double compute_rhs
  const double          present_pressure_value,
  const double          pressure_test_function,
  const double          nu,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
- const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
- const std::optional<Tensor<1, dim>> &body_force_value = std::nullopt,
- const std::optional<double>          froude_number = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>          rossby_number = std::nullopt)
+ const OptionalArgumentsWeakForm<dim> &options)
 {
   const double present_velocity_divergence{trace(present_velocity_gradient)};
   const double velocity_test_function_divergence{trace(velocity_test_function_gradient)};
 
-  double rhs = // incompressibility equation
-               present_velocity_divergence * pressure_test_function +
-               // momentum equation
-               present_pressure_value * velocity_test_function_divergence -
-               (present_velocity_gradient * present_velocity_value) * velocity_test_function_value -
-               nu * scalar_product(present_velocity_gradient,
-                                   velocity_test_function_gradient);
+  double rhs{present_velocity_divergence * pressure_test_function +
+             present_pressure_value * velocity_test_function_divergence -
+             (present_velocity_gradient * present_velocity_value) *
+             velocity_test_function_value};
 
-  if (background_velocity_value)
+  if (options.use_stress_form)
   {
-    Assert(background_velocity_gradient, ExcInternalError());
+    Assert(options.present_symmetric_velocity_gradient, ExcInternalError());
+    Assert(options.velocity_test_function_symmetric_gradient, ExcInternalError());
 
-    rhs -= (present_velocity_gradient * *background_velocity_value +
-            *background_velocity_gradient * present_velocity_value) *
+    rhs -= 2.0 * nu * scalar_product(*options.present_symmetric_velocity_gradient,
+                                     *options.velocity_test_function_symmetric_gradient);
+  }
+  else
+    rhs -= nu * scalar_product(present_velocity_gradient,
+                               velocity_test_function_gradient);
+
+  if (options.background_velocity_value)
+  {
+    Assert(options.background_velocity_gradient, ExcInternalError());
+
+    rhs -= (present_velocity_gradient * *options.background_velocity_value +
+            *options.background_velocity_gradient * present_velocity_value) *
             velocity_test_function_value;
   }
 
-  if (body_force_value)
+  if (options.body_force_value)
   {
-    Assert(froude_number, ExcInternalError());
+    Assert(options.froude_number, ExcInternalError());
 
-    rhs -= *body_force_value * velocity_test_function_value / std::pow(*froude_number, 2);
+    rhs -= *options.body_force_value * velocity_test_function_value /
+           (*options.froude_number * *options.froude_number);
   }
 
-  if (angular_velocity)
+  if (options.angular_velocity)
   {
-    Assert(rossby_number, ExcInternalError());
+    Assert(options.rossby_number, ExcInternalError());
 
     if constexpr(dim == 2)
-      rhs -= 2.0 / *rossby_number * angular_velocity.value()[0] *
+      rhs -= 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
              cross_product_2d(-present_velocity_value) * velocity_test_function_value;
     else if constexpr(dim == 3)
-      rhs -= 2.0 / *rossby_number *
-             cross_product_3d(*angular_velocity, present_velocity_value) *
+      rhs -= 2.0 / *options.rossby_number *
+             cross_product_3d(*options.angular_velocity, present_velocity_value) *
              velocity_test_function_value;
   }
 
   return (rhs);
-
 }
 
 
@@ -161,47 +165,54 @@ inline void compute_strong_residual
  const std::vector<Tensor<1, dim>> &present_pressure_gradients,
  std::vector<Tensor<1, dim>>       &strong_residuals,
  const double          nu,
- const std::optional<std::vector<Tensor<1, dim>>> &background_velocity_values = std::nullopt,
- const std::optional<std::vector<Tensor<2, dim>>> &background_velocity_gradients = std::nullopt,
- const std::optional<std::vector<Tensor<1, dim>>> &body_force_values = std::nullopt,
- const std::optional<double>                       froude_number = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>                       rossby_number = std::nullopt)
+ const OptionalArgumentsStrongForm<dim> &options)
 {
-  for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-    strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q])
-                          - nu * present_velocity_laplaceans[q]
-                          + present_pressure_gradients[q];
-
-  if (background_velocity_values)
+  if (options.use_stress_form)
   {
-    Assert(background_velocity_gradients, ExcInternalError());
+    Assert(options.present_velocity_grad_divergences, ExcInternalError());
 
     for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-      strong_residuals[q] += present_velocity_gradients[q] * background_velocity_values->at(q) +
-                             background_velocity_gradients->at(q) * present_velocity_values[q];
+      strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q]) -
+                            nu * present_velocity_laplaceans[q] -
+                            nu * options.present_velocity_grad_divergences->at(q) +
+                            present_pressure_gradients[q];
   }
+  else
+    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+      strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q]) -
+                            nu * present_velocity_laplaceans[q] +
+                            present_pressure_gradients[q];
 
-  if (body_force_values)
+
+  if (options.background_velocity_values)
   {
-    Assert(froude_number, ExcInternalError());
+    Assert(options.background_velocity_gradients, ExcInternalError());
 
     for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-      strong_residuals[q] -= body_force_values->at(q) / std::pow(*froude_number, 2);
+      strong_residuals[q] += present_velocity_gradients[q] * options.background_velocity_values->at(q) +
+                             options.background_velocity_gradients->at(q) * present_velocity_values[q];
   }
 
-  if (angular_velocity)
+  if (options.body_force_values)
   {
-    Assert(rossby_number, ExcInternalError());
+    Assert(options.froude_number, ExcInternalError());
+
+    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+      strong_residuals[q] -= options.body_force_values->at(q) / std::pow(*options.froude_number, 2);
+  }
+
+  if (options.angular_velocity)
+  {
+    Assert(options.rossby_number, ExcInternalError());
 
     if constexpr(dim == 2)
         for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-          strong_residuals[q] += 2.0 / *rossby_number * angular_velocity.value()[0] *
+          strong_residuals[q] += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
                                  cross_product_2d(-present_velocity_values[q]);
     else if constexpr(dim == 3)
         for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-          strong_residuals[q] += 2.0 / *rossby_number *
-                                 cross_product_3d(*angular_velocity, present_velocity_values[q]);
+          strong_residuals[q] += 2.0 / *options.rossby_number *
+                                 cross_product_3d(*options.angular_velocity, present_velocity_values[q]);
   }
 }
 
@@ -212,6 +223,79 @@ inline double compute_residual_linearization_matrix
 (const Tensor<1, dim> &velocity_trial_function_value,
  const Tensor<2, dim> &velocity_trial_function_gradient,
  const Tensor<1, dim> &velocity_trial_function_laplacean,
+ const Tensor<1, dim> &pressure_trial_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const double          nu,
+ const OptionalArgumentsWeakForm<dim> &options,
+ const bool            apply_newton_linearization = true)
+{
+  if (!options.velocity_test_function_gradient && !options.pressure_test_function_gradient)
+    return (0.0);
+
+  // linearized residual
+  Tensor<1, dim> linearized_residual{velocity_trial_function_gradient * present_velocity_value +
+                                     pressure_trial_function_gradient};
+
+  if (apply_newton_linearization)
+    linearized_residual += present_velocity_gradient * velocity_trial_function_value;
+
+  if (options.use_stress_form)
+  {
+    Assert(options.velocity_trial_function_grad_divergence, ExcInternalError());
+
+    linearized_residual -= nu * (velocity_trial_function_laplacean +
+                                 *options.velocity_trial_function_grad_divergence);
+  }
+  else
+    linearized_residual -= nu * velocity_trial_function_laplacean;
+
+  if (options.background_velocity_value)
+  {
+    Assert(options.background_velocity_gradient, ExcInternalError());
+
+    linearized_residual += velocity_trial_function_gradient * *options.background_velocity_value;
+
+    if (apply_newton_linearization)
+      linearized_residual += *options.background_velocity_gradient * velocity_trial_function_value;
+  }
+
+  if (options.angular_velocity)
+  {
+    Assert(options.rossby_number, ExcInternalError());
+
+    if constexpr(dim == 2)
+      linearized_residual += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
+                            cross_product_2d(-present_velocity_value);
+    else if constexpr(dim == 3)
+      linearized_residual += 2.0 / *options.rossby_number *
+                             cross_product_3d(*options.angular_velocity, present_velocity_value);
+  }
+
+  Tensor<1, dim> test_function;
+
+  if (options.velocity_test_function_gradient)
+  {
+    test_function += *options.velocity_test_function_gradient * present_velocity_value;
+
+    if (options.background_velocity_value)
+      test_function += *options.velocity_test_function_gradient * *options.background_velocity_value;
+  }
+  if (options.pressure_test_function_gradient)
+    test_function += *options.pressure_test_function_gradient;
+
+  return (linearized_residual * test_function);
+
+}
+
+
+
+template <int dim>
+inline double compute_residual_linearization_matrix_stress_form
+(const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<2, dim> &velocity_trial_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_laplacean,
+ const Tensor<1, dim> &velocity_trial_function_grad_divergence,
  const Tensor<1, dim> &pressure_trial_function_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<2, dim> &present_velocity_gradient,
@@ -233,11 +317,13 @@ inline double compute_residual_linearization_matrix
   if (apply_newton_linearization)
     linearized_residual = velocity_trial_function_gradient * present_velocity_value +
                           present_velocity_gradient * velocity_trial_function_value -
-                          nu * velocity_trial_function_laplacean +
+                          nu * velocity_trial_function_laplacean -
+                          nu * velocity_trial_function_grad_divergence +
                           pressure_trial_function_gradient;
   else
-    linearized_residual = velocity_trial_function_gradient * present_velocity_value +
-                          nu * velocity_trial_function_laplacean +
+    linearized_residual = velocity_trial_function_gradient * present_velocity_value -
+                          nu * velocity_trial_function_laplacean -
+                          nu * velocity_trial_function_grad_divergence +
                           pressure_trial_function_gradient;
 
   if (background_velocity_value)
