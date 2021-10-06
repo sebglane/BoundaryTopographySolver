@@ -83,6 +83,9 @@ void Solver<dim>::apply_boundary_conditions()
       this->apply_dirichlet_constraints(pressure_boundary_conditions.dirichlet_bcs,
                                         this->fe_system->component_mask(pressure));
   }
+
+  if (include_boundary_stress_terms)
+    boundary_stress_ids = velocity_boundary_conditions.get_unconstrained_boundary_ids();
 }
 
 // explicit instantiation

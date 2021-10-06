@@ -120,6 +120,9 @@ void Solver<dim>::apply_boundary_conditions()
       this->apply_dirichlet_constraints(density_boundary_conditions.dirichlet_bcs,
                                         this->fe_system->component_mask(density));
   }
+
+  if (this->include_boundary_stress_terms)
+    this->boundary_stress_ids = this->velocity_boundary_conditions.get_unconstrained_boundary_ids();
 }
 
 // explicit instantiation

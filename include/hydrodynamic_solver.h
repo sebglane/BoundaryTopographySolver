@@ -167,6 +167,13 @@ struct SolverParameters: SolverBase::Parameters
   StabilizationFlags      stabilization;
 
   /*!
+   * @brief Flag for including boundary traction terms in the weak form. These
+   * are the terms on boundary where neither a Dirichlet nor a Neumann boundary
+   * condition is specified.
+   */
+  bool  include_boundary_stress_terms;
+
+  /*!
    * @brief Stabilization parameter controlling the SUPG and PSPG terms.
    */
   double  c;
@@ -205,6 +212,8 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
           const bool                use_stress_form = false,
           const bool                allocate_background_velocity = false,
           const bool                allocate_body_force = false,
+          const bool                allocate_face_normal = false,
+          const bool                allocate_face_stresses = false,
           const bool                allocate_traction = false);
 
   Scratch(const Scratch<dim>  &data);
@@ -248,6 +257,14 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
   // stabilization related quantities
   std::vector<Tensor<1, dim>> present_strong_residuals;
 
+  // face normal vectors
+  std::vector<Tensor<1, dim>> face_normal_vectors;
+
+  // solution face values
+  std::vector<double>                   present_pressure_face_values;
+  std::vector<Tensor<2, dim>>           present_velocity_face_gradients;
+  std::vector<SymmetricTensor<2, dim>>  present_velocity_sym_face_gradients;
+
   // source term face values
   std::vector<Tensor<1, dim>> boundary_traction_values;
 };
@@ -270,6 +287,8 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
           const bool                use_stress_form = false,
           const bool                allocate_background_velocity = false,
           const bool                allocate_body_force = false,
+          const bool                allocate_face_normal = false,
+          const bool                allocate_face_stresses = false,
           const bool                allocate_traction = false);
 
   Scratch(const Scratch<dim>  &data);
@@ -308,6 +327,14 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
 
   // stabilization related quantities
   std::vector<Tensor<1, dim>> present_strong_residuals;
+
+  // face normal vectors
+  std::vector<Tensor<1, dim>> face_normal_vectors;
+
+  // solution face values
+  std::vector<double>                   present_pressure_face_values;
+  std::vector<Tensor<2, dim>>           present_velocity_face_gradients;
+  std::vector<SymmetricTensor<2, dim>>  present_velocity_sym_face_gradients;
 
   // source term face values
   std::vector<Tensor<1, dim>> boundary_traction_values;
@@ -385,6 +412,8 @@ protected:
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;
 
+  std::vector<types::boundary_id> boundary_stress_ids;
+
   const Utility::AngularVelocity<dim> *angular_velocity_ptr;
 
   const TensorFunction<1, dim>        *body_force_ptr;
@@ -408,6 +437,8 @@ protected:
   const double        c;
 
   const double        mu;
+
+  const bool          include_boundary_stress_terms;
 };
 
 

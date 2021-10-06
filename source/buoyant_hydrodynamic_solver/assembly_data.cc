@@ -25,6 +25,7 @@ Scratch<dim>::Scratch
  const bool                use_stress_form,
  const bool                allocate_background_velocity,
  const bool                allocate_body_force,
+ const bool                allocate_face_stresses,
  const bool                allocate_traction,
  const bool                allocate_gravity_field,
  const bool                allocate_reference_density,
@@ -40,6 +41,8 @@ Hydrodynamic::AssemblyData::Matrix::Scratch<dim>(mapping,
                                                  use_stress_form,
                                                  allocate_background_velocity,
                                                  allocate_body_force,
+                                                 allocate_density_bc||allocate_face_stresses,
+                                                 allocate_face_stresses,
                                                  allocate_traction),
 strong_form_options(allocate_gravity_field,
                     allocate_reference_density,
@@ -52,14 +55,12 @@ present_density_gradients(this->n_q_points),
 present_strong_density_residuals(this->n_q_points),
 present_density_face_values(),
 present_velocity_face_values(),
-face_normal_vectors(),
 density_boundary_values()
 {
   if (allocate_density_bc)
   {
     // solution face values
     present_density_face_values.resize(this->n_face_q_points);
-    face_normal_vectors.resize(this->n_face_q_points);
     present_velocity_face_values.resize(this->n_face_q_points);
 
     // source term face values
@@ -82,7 +83,6 @@ present_density_gradients(data.present_density_gradients),
 present_strong_density_residuals(data.present_strong_density_residuals),
 present_density_face_values(data.present_density_face_values),
 present_velocity_face_values(data.present_velocity_face_values),
-face_normal_vectors(data.face_normal_vectors),
 density_boundary_values(data.density_boundary_values)
 {}
 
@@ -106,6 +106,7 @@ Scratch<dim>::Scratch
  const bool                use_stress_form,
  const bool                allocate_background_velocity,
  const bool                allocate_body_force,
+ const bool                allocate_face_stresses,
  const bool                allocate_traction,
  const bool                allocate_gravity_field,
  const bool                allocate_reference_density,
@@ -121,6 +122,8 @@ Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>(mapping,
                                                         use_stress_form,
                                                         allocate_background_velocity,
                                                         allocate_body_force,
+                                                        allocate_density_bc||allocate_face_stresses,
+                                                        allocate_face_stresses,
                                                         allocate_traction),
 strong_form_options(allocate_gravity_field,
                     allocate_reference_density,
@@ -133,14 +136,12 @@ present_density_gradients(this->n_q_points),
 present_strong_density_residuals(this->n_q_points),
 present_density_face_values(),
 present_velocity_face_values(),
-face_normal_vectors(),
 density_boundary_values()
 {
   if (allocate_density_bc)
   {
     // solution face values
     present_density_face_values.resize(this->n_face_q_points);
-    face_normal_vectors.resize(this->n_face_q_points);
     present_velocity_face_values.resize(this->n_face_q_points);
 
     // source term face values
@@ -163,7 +164,6 @@ present_density_gradients(data.present_density_gradients),
 present_strong_density_residuals(data.present_strong_density_residuals),
 present_density_face_values(data.present_density_face_values),
 present_velocity_face_values(data.present_velocity_face_values),
-face_normal_vectors(data.face_normal_vectors),
 density_boundary_values(data.density_boundary_values)
 {}
 

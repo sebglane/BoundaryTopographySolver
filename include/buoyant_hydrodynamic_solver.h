@@ -89,6 +89,7 @@ struct Scratch : Hydrodynamic::AssemblyData::Matrix::Scratch<dim>
           const bool                use_stress_form = false,
           const bool                allocate_background_velocity = false,
           const bool                allocate_body_force = false,
+          const bool                allocate_face_stresses = false,
           const bool                allocate_traction = false,
           const bool                allocate_gravity_field = false,
           const bool                allocate_reference_density = false,
@@ -114,7 +115,6 @@ struct Scratch : Hydrodynamic::AssemblyData::Matrix::Scratch<dim>
   // solution face values
   std::vector<double>         present_density_face_values;
   std::vector<Tensor<1, dim>> present_velocity_face_values;
-  std::vector<Tensor<1, dim>> face_normal_vectors;
 
   // source term face values
   std::vector<double>         density_boundary_values;
@@ -139,6 +139,7 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
           const bool                use_stress_form = false,
           const bool                allocate_background_velocity = false,
           const bool                allocate_body_force = false,
+          const bool                allocate_face_stresses = false,
           const bool                allocate_traction = false,
           const bool                allocate_gravity_field = false,
           const bool                allocate_reference_density = false,
@@ -168,7 +169,6 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
   // solution face values
   std::vector<double>         present_density_face_values;
   std::vector<Tensor<1, dim>> present_velocity_face_values;
-  std::vector<Tensor<1, dim>> face_normal_vectors;
 
   // source term face values
   std::vector<double> density_boundary_values;

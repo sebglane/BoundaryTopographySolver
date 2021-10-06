@@ -22,6 +22,7 @@ SolverBase::Parameters(),
 convective_term_weak_form(ConvectiveTermWeakForm::standard),
 viscous_term_weak_form(ViscousTermWeakForm::laplacean),
 stabilization(apply_none),
+include_boundary_stress_terms(false),
 c(1.0),
 mu(1.0)
 {}
@@ -59,6 +60,10 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
                       "1.0",
                       Patterns::Double(std::numeric_limits<double>::epsilon()));
 
+    prm.declare_entry("Include boundary stress terms",
+                      "false",
+                      Patterns::Bool());
+
   }
   prm.leave_subsection();
 }
@@ -88,11 +93,11 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
 
     const std::string str_viscous_term_weak_form(prm.get("Viscous term weak form"));
 
-    if (str_convective_term_weak_form == std::string("standard"))
+    if (str_viscous_term_weak_form == std::string("standard"))
       viscous_term_weak_form = ViscousTermWeakForm::laplacean;
-    else if (str_convective_term_weak_form == std::string("laplacean"))
+    else if (str_viscous_term_weak_form == std::string("laplacean"))
       viscous_term_weak_form = ViscousTermWeakForm::laplacean;
-    else if (str_convective_term_weak_form == std::string("divergence"))
+    else if (str_viscous_term_weak_form == std::string("stress"))
       viscous_term_weak_form = ViscousTermWeakForm::stress;
     else
       AssertThrow(false,
@@ -108,6 +113,8 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
           stabilization |= apply_pspg;
     if (stabilization_str.find("GradDiv") != std::string::npos)
           stabilization |= apply_grad_div;
+
+    include_boundary_stress_terms = prm.get_bool("Include boundary stress terms");
 
     c = prm.get_double("SUPG/PSPG stabilization parameter");
     AssertIsFinite(c);
@@ -166,6 +173,9 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
       break;
   }
 
+  Utility::add_line(stream, "Include_boundary_stress_terms",
+                    (prm.include_boundary_stress_terms? "true": "false"));
+
   std::stringstream sstream;
   sstream << prm.stabilization;
   Utility::add_line(stream, "Stabilization type", sstream.str().c_str());
@@ -190,6 +200,7 @@ Solver<dim>::Solver
 SolverBase::Solver<dim>(tria, mapping, parameters),
 velocity_boundary_conditions(this->triangulation),
 pressure_boundary_conditions(this->triangulation),
+boundary_stress_ids(),
 angular_velocity_ptr(nullptr),
 body_force_ptr(nullptr),
 background_velocity_ptr(nullptr),
@@ -201,7 +212,8 @@ reynolds_number(reynolds),
 froude_number(froude),
 rossby_number(rossby),
 c(1.0),
-mu(1.0)
+mu(1.0),
+include_boundary_stress_terms(parameters.include_boundary_stress_terms)
 {}
 
 

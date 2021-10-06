@@ -96,6 +96,8 @@ void Solver<dim>::assemble_system
            use_stress_form,
            background_velocity_ptr != nullptr,
            body_force_ptr != nullptr,
+           include_boundary_stress_terms,
+           include_boundary_stress_terms,
            !velocity_boundary_conditions.neumann_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
 }
@@ -137,6 +139,7 @@ void Solver<dim>::assemble_local_system
   scratch.fe_values[pressure].get_function_values(this->evaluation_point,
                                                   scratch.present_pressure_values);
 
+  // stress form
   if (use_stress_form)
     scratch.fe_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
                                                                  scratch.present_sym_velocity_gradients);
@@ -213,6 +216,7 @@ void Solver<dim>::assemble_local_system
       scratch.div_phi_velocity[i] = scratch.fe_values[velocity].divergence(i, q);
       scratch.phi_pressure[i] = scratch.fe_values[pressure].value(i, q);
 
+      // stress form
       if (use_stress_form)
         scratch.sym_grad_phi_velocity[i] = scratch.fe_values[velocity].symmetric_gradient(i, q);
 
@@ -225,6 +229,7 @@ void Solver<dim>::assemble_local_system
         for (unsigned int d=0; d<dim; ++d)
           scratch.laplace_phi_velocity[i][d] = trace(shape_hessian[d]);
 
+        // stress form
         if (use_stress_form)
         {
           scratch.grad_div_phi_velocity[i] = 0;
@@ -234,18 +239,23 @@ void Solver<dim>::assemble_local_system
       }
     }
 
+    // stress form
+    if (use_stress_form)
+      weak_form_options.present_symmetric_velocity_gradient =
+          scratch.present_sym_velocity_gradients[q];
+
+    // background field
     if (strong_form_options.background_velocity_values)
       weak_form_options.background_velocity_value =
           strong_form_options.background_velocity_values->at(q);
     if (strong_form_options.background_velocity_gradients)
       weak_form_options.background_velocity_gradient =
           strong_form_options.background_velocity_gradients->at(q);
+
+    // body force
     if (strong_form_options.body_force_values)
       weak_form_options.body_force_value =
           strong_form_options.body_force_values->at(q);
-    if (use_stress_form)
-      weak_form_options.present_symmetric_velocity_gradient =
-          scratch.present_sym_velocity_gradients[q];
 
     const double JxW{scratch.fe_values.JxW(q)};
 
@@ -256,18 +266,22 @@ void Solver<dim>::assemble_local_system
 
       const double          pressure_test_function = scratch.phi_pressure[i];
 
+      // stress form
+      if (use_stress_form)
+        weak_form_options.velocity_test_function_symmetric_gradient =
+            scratch.sym_grad_phi_velocity[i];
+
+      // stabilization
       if (stabilization & apply_supg)
         weak_form_options.velocity_test_function_gradient =
             velocity_test_function_gradient;
       if (stabilization & apply_pspg)
         weak_form_options.pressure_test_function_gradient =
             scratch.grad_phi_pressure[i];
-      if (use_stress_form)
-        weak_form_options.velocity_test_function_symmetric_gradient =
-            scratch.sym_grad_phi_velocity[i];
 
       for (const auto j: scratch.fe_values.dof_indices())
       {
+        // stress form
         if (use_stress_form)
           weak_form_options.velocity_trial_function_symmetric_gradient =
                 scratch.sym_grad_phi_velocity[j];
@@ -286,6 +300,7 @@ void Solver<dim>::assemble_local_system
 
         if (stabilization & (apply_supg|apply_pspg))
         {
+          // stress form
           if (use_stress_form)
             weak_form_options.velocity_trial_function_grad_divergence =
                   scratch.grad_div_phi_velocity[j];
@@ -379,7 +394,88 @@ void Solver<dim>::assemble_local_system
 
           } // Loop over face quadrature points
         } // Loop over the faces of the cell
- }
+
+
+  if (include_boundary_stress_terms && cell->at_boundary())
+    for (const auto &face : cell->face_iterators())
+      if (face->at_boundary() &&
+          std::find(boundary_stress_ids.begin(),
+                    boundary_stress_ids.end(),
+                    face->boundary_id()) != boundary_stress_ids.end())
+      {
+        // unconstrained boundary condition
+        scratch.fe_face_values.reinit(cell, face);
+
+        scratch.fe_face_values[pressure].get_function_values(this->evaluation_point,
+                                                             scratch.present_pressure_face_values);
+
+        // normal vectors
+        scratch.face_normal_vectors = scratch.fe_face_values.get_normal_vectors();
+
+        // compute present boundary traction
+        if (use_stress_form)
+        {
+          scratch.fe_face_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
+                                                                            scratch.present_velocity_sym_face_gradients);
+
+          for (const auto q: scratch.fe_face_values.quadrature_point_indices())
+            scratch.boundary_traction_values[q] =
+                - scratch.present_pressure_face_values[q] * scratch.face_normal_vectors[q]
+                + 2.0 * nu * scratch.present_velocity_sym_face_gradients[q] * scratch.face_normal_vectors[q];
+        }
+        else
+        {
+          scratch.fe_face_values[velocity].get_function_gradients(this->evaluation_point,
+                                                                  scratch.present_velocity_face_gradients);
+
+          for (const auto q: scratch.fe_face_values.quadrature_point_indices())
+            scratch.boundary_traction_values[q] =
+                - scratch.present_pressure_face_values[q] * scratch.face_normal_vectors[q]
+                + nu * scratch.present_velocity_face_gradients[q] * scratch.face_normal_vectors[q];
+        }
+
+        // Loop over face quadrature points
+        for (const auto q: scratch.fe_face_values.quadrature_point_indices())
+        {
+          // Extract the test function's values at the face quadrature points
+          for (const auto i: scratch.fe_face_values.dof_indices())
+          {
+            scratch.phi_velocity[i] = scratch.fe_face_values[velocity].value(i, q);
+            scratch.phi_pressure[i] = scratch.fe_face_values[pressure].value(i, q);
+
+            if (use_stress_form)
+              scratch.sym_grad_phi_velocity[i] = scratch.fe_face_values[velocity].symmetric_gradient(i, q);
+            else
+              scratch.grad_phi_velocity[i] = scratch.fe_face_values[velocity].gradient(i, q);
+
+          }
+
+          const double JxW_face{scratch.fe_face_values.JxW(q)};
+
+          // Loop over the degrees of freedom
+          for (const auto i: scratch.fe_face_values.dof_indices())
+          {
+            if (use_stress_form)
+              for (const auto j: scratch.fe_face_values.dof_indices())
+                data.local_matrix(i, j) -=
+                    (-scratch.phi_pressure[j] * scratch.face_normal_vectors[q] +
+                     2.0 * nu * scratch.sym_grad_phi_velocity[j] * scratch.face_normal_vectors[q]) *
+                     scratch.phi_velocity[i] * JxW_face;
+            else
+              for (const auto j: scratch.fe_face_values.dof_indices())
+                data.local_matrix(i, j) -=
+                    (-scratch.phi_pressure[j] * scratch.face_normal_vectors[q] +
+                     nu * scratch.grad_phi_velocity[j] * scratch.face_normal_vectors[q]) *
+                     scratch.phi_velocity[i] * JxW_face;
+
+            data.local_rhs(i) += scratch.phi_velocity[i] *
+                                 scratch.boundary_traction_values[q] *
+                                 JxW_face;
+          }
+
+        } // Loop over face quadrature points
+      } // Loop over the faces of the cell
+}
 
 
 
