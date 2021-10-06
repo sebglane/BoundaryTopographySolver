@@ -11,6 +11,7 @@
 #include <angular_velocity.h>
 #include <assembly_base_data.h>
 #include <boundary_conditions.h>
+#include <hydrodynamic_options.h>
 #include <solver_base.h>
 #include <stabilization_flags.h>
 
@@ -201,13 +202,18 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
           const Quadrature<dim-1>  &face_quadrature_formula,
           const UpdateFlags         face_update_flags,
           const StabilizationFlags  stabilization_flags,
+          const bool                use_stress_form = false,
+          const bool                allocate_background_velocity = false,
           const bool                allocate_body_force = false,
-          const bool                allocate_traction = false,
-          const bool                allocate_background_velocity = false);
+          const bool                allocate_traction = false);
 
   Scratch(const Scratch<dim>  &data);
 
   FEFaceValues<dim>   fe_face_values;
+
+  OptionalArgumentsStrongForm<dim>  optional_arguments_strong_from;
+
+  OptionalArgumentsWeakForm<dim>    optional_arguments_weak_from;
 
   const unsigned int  n_face_q_points;
 
@@ -217,31 +223,33 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
   std::vector<double>         div_phi_velocity;
   std::vector<double>         phi_pressure;
 
+  // stress tensor related shape functions
+  std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
+
   // stabilization related shape functions
-  std::optional<std::vector<Tensor<1, dim>>>  grad_phi_pressure;
-  std::optional<std::vector<Tensor<1, dim>>>  laplace_phi_velocity;
+  std::vector<Tensor<1, dim>> grad_phi_pressure;
+  std::vector<Tensor<1, dim>> laplace_phi_velocity;
+
+  // stress tensor and stabilization related shape functions
+  std::vector<Tensor<1, dim>> grad_div_phi_velocity;
 
   // solution values
   std::vector<Tensor<1, dim>> present_velocity_values;
   std::vector<Tensor<2, dim>> present_velocity_gradients;
   std::vector<double>         present_pressure_values;
 
-  std::optional<std::vector<Tensor<1, dim>>>  background_velocity_values;
-  std::optional<std::vector<Tensor<2, dim>>>  background_velocity_gradients;
+  // stress tensor related solution values
+  std::vector<SymmetricTensor<2, dim>>  present_sym_velocity_gradients;
 
   // stabilization related solution values
-  std::optional<std::vector<Tensor<1, dim>>>  present_velocity_laplaceans;
-  std::optional<std::vector<Tensor<1, dim>>>  present_pressure_gradients;
+  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
+  std::vector<Tensor<1, dim>> present_pressure_gradients;
 
   // stabilization related quantities
-  std::optional<std::vector<Tensor<1, dim>>>  present_strong_residuals;
-
-  // source term values
-  std::optional<std::vector<Tensor<1, dim>>>  body_force_values;
-  std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity_value;
+  std::vector<Tensor<1, dim>> present_strong_residuals;
 
   // source term face values
-  std::optional<std::vector<Tensor<1, dim>>>  boundary_traction_values;
+  std::vector<Tensor<1, dim>> boundary_traction_values;
 };
 
 } // namespace Matrix
@@ -259,13 +267,18 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
           const Quadrature<dim-1>  &face_quadrature_formula,
           const UpdateFlags         face_update_flags,
           const StabilizationFlags  stabilization_flags,
+          const bool                use_stress_form = false,
+          const bool                allocate_background_velocity = false,
           const bool                allocate_body_force = false,
-          const bool                allocate_traction = false,
-          const bool                allocate_background_velocity = false);
+          const bool                allocate_traction = false);
 
   Scratch(const Scratch<dim>  &data);
 
   FEFaceValues<dim>   fe_face_values;
+
+  OptionalArgumentsStrongForm<dim>  optional_arguments_strong_from;
+
+  OptionalArgumentsWeakForm<dim>    optional_arguments_weak_from;
 
   const unsigned int  n_face_q_points;
 
@@ -275,30 +288,29 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
   std::vector<double>         div_phi_velocity;
   std::vector<double>         phi_pressure;
 
+  // stress tensor related shape functions
+  std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
+
   // stabilization related shape functions
-  std::optional<std::vector<Tensor<1, dim>>>  grad_phi_pressure;
+  std::vector<Tensor<1, dim>> grad_phi_pressure;
 
   // solution values
   std::vector<Tensor<1, dim>> present_velocity_values;
   std::vector<Tensor<2, dim>> present_velocity_gradients;
   std::vector<double>         present_pressure_values;
 
-  std::optional<std::vector<Tensor<1, dim>>>  background_velocity_values;
-  std::optional<std::vector<Tensor<2, dim>>>  background_velocity_gradients;
+  // stress tensor related solution values
+  std::vector<SymmetricTensor<2, dim>>  present_sym_velocity_gradients;
 
   // stabilization related solution values
-  std::optional<std::vector<Tensor<1, dim>>>  present_velocity_laplaceans;
-  std::optional<std::vector<Tensor<1, dim>>>  present_pressure_gradients;
+  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
+  std::vector<Tensor<1, dim>> present_pressure_gradients;
 
-  // stabilization related quantity
-  std::optional<std::vector<Tensor<1, dim>>>  present_strong_residuals;
-
-  // source term values
-  std::optional<std::vector<Tensor<1, dim>>>  body_force_values;
-  std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity_value;
+  // stabilization related quantities
+  std::vector<Tensor<1, dim>> present_strong_residuals;
 
   // source term face values
-  std::optional<std::vector<Tensor<1, dim>>>  boundary_traction_values;
+  std::vector<Tensor<1, dim>> boundary_traction_values;
 };
 
 } // namespace RightHandSide
@@ -349,12 +361,14 @@ private:
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
    AssemblyData::Matrix::Scratch<dim> &scratch,
    AssemblyBaseData::Matrix::Copy     &data,
-   const bool use_newton_linearization) const;
+   const bool use_newton_linearization,
+   const bool use_stress_form) const;
 
   void assemble_local_rhs
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
    AssemblyData::RightHandSide::Scratch<dim> &scratch,
-   AssemblyBaseData::RightHandSide::Copy     &data) const;
+   AssemblyBaseData::RightHandSide::Copy     &data,
+   const bool use_stress_form) const;
 
   virtual void output_results(const unsigned int cycle = 0) const;
 

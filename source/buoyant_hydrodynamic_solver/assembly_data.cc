@@ -22,9 +22,11 @@ Scratch<dim>::Scratch
  const Quadrature<dim-1>  &face_quadrature_formula,
  const UpdateFlags         face_update_flags,
  const StabilizationFlags  stabilization_flags,
+ const bool                use_stress_form,
+ const bool                allocate_background_velocity,
  const bool                allocate_body_force,
  const bool                allocate_traction,
- const bool                allocate_background_velocity,
+ const bool                allocate_gravity_field,
  const bool                allocate_reference_density,
  const bool                allocate_density_bc)
 :
@@ -35,33 +37,33 @@ Hydrodynamic::AssemblyData::Matrix::Scratch<dim>(mapping,
                                                  face_quadrature_formula,
                                                  face_update_flags,
                                                  stabilization_flags,
+                                                 use_stress_form,
+                                                 allocate_background_velocity,
                                                  allocate_body_force,
-                                                 allocate_traction,
-                                                 allocate_background_velocity),
+                                                 allocate_traction),
+strong_form_options(allocate_gravity_field,
+                    allocate_reference_density,
+                    this->n_q_points),
+weak_form_options(),
 phi_density(this->dofs_per_cell),
 grad_phi_density(this->dofs_per_cell),
 present_density_values(this->n_q_points),
 present_density_gradients(this->n_q_points),
-reference_density_gradients(),
-gravity_field_values(this->n_q_points),
 present_strong_density_residuals(this->n_q_points),
 present_density_face_values(),
 present_velocity_face_values(),
 face_normal_vectors(),
 density_boundary_values()
 {
-  if (allocate_reference_density)
-    reference_density_gradients.emplace(this->n_q_points);
-
   if (allocate_density_bc)
   {
     // solution face values
-    present_density_face_values.emplace(this->n_face_q_points);
-    face_normal_vectors.emplace(this->n_face_q_points);
-    present_velocity_face_values.emplace(this->n_face_q_points);
+    present_density_face_values.resize(this->n_face_q_points);
+    face_normal_vectors.resize(this->n_face_q_points);
+    present_velocity_face_values.resize(this->n_face_q_points);
 
     // source term face values
-    density_boundary_values.emplace(this->n_face_q_points);
+    density_boundary_values.resize(this->n_face_q_points);
   }
 }
 
@@ -71,12 +73,12 @@ template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim>  &data)
 :
 Hydrodynamic::AssemblyData::Matrix::Scratch<dim>(data),
+strong_form_options(data.strong_form_options),
+weak_form_options(data.weak_form_options),
 phi_density(data.phi_density),
 grad_phi_density(data.grad_phi_density),
 present_density_values(data.present_density_values),
 present_density_gradients(data.present_density_gradients),
-reference_density_gradients(data.reference_density_gradients),
-gravity_field_values(data.gravity_field_values),
 present_strong_density_residuals(data.present_strong_density_residuals),
 present_density_face_values(data.present_density_face_values),
 present_velocity_face_values(data.present_velocity_face_values),
@@ -101,9 +103,11 @@ Scratch<dim>::Scratch
  const Quadrature<dim-1>  &face_quadrature_formula,
  const UpdateFlags         face_update_flags,
  const StabilizationFlags  stabilization_flags,
+ const bool                use_stress_form,
+ const bool                allocate_background_velocity,
  const bool                allocate_body_force,
  const bool                allocate_traction,
- const bool                allocate_background_velocity,
+ const bool                allocate_gravity_field,
  const bool                allocate_reference_density,
  const bool                allocate_density_bc)
 :
@@ -114,33 +118,33 @@ Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>(mapping,
                                                         face_quadrature_formula,
                                                         face_update_flags,
                                                         stabilization_flags,
+                                                        use_stress_form,
+                                                        allocate_background_velocity,
                                                         allocate_body_force,
-                                                        allocate_traction,
-                                                        allocate_background_velocity),
+                                                        allocate_traction),
+strong_form_options(allocate_gravity_field,
+                    allocate_reference_density,
+                    this->n_q_points),
+weak_form_options(),
 phi_density(this->dofs_per_cell),
 grad_phi_density(this->dofs_per_cell),
 present_density_values(this->n_q_points),
 present_density_gradients(this->n_q_points),
-reference_density_gradients(),
-gravity_field_values(this->n_q_points),
 present_strong_density_residuals(this->n_q_points),
 present_density_face_values(),
 present_velocity_face_values(),
 face_normal_vectors(),
 density_boundary_values()
 {
-  if (allocate_reference_density)
-    reference_density_gradients.emplace(this->n_q_points);
-
   if (allocate_density_bc)
   {
     // solution face values
-    present_density_face_values.emplace(this->n_face_q_points);
-    face_normal_vectors.emplace(this->n_face_q_points);
-    present_velocity_face_values.emplace(this->n_face_q_points);
+    present_density_face_values.resize(this->n_face_q_points);
+    face_normal_vectors.resize(this->n_face_q_points);
+    present_velocity_face_values.resize(this->n_face_q_points);
 
     // source term face values
-    density_boundary_values.emplace(this->n_face_q_points);
+    density_boundary_values.resize(this->n_face_q_points);
   }
 }
 
@@ -150,12 +154,12 @@ template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim>  &data)
 :
 Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>(data),
+strong_form_options(data.strong_form_options),
+weak_form_options(data.weak_form_options),
 phi_density(data.phi_density),
 grad_phi_density(data.grad_phi_density),
 present_density_values(data.present_density_values),
 present_density_gradients(data.present_density_gradients),
-reference_density_gradients(data.reference_density_gradients),
-gravity_field_values(data.gravity_field_values),
 present_strong_density_residuals(data.present_strong_density_residuals),
 present_density_face_values(data.present_density_face_values),
 present_velocity_face_values(data.present_velocity_face_values),

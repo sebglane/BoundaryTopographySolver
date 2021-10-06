@@ -11,6 +11,8 @@
 #include <deal.II/base/tensor.h>
 
 #include <angular_velocity.h>
+#include <buoyant_hydrodynamic_options.h>
+#include <hydrodynamic_options.h>
 
 #include <optional>
 
@@ -29,60 +31,59 @@ inline double compute_matrix
  const double          pressure_trial_function,
  const double          pressure_test_function,
  const double          nu,
- const bool            apply_newton_linearization = true,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
- const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>          rossby_number = std::nullopt)
+ const OptionalArgumentsWeakForm<dim> &options,
+ const bool            apply_newton_linearization = true)
 {
   const double velocity_trial_function_divergence{trace(velocity_trial_function_gradient)};
   const double velocity_test_function_divergence{trace(velocity_test_function_gradient)};
 
-  double matrix;
-  if (apply_newton_linearization)
-    matrix = // incompressibility equation
-             - velocity_trial_function_divergence * pressure_test_function +
-             // momentum equation
-             (present_velocity_gradient * velocity_trial_function_value +
-              velocity_trial_function_gradient * present_velocity_value) *
-              velocity_test_function_value -
-             pressure_trial_function * velocity_test_function_divergence +
-             nu * scalar_product(velocity_trial_function_gradient,
-                                 velocity_test_function_gradient);
-  else
-    matrix = // incompressibility equation
-             - velocity_trial_function_divergence * pressure_test_function +
-             // momentum equation
-             velocity_trial_function_gradient * present_velocity_value *
-               velocity_test_function_value -
-             pressure_trial_function * velocity_test_function_divergence +
-             nu * scalar_product(velocity_trial_function_gradient,
-                                 velocity_test_function_gradient);
+  double matrix{-(velocity_trial_function_divergence * pressure_test_function +
+                  pressure_trial_function * velocity_test_function_divergence)};
 
-  if (background_velocity_value)
+  if (apply_newton_linearization)
+    matrix += (present_velocity_gradient * velocity_trial_function_value +
+               velocity_trial_function_gradient * present_velocity_value) *
+               velocity_test_function_value;
+  else
+    matrix += velocity_trial_function_gradient * present_velocity_value *
+              velocity_test_function_value;
+
+  if (options.use_stress_form)
   {
-    Assert(background_velocity_gradient, ExcInternalError());
+    Assert(options.velocity_trial_function_symmetric_gradient, ExcInternalError());
+    Assert(options.velocity_test_function_symmetric_gradient, ExcInternalError());
+
+    matrix += 2.0 * nu * scalar_product(*options.velocity_trial_function_symmetric_gradient,
+                                        *options.velocity_test_function_symmetric_gradient);
+  }
+  else
+    matrix += nu * scalar_product(velocity_trial_function_gradient,
+                                  velocity_test_function_gradient);
+
+  if (options.background_velocity_value)
+  {
+    Assert(options.background_velocity_gradient, ExcInternalError());
 
     if (apply_newton_linearization)
-      matrix += (velocity_trial_function_gradient * *background_velocity_value +
-                 *background_velocity_gradient * velocity_trial_function_value) *
+      matrix += (velocity_trial_function_gradient * *options.background_velocity_value +
+                 *options.background_velocity_gradient * velocity_trial_function_value) *
                 velocity_test_function_value;
     else
-      matrix += velocity_trial_function_gradient * *background_velocity_value *
+      matrix += velocity_trial_function_gradient * *options.background_velocity_value *
                 velocity_test_function_value;
   }
 
-  if (angular_velocity)
+  if (options.angular_velocity)
   {
-    Assert(rossby_number, ExcInternalError());
+    Assert(options.rossby_number, ExcInternalError());
 
     if constexpr(dim == 2)
-      matrix += 2.0 / *rossby_number * angular_velocity.value()[0] *
+      matrix += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
                 cross_product_2d(-velocity_trial_function_value) *
                 velocity_test_function_value;
     else if constexpr(dim == 3)
-      matrix += 2.0 / *rossby_number *
-                cross_product_3d(*angular_velocity, velocity_trial_function_value) *
+      matrix += 2.0 / *options.rossby_number *
+                cross_product_3d(*options.angular_velocity, velocity_trial_function_value) *
                 velocity_test_function_value;
   }
 
@@ -100,55 +101,59 @@ inline double compute_rhs
  const double          present_pressure_value,
  const double          pressure_test_function,
  const double          nu,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
- const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
- const std::optional<Tensor<1, dim>> &body_force_value = std::nullopt,
- const std::optional<double>          froude_number = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>          rossby_number = std::nullopt)
+ const OptionalArgumentsWeakForm<dim> &options)
 {
   const double present_velocity_divergence{trace(present_velocity_gradient)};
   const double velocity_test_function_divergence{trace(velocity_test_function_gradient)};
 
-  double rhs = // incompressibility equation
-               present_velocity_divergence * pressure_test_function +
-               // momentum equation
-               present_pressure_value * velocity_test_function_divergence -
-               (present_velocity_gradient * present_velocity_value) * velocity_test_function_value -
-               nu * scalar_product(present_velocity_gradient,
-                                   velocity_test_function_gradient);
+  double rhs{present_velocity_divergence * pressure_test_function +
+             present_pressure_value * velocity_test_function_divergence -
+             (present_velocity_gradient * present_velocity_value) *
+             velocity_test_function_value};
 
-  if (background_velocity_value)
+  if (options.use_stress_form)
   {
-    Assert(background_velocity_gradient, ExcInternalError());
+    Assert(options.present_symmetric_velocity_gradient, ExcInternalError());
+    Assert(options.velocity_test_function_symmetric_gradient, ExcInternalError());
 
-    rhs -= (present_velocity_gradient * *background_velocity_value +
-            *background_velocity_gradient * present_velocity_value) *
+    rhs -= 2.0 * nu * scalar_product(*options.present_symmetric_velocity_gradient,
+                                     *options.velocity_test_function_symmetric_gradient);
+  }
+  else
+    rhs -= nu * scalar_product(present_velocity_gradient,
+                               velocity_test_function_gradient);
+
+  if (options.background_velocity_value)
+  {
+    Assert(options.background_velocity_gradient, ExcInternalError());
+
+    rhs -= (present_velocity_gradient * *options.background_velocity_value +
+            *options.background_velocity_gradient * present_velocity_value) *
             velocity_test_function_value;
   }
 
-  if (body_force_value)
+  if (options.body_force_value)
   {
-    Assert(froude_number, ExcInternalError());
+    Assert(options.froude_number, ExcInternalError());
 
-    rhs -= *body_force_value * velocity_test_function_value / std::pow(*froude_number, 2);
+    rhs -= *options.body_force_value * velocity_test_function_value /
+           (*options.froude_number * *options.froude_number);
   }
 
-  if (angular_velocity)
+  if (options.angular_velocity)
   {
-    Assert(rossby_number, ExcInternalError());
+    Assert(options.rossby_number, ExcInternalError());
 
     if constexpr(dim == 2)
-      rhs -= 2.0 / *rossby_number * angular_velocity.value()[0] *
+      rhs -= 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
              cross_product_2d(-present_velocity_value) * velocity_test_function_value;
     else if constexpr(dim == 3)
-      rhs -= 2.0 / *rossby_number *
-             cross_product_3d(*angular_velocity, present_velocity_value) *
+      rhs -= 2.0 / *options.rossby_number *
+             cross_product_3d(*options.angular_velocity, present_velocity_value) *
              velocity_test_function_value;
   }
 
   return (rhs);
-
 }
 
 
@@ -161,47 +166,54 @@ inline void compute_strong_residual
  const std::vector<Tensor<1, dim>> &present_pressure_gradients,
  std::vector<Tensor<1, dim>>       &strong_residuals,
  const double          nu,
- const std::optional<std::vector<Tensor<1, dim>>> &background_velocity_values = std::nullopt,
- const std::optional<std::vector<Tensor<2, dim>>> &background_velocity_gradients = std::nullopt,
- const std::optional<std::vector<Tensor<1, dim>>> &body_force_values = std::nullopt,
- const std::optional<double>                       froude_number = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>                       rossby_number = std::nullopt)
+ const OptionalArgumentsStrongForm<dim> &options)
 {
-  for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-    strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q])
-                          - nu * present_velocity_laplaceans[q]
-                          + present_pressure_gradients[q];
-
-  if (background_velocity_values)
+  if (options.use_stress_form)
   {
-    Assert(background_velocity_gradients, ExcInternalError());
+    Assert(options.present_velocity_grad_divergences, ExcInternalError());
 
     for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-      strong_residuals[q] += present_velocity_gradients[q] * background_velocity_values->at(q) +
-                             background_velocity_gradients->at(q) * present_velocity_values[q];
+      strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q]) -
+                            nu * present_velocity_laplaceans[q] -
+                            nu * options.present_velocity_grad_divergences->at(q) +
+                            present_pressure_gradients[q];
   }
+  else
+    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+      strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q]) -
+                            nu * present_velocity_laplaceans[q] +
+                            present_pressure_gradients[q];
 
-  if (body_force_values)
+
+  if (options.background_velocity_values)
   {
-    Assert(froude_number, ExcInternalError());
+    Assert(options.background_velocity_gradients, ExcInternalError());
 
     for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-      strong_residuals[q] -= body_force_values->at(q) / std::pow(*froude_number, 2);
+      strong_residuals[q] += present_velocity_gradients[q] * options.background_velocity_values->at(q) +
+                             options.background_velocity_gradients->at(q) * present_velocity_values[q];
   }
 
-  if (angular_velocity)
+  if (options.body_force_values)
   {
-    Assert(rossby_number, ExcInternalError());
+    Assert(options.froude_number, ExcInternalError());
+
+    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+      strong_residuals[q] -= options.body_force_values->at(q) / std::pow(*options.froude_number, 2);
+  }
+
+  if (options.angular_velocity)
+  {
+    Assert(options.rossby_number, ExcInternalError());
 
     if constexpr(dim == 2)
         for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-          strong_residuals[q] += 2.0 / *rossby_number * angular_velocity.value()[0] *
+          strong_residuals[q] += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
                                  cross_product_2d(-present_velocity_values[q]);
     else if constexpr(dim == 3)
         for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-          strong_residuals[q] += 2.0 / *rossby_number *
-                                 cross_product_3d(*angular_velocity, present_velocity_values[q]);
+          strong_residuals[q] += 2.0 / *options.rossby_number *
+                                 cross_product_3d(*options.angular_velocity, present_velocity_values[q]);
   }
 }
 
@@ -216,64 +228,62 @@ inline double compute_residual_linearization_matrix
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<2, dim> &present_velocity_gradient,
  const double          nu,
- const bool            apply_newton_linearization,
- const std::optional<Tensor<2, dim>>  &velocity_test_function_gradient,
- const std::optional<Tensor<1, dim>>  &pressure_test_function_gradient,
- const std::optional<Tensor<1, dim>>  &background_velocity_value = std::nullopt,
- const std::optional<Tensor<2, dim>>  &background_velocity_gradient = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>           rossby_number = std::nullopt)
+ const OptionalArgumentsWeakForm<dim> &options,
+ const bool            apply_newton_linearization = true)
 {
-  if (!velocity_test_function_gradient &&
-      !pressure_test_function_gradient)
+  if (!options.velocity_test_function_gradient && !options.pressure_test_function_gradient)
     return (0.0);
 
   // linearized residual
-  Tensor<1, dim> linearized_residual;
-  if (apply_newton_linearization)
-    linearized_residual = velocity_trial_function_gradient * present_velocity_value +
-                          present_velocity_gradient * velocity_trial_function_value -
-                          nu * velocity_trial_function_laplacean +
-                          pressure_trial_function_gradient;
-  else
-    linearized_residual = velocity_trial_function_gradient * present_velocity_value +
-                          nu * velocity_trial_function_laplacean +
-                          pressure_trial_function_gradient;
+  Tensor<1, dim> linearized_residual{velocity_trial_function_gradient * present_velocity_value +
+                                     pressure_trial_function_gradient};
 
-  if (background_velocity_value)
+  if (apply_newton_linearization)
+    linearized_residual += present_velocity_gradient * velocity_trial_function_value;
+
+  if (options.use_stress_form)
   {
-    Assert(background_velocity_gradient, ExcInternalError());
+    Assert(options.velocity_trial_function_grad_divergence, ExcInternalError());
+
+    linearized_residual -= nu * (velocity_trial_function_laplacean +
+                                 *options.velocity_trial_function_grad_divergence);
+  }
+  else
+    linearized_residual -= nu * velocity_trial_function_laplacean;
+
+  if (options.background_velocity_value)
+  {
+    Assert(options.background_velocity_gradient, ExcInternalError());
+
+    linearized_residual += velocity_trial_function_gradient * *options.background_velocity_value;
 
     if (apply_newton_linearization)
-      linearized_residual += velocity_trial_function_gradient * *background_velocity_value +
-                             *background_velocity_gradient * velocity_trial_function_value;
-    else
-      linearized_residual += velocity_trial_function_gradient * *background_velocity_value;
+      linearized_residual += *options.background_velocity_gradient * velocity_trial_function_value;
   }
 
-  if (angular_velocity)
+  if (options.angular_velocity)
   {
-    Assert(rossby_number, ExcInternalError());
+    Assert(options.rossby_number, ExcInternalError());
 
     if constexpr(dim == 2)
-      linearized_residual += 2.0 / *rossby_number * angular_velocity.value()[0] *
+      linearized_residual += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
                             cross_product_2d(-present_velocity_value);
     else if constexpr(dim == 3)
-      linearized_residual += 2.0 / *rossby_number *
-                             cross_product_3d(*angular_velocity, present_velocity_value);
+      linearized_residual += 2.0 / *options.rossby_number *
+                             cross_product_3d(*options.angular_velocity, present_velocity_value);
   }
 
   Tensor<1, dim> test_function;
 
-  if (velocity_test_function_gradient)
+  if (options.velocity_test_function_gradient)
   {
-    test_function += *velocity_test_function_gradient * present_velocity_value;
+    test_function += *options.velocity_test_function_gradient * present_velocity_value;
 
-    if (background_velocity_value)
-      test_function += *velocity_test_function_gradient * *background_velocity_value;
+    if (options.background_velocity_value)
+      test_function += *options.velocity_test_function_gradient * *options.background_velocity_value;
   }
-  if (pressure_test_function_gradient)
-    test_function += *pressure_test_function_gradient;
+  if (options.pressure_test_function_gradient)
+    test_function += *options.pressure_test_function_gradient;
 
   return (linearized_residual * test_function);
 
@@ -316,16 +326,11 @@ inline void compute_strong_hydrodynamic_residual
  const std::vector<Tensor<2, dim>> &present_velocity_gradients,
  const std::vector<Tensor<1, dim>> &present_velocity_laplaceans,
  const std::vector<Tensor<1, dim>> &present_pressure_gradients,
- const std::vector<Tensor<1, dim>> &gravity_field_values,
  const std::vector<double>         &present_density_values,
  std::vector<Tensor<1, dim>>       &strong_residuals,
  const double                       nu,
- const double                       froude_number,
- const std::optional<std::vector<Tensor<1, dim>>> &background_velocity_values = std::nullopt,
- const std::optional<std::vector<Tensor<2, dim>>> &background_velocity_gradients = std::nullopt,
- const std::optional<std::vector<Tensor<1, dim>>> &body_force_values = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>                       rossby_number = std::nullopt)
+ const Hydrodynamic::OptionalArgumentsStrongForm<dim>        &options,
+ const BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_options)
 {
   Hydrodynamic::
   compute_strong_residual(present_velocity_values,
@@ -334,16 +339,17 @@ inline void compute_strong_hydrodynamic_residual
                           present_pressure_gradients,
                           strong_residuals,
                           nu,
-                          background_velocity_values,
-                          background_velocity_gradients,
-                          body_force_values,
-                          froude_number,
-                          angular_velocity,
-                          rossby_number);
+                          options);
 
-  for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-    strong_residuals[q] -= present_density_values[q] * gravity_field_values[q] / std::pow(froude_number, 2);
+  if (buoyancy_options.gravity_field_values)
+  {
+    Assert(options.froude_number, ExcInternalError());
 
+    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+      strong_residuals[q] -= present_density_values[q] *
+                             buoyancy_options.gravity_field_values->at(q) /
+                             (*options.froude_number * *options.froude_number);
+  }
 }
 
 
@@ -353,31 +359,32 @@ inline void compute_strong_density_residual
 (const std::vector<Tensor<1, dim>> &present_density_gradients,
  const std::vector<Tensor<1, dim>> &present_velocity_values,
  std::vector<double>               &strong_residuals,
- const std::optional<std::vector<Tensor<1, dim>>> &reference_density_gradients = std::nullopt,
- const std::optional<double>                       stratification_number = std::nullopt,
- const std::optional<std::vector<Tensor<1, dim>>> &background_velocity_values = std::nullopt)
+ const Hydrodynamic::OptionalArgumentsStrongForm<dim>        &options,
+ const BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_options)
 {
   for (std::size_t q=0; q<present_density_gradients.size(); ++q)
     strong_residuals[q] = present_velocity_values[q] * present_density_gradients[q];
 
-  if (reference_density_gradients)
+  if (buoyancy_options.reference_density_gradients)
   {
-    Assert(stratification_number, ExcInternalError());
+    Assert(buoyancy_options.stratification_number, ExcInternalError());
 
     for (std::size_t q=0; q<present_density_gradients.size(); ++q)
-      strong_residuals[q] += *stratification_number * present_velocity_values[q] *
-                             reference_density_gradients->at(q);
+      strong_residuals[q] += *buoyancy_options.stratification_number * present_velocity_values[q] *
+                             buoyancy_options.reference_density_gradients->at(q);
   }
 
-  if (background_velocity_values)
+  if (options.background_velocity_values)
   {
     for (std::size_t q=0; q<present_density_gradients.size(); ++q)
-      strong_residuals[q] += background_velocity_values->at(q) * present_density_gradients[q];
+      strong_residuals[q] += options.background_velocity_values->at(q) *
+                             present_density_gradients[q];
 
-    if (reference_density_gradients)
+    if (buoyancy_options.reference_density_gradients)
       for (std::size_t q=0; q<present_density_gradients.size(); ++q)
-        strong_residuals[q] += *stratification_number * background_velocity_values->at(q) *
-                               reference_density_gradients->at(q);
+        strong_residuals[q] += *buoyancy_options.stratification_number *
+                               options.background_velocity_values->at(q) *
+                               buoyancy_options.reference_density_gradients->at(q);
   }
 }
 
@@ -390,10 +397,9 @@ inline double compute_density_matrix
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
- const bool            apply_newton_linearization = true,
- const std::optional<Tensor<1, dim>> &reference_density_gradient = std::nullopt,
- const std::optional<double>          stratification_number = std::nullopt,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt)
+ const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
+ const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options,
+ const bool            apply_newton_linearization = true)
 {
   double linearized_residual =
       present_velocity_value * density_trial_function_gradient +
@@ -401,16 +407,18 @@ inline double compute_density_matrix
           velocity_trial_function_value * present_density_gradient:
           0.0);
 
-  if (reference_density_gradient && apply_newton_linearization)
+  if (buoyancy_options.reference_density_gradient && apply_newton_linearization)
   {
-    Assert(stratification_number, ExcInternalError());
+    Assert(buoyancy_options.stratification_number, ExcInternalError());
 
-    linearized_residual += *stratification_number * velocity_trial_function_value *
-                           *reference_density_gradient;
+    linearized_residual += *buoyancy_options.stratification_number *
+                           velocity_trial_function_value *
+                           *buoyancy_options.reference_density_gradient;
   }
 
-  if (background_velocity_value)
-    linearized_residual += *background_velocity_value * density_trial_function_gradient;
+  if (options.background_velocity_value)
+    linearized_residual += *options.background_velocity_value *
+                           density_trial_function_gradient;
 
   return (linearized_residual * density_test_function_value);
 }
@@ -422,26 +430,28 @@ inline double compute_density_rhs
 (const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
- const std::optional<Tensor<1, dim>> &reference_density_gradient = std::nullopt,
- const std::optional<double>          stratification_number = std::nullopt,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt)
+ const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
+ const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options)
 {
   double residual = -(present_velocity_value * present_density_gradient);
 
-  if (reference_density_gradient)
+  if (buoyancy_options.reference_density_gradient)
   {
-    Assert(stratification_number, ExcInternalError());
+    Assert(buoyancy_options.stratification_number, ExcInternalError());
 
-    residual -= *stratification_number * present_velocity_value *
-                *reference_density_gradient;
+    residual -= *buoyancy_options.stratification_number *
+                present_velocity_value *
+                *buoyancy_options.reference_density_gradient;
   }
 
-  if (background_velocity_value)
+  if (options.background_velocity_value)
   {
-    residual -= *background_velocity_value * present_density_gradient;
+    residual -= *options.background_velocity_value * present_density_gradient;
 
-    if (reference_density_gradient)
-      residual -= *stratification_number * *background_velocity_value * *reference_density_gradient;
+    if (buoyancy_options.reference_density_gradient)
+      residual -= *buoyancy_options.stratification_number *
+                  *options.background_velocity_value *
+                  *buoyancy_options.reference_density_gradient;
   }
 
   return (residual * density_test_function_value);
@@ -457,10 +467,9 @@ inline double compute_density_residual_linearization_matrix
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const double          nu,
- const bool            apply_newton_linearization = true,
- const std::optional<Tensor<1, dim>> &reference_density_gradient = std::nullopt,
- const std::optional<double>          stratification_number = std::nullopt,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt)
+ const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
+ const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options,
+ const bool            apply_newton_linearization = true)
 {
   if (present_velocity_value.norm() > 0.0)
   {
@@ -471,44 +480,49 @@ inline double compute_density_residual_linearization_matrix
             0.0);
 
 
-    if (reference_density_gradient && apply_newton_linearization)
+    if (buoyancy_options.reference_density_gradient && apply_newton_linearization)
     {
-      Assert(stratification_number, ExcInternalError());
+      Assert(buoyancy_options.stratification_number, ExcInternalError());
 
 
-      linearized_residual += *stratification_number * velocity_trial_function_value *
-                             *reference_density_gradient;
+      linearized_residual += *buoyancy_options.stratification_number *
+                             velocity_trial_function_value *
+                             *buoyancy_options.reference_density_gradient;
     }
 
-    if (background_velocity_value)
+    if (options.background_velocity_value)
     {
-      linearized_residual += *background_velocity_value * density_trial_function_gradient;
+      linearized_residual += *options.background_velocity_value *
+                             density_trial_function_gradient;
 
       const double test_function{density_test_function_gradient *
-                                 (present_velocity_value + *background_velocity_value)};
+                                 (present_velocity_value +
+                                  *options.background_velocity_value)};
 
       return (linearized_residual *  test_function);
     }
     else
       return (linearized_residual * (density_test_function_gradient * present_velocity_value));
   }
-  else if (background_velocity_value && (background_velocity_value->norm() > 0.0))
+  else if (options.background_velocity_value && (options.background_velocity_value->norm() > 0.0))
   {
     double linearized_residual =
-        *background_velocity_value * density_trial_function_gradient +
+        *options.background_velocity_value * density_trial_function_gradient +
         (apply_newton_linearization?
             velocity_trial_function_value * present_density_gradient:
             0.0);
 
-    if (reference_density_gradient && apply_newton_linearization)
+    if (buoyancy_options.reference_density_gradient && apply_newton_linearization)
     {
-      Assert(stratification_number, ExcInternalError());
+      Assert(buoyancy_options.stratification_number, ExcInternalError());
 
-      linearized_residual += *stratification_number * velocity_trial_function_value *
-                             *reference_density_gradient;
+      linearized_residual += *buoyancy_options.stratification_number *
+                             velocity_trial_function_value *
+                             *buoyancy_options.reference_density_gradient;
     }
 
-    const double test_function{density_test_function_gradient * *background_velocity_value};
+    const double test_function{density_test_function_gradient *
+                               *options.background_velocity_value};
 
     return (linearized_residual *  test_function);
 
@@ -527,17 +541,13 @@ inline double compute_hydrodynamic_matrix
  const Tensor<2, dim> &velocity_test_function_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<2, dim> &present_velocity_gradient,
- const Tensor<1, dim> &present_gravity_field_value,
  const double          pressure_trial_function,
  const double          density_trial_function_value,
  const double          pressure_test_function,
  const double          nu,
- const double          froude_number,
- const bool            apply_newton_linearization = true,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
- const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>          rossby_number = std::nullopt)
+ const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
+ const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options,
+ const bool            apply_newton_linearization = true)
 {
   double matrix = Hydrodynamic::
                   compute_matrix(velocity_trial_function_value,
@@ -549,14 +559,17 @@ inline double compute_hydrodynamic_matrix
                                  pressure_trial_function,
                                  pressure_test_function,
                                  nu,
-                                 apply_newton_linearization,
-                                 background_velocity_value,
-                                 background_velocity_gradient,
-                                 angular_velocity,
-                                 rossby_number);
+                                 options,
+                                 apply_newton_linearization);
 
-  matrix -= density_trial_function_value *  present_gravity_field_value / std::pow(froude_number, 2) *
-            velocity_test_function_value;
+  if (buoyancy_options.gravity_field_value)
+  {
+    Assert(options.froude_number, ExcInternalError());
+
+    matrix -= density_trial_function_value * *buoyancy_options.gravity_field_value *
+              velocity_test_function_value /
+              (*options.froude_number * *options.froude_number);
+  }
 
   return (matrix);
 }
@@ -569,17 +582,12 @@ inline double compute_hydrodynamic_rhs
  const Tensor<2, dim> &velocity_test_function_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<2, dim> &present_velocity_gradient,
- const Tensor<1, dim> &present_gravity_field_value,
  const double          present_pressure_value,
  const double          present_density_value,
  const double          pressure_test_function,
  const double          nu,
- const double          froude_number,
- const std::optional<Tensor<1, dim>> &background_velocity_value = std::nullopt,
- const std::optional<Tensor<2, dim>> &background_velocity_gradient = std::nullopt,
- const std::optional<Tensor<1, dim>> &body_force_value = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>          rossby_number = std::nullopt)
+ const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
+ const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options)
 {
   double rhs = Hydrodynamic::
                compute_rhs(velocity_test_function_value,
@@ -589,15 +597,16 @@ inline double compute_hydrodynamic_rhs
                            present_pressure_value,
                            pressure_test_function,
                            nu,
-                           background_velocity_value,
-                           background_velocity_gradient,
-                           body_force_value,
-                           froude_number,
-                           angular_velocity,
-                           rossby_number);
+                           options);
 
-  rhs += present_density_value *  present_gravity_field_value / std::pow(froude_number, 2) *
-         velocity_test_function_value;
+  if (buoyancy_options.gravity_field_value)
+  {
+    Assert(options.froude_number, ExcInternalError());
+
+    rhs += present_density_value * *buoyancy_options.gravity_field_value *
+           velocity_test_function_value /
+           (*options.froude_number * *options.froude_number);
+  }
 
   return (rhs);
 }
@@ -612,20 +621,14 @@ inline double compute_hydrodynamic_residual_linearization_matrix
  const Tensor<1, dim> &pressure_trial_function_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<2, dim> &present_velocity_gradient,
- const Tensor<1, dim> &present_gravity_field_value,
  const double          density_trial_function_value,
  const double          nu,
- const double          froude_number,
- const bool            apply_newton_linearization,
- const std::optional<Tensor<2, dim>>  &velocity_test_function_gradient,
- const std::optional<Tensor<1, dim>>  &pressure_test_function_gradient,
- const std::optional<Tensor<1, dim>>  &background_velocity_value = std::nullopt,
- const std::optional<Tensor<2, dim>>  &background_velocity_gradient = std::nullopt,
- const std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity = std::nullopt,
- const std::optional<double>           rossby_number = std::nullopt)
+ const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
+ const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options,
+ const bool            apply_newton_linearization = true)
 {
-  if (!velocity_test_function_gradient &&
-      !pressure_test_function_gradient)
+  if (!options.velocity_test_function_gradient &&
+      !options.pressure_test_function_gradient)
     return (0.0);
 
   double matrix = Hydrodynamic::
@@ -636,27 +639,29 @@ inline double compute_hydrodynamic_residual_linearization_matrix
                                                         present_velocity_value,
                                                         present_velocity_gradient,
                                                         nu,
-                                                        apply_newton_linearization,
-                                                        velocity_test_function_gradient,
-                                                        pressure_test_function_gradient,
-                                                        background_velocity_value,
-                                                        background_velocity_gradient,
-                                                        angular_velocity,
-                                                        rossby_number);
-  Tensor<1, dim> test_function;
-
-  if (velocity_test_function_gradient)
+                                                        options,
+                                                        apply_newton_linearization);
+  if (buoyancy_options.gravity_field_value)
   {
-    test_function += *velocity_test_function_gradient * present_velocity_value;
+    Assert(options.froude_number, ExcInternalError());
 
-    if (background_velocity_value)
-      test_function += *velocity_test_function_gradient * *background_velocity_value;
+    Tensor<1, dim> test_function;
+    if (options.velocity_test_function_gradient)
+    {
+      test_function += *options.velocity_test_function_gradient *
+                       present_velocity_value;
+
+      if (options.background_velocity_value)
+        test_function += *options.velocity_test_function_gradient *
+                         *options.background_velocity_value;
+    }
+    if (options.pressure_test_function_gradient)
+      test_function += *options.pressure_test_function_gradient;
+
+    matrix -= density_trial_function_value * *buoyancy_options.gravity_field_value *
+              test_function /
+              (*options.froude_number * *options.froude_number);
   }
-  if (pressure_test_function_gradient)
-    test_function += *pressure_test_function_gradient;
-
-  matrix -= density_trial_function_value *  present_gravity_field_value / std::pow(froude_number, 2) *
-            test_function;
 
   return (matrix);
 
