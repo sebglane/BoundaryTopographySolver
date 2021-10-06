@@ -36,7 +36,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble rhs");
 
-  const bool use_stress_tensor{viscous_term_weak_form == ViscousTermWeakForm::stress};
+  const bool use_stress_form{viscous_term_weak_form == ViscousTermWeakForm::stress};
 
   this->system_rhs = 0;
 
@@ -50,12 +50,12 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   using Scratch = AssemblyData::RightHandSide::Scratch<dim>;
   using Copy = AssemblyBaseData::RightHandSide::Copy;
   auto worker =
-      [this, use_stress_tensor]
+      [this, use_stress_form]
        (const typename DoFHandler<dim>::active_cell_iterator &cell,
         Scratch  &scratch,
         Copy     &data)
          {
-            assemble_local_rhs(cell, scratch, data, use_stress_tensor);
+            assemble_local_rhs(cell, scratch, data, use_stress_form);
          };
 
   // Set up the lambda function for the copy local to global operation
@@ -89,7 +89,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
            face_quadrature_formula,
            face_update_flags,
            stabilization,
-           use_stress_tensor,
+           use_stress_form,
            background_velocity_ptr != nullptr,
            body_force_ptr != nullptr,
            !velocity_boundary_conditions.neumann_bcs.empty()),
@@ -103,7 +103,7 @@ void Solver<dim>::assemble_local_rhs
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
  AssemblyData::RightHandSide::Scratch<dim> &scratch,
  AssemblyBaseData::RightHandSide::Copy     &data,
- const bool use_stress_tensor) const
+ const bool use_stress_form) const
 {
   scratch.fe_values.reinit(cell);
 
@@ -119,8 +119,8 @@ void Solver<dim>::assemble_local_rhs
 
   OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.optional_arguments_weak_from;
   OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.optional_arguments_strong_from;
-  weak_form_options.use_stress_form = use_stress_tensor;
-  strong_form_options.use_stress_form = use_stress_tensor;
+  weak_form_options.use_stress_form = use_stress_form;
+  strong_form_options.use_stress_form = use_stress_form;
 
   // solution values
   scratch.fe_values[velocity].get_function_values(this->evaluation_point,
@@ -131,7 +131,7 @@ void Solver<dim>::assemble_local_rhs
   scratch.fe_values[pressure].get_function_values(this->evaluation_point,
                                                   scratch.present_pressure_values);
 
-  if (use_stress_tensor)
+  if (use_stress_form)
     scratch.fe_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
                                                                  scratch.present_sym_velocity_gradients);
 
@@ -143,7 +143,7 @@ void Solver<dim>::assemble_local_rhs
     scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
                                                        scratch.present_pressure_gradients);
 
-    if (use_stress_tensor)
+    if (use_stress_form)
     {
       std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
       scratch.fe_values[velocity].get_function_hessians(this->evaluation_point,
@@ -221,7 +221,7 @@ void Solver<dim>::assemble_local_rhs
     if (strong_form_options.body_force_values)
       weak_form_options.body_force_value =
           strong_form_options.body_force_values->at(q);
-    if (use_stress_tensor)
+    if (use_stress_form)
       weak_form_options.present_symmetric_velocity_gradient =
           scratch.present_sym_velocity_gradients[q];
 

@@ -362,13 +362,13 @@ private:
    AssemblyData::Matrix::Scratch<dim> &scratch,
    AssemblyBaseData::Matrix::Copy     &data,
    const bool use_newton_linearization,
-   const bool use_stress_tensor) const;
+   const bool use_stress_form) const;
 
   void assemble_local_rhs
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
    AssemblyData::RightHandSide::Scratch<dim> &scratch,
    AssemblyBaseData::RightHandSide::Copy     &data,
-   const bool use_stress_tensor) const;
+   const bool use_stress_form) const;
 
   virtual void output_results(const unsigned int cycle = 0) const;
 

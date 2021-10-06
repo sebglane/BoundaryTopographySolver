@@ -37,7 +37,7 @@ void Solver<dim>::assemble_system
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 
-  const bool use_stress_tensor{viscous_term_weak_form == ViscousTermWeakForm::stress};
+  const bool use_stress_form{viscous_term_weak_form == ViscousTermWeakForm::stress};
 
   this->system_matrix = 0;
   this->system_rhs = 0;
@@ -52,14 +52,14 @@ void Solver<dim>::assemble_system
   using Scratch = AssemblyData::Matrix::Scratch<dim>;
   using Copy = AssemblyBaseData::Matrix::Copy;
   auto worker =
-      [this, use_newton_linearization, use_stress_tensor]
+      [this, use_newton_linearization, use_stress_form]
        (const typename DoFHandler<dim>::active_cell_iterator &cell,
         Scratch  &scratch,
         Copy     &data)
-         {
-            assemble_local_system(cell, scratch, data, use_newton_linearization,
-                                  use_stress_tensor);
-         };
+        {
+          assemble_local_system(cell, scratch, data,
+                                use_newton_linearization, use_stress_form);
+        };
 
   // Set up the lambda function for the copy local to global operation
   auto copier = [this, use_homogeneous_constraints](const Copy   &data)
@@ -93,12 +93,11 @@ void Solver<dim>::assemble_system
            face_quadrature_formula,
            face_update_flags,
            stabilization,
-           use_stress_tensor,
+           use_stress_form,
            background_velocity_ptr != nullptr,
            body_force_ptr != nullptr,
            !velocity_boundary_conditions.neumann_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
-
 }
 
 
@@ -109,7 +108,7 @@ void Solver<dim>::assemble_local_system
  AssemblyData::Matrix::Scratch<dim> &scratch,
  AssemblyBaseData::Matrix::Copy     &data,
  const bool use_newton_linearization,
- const bool use_stress_tensor) const
+ const bool use_stress_form) const
 {
   scratch.fe_values.reinit(cell);
 
@@ -126,8 +125,8 @@ void Solver<dim>::assemble_local_system
 
   OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.optional_arguments_weak_from;
   OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.optional_arguments_strong_from;
-  weak_form_options.use_stress_form = use_stress_tensor;
-  strong_form_options.use_stress_form = use_stress_tensor;
+  weak_form_options.use_stress_form = use_stress_form;
+  strong_form_options.use_stress_form = use_stress_form;
 
   // solution values
   scratch.fe_values[velocity].get_function_values(this->evaluation_point,
@@ -138,7 +137,7 @@ void Solver<dim>::assemble_local_system
   scratch.fe_values[pressure].get_function_values(this->evaluation_point,
                                                   scratch.present_pressure_values);
 
-  if (use_stress_tensor)
+  if (use_stress_form)
     scratch.fe_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
                                                                  scratch.present_sym_velocity_gradients);
 
@@ -151,7 +150,7 @@ void Solver<dim>::assemble_local_system
     scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
                                                        scratch.present_pressure_gradients);
 
-    if (use_stress_tensor)
+    if (use_stress_form)
     {
       std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
       scratch.fe_values[velocity].get_function_hessians(this->evaluation_point,
@@ -214,7 +213,7 @@ void Solver<dim>::assemble_local_system
       scratch.div_phi_velocity[i] = scratch.fe_values[velocity].divergence(i, q);
       scratch.phi_pressure[i] = scratch.fe_values[pressure].value(i, q);
 
-      if (use_stress_tensor)
+      if (use_stress_form)
         scratch.sym_grad_phi_velocity[i] = scratch.fe_values[velocity].symmetric_gradient(i, q);
 
       // stabilization related shape functions
@@ -226,7 +225,7 @@ void Solver<dim>::assemble_local_system
         for (unsigned int d=0; d<dim; ++d)
           scratch.laplace_phi_velocity[i][d] = trace(shape_hessian[d]);
 
-        if (use_stress_tensor)
+        if (use_stress_form)
         {
           scratch.grad_div_phi_velocity[i] = 0;
           for (unsigned int d=0; d<dim; ++d)
@@ -244,7 +243,7 @@ void Solver<dim>::assemble_local_system
     if (strong_form_options.body_force_values)
       weak_form_options.body_force_value =
           strong_form_options.body_force_values->at(q);
-    if (use_stress_tensor)
+    if (use_stress_form)
       weak_form_options.present_symmetric_velocity_gradient =
           scratch.present_sym_velocity_gradients[q];
 
@@ -257,13 +256,19 @@ void Solver<dim>::assemble_local_system
 
       const double          pressure_test_function = scratch.phi_pressure[i];
 
-      if (use_stress_tensor)
+      if (stabilization & apply_supg)
+        weak_form_options.velocity_test_function_gradient =
+            velocity_test_function_gradient;
+      if (stabilization & apply_pspg)
+        weak_form_options.pressure_test_function_gradient =
+            scratch.grad_phi_pressure[i];
+      if (use_stress_form)
         weak_form_options.velocity_test_function_symmetric_gradient =
             scratch.sym_grad_phi_velocity[i];
 
       for (const auto j: scratch.fe_values.dof_indices())
       {
-        if (use_stress_tensor)
+        if (use_stress_form)
           weak_form_options.velocity_trial_function_symmetric_gradient =
                 scratch.sym_grad_phi_velocity[j];
 
@@ -281,15 +286,7 @@ void Solver<dim>::assemble_local_system
 
         if (stabilization & (apply_supg|apply_pspg))
         {
-          if (stabilization & apply_supg)
-            weak_form_options.velocity_test_function_gradient =
-                velocity_test_function_gradient;
-
-          if (stabilization & apply_pspg)
-            weak_form_options.pressure_test_function_gradient =
-                scratch.grad_phi_pressure[i];
-
-          if (use_stress_tensor)
+          if (use_stress_form)
             weak_form_options.velocity_trial_function_grad_divergence =
                   scratch.grad_div_phi_velocity[j];
 
@@ -332,7 +329,7 @@ void Solver<dim>::assemble_local_system
         {
           stabilization_test_function += velocity_test_function_gradient *
                                          scratch.present_velocity_values[q];
-          if (background_velocity_ptr != nullptr)
+          if (weak_form_options.background_velocity_value)
             stabilization_test_function += velocity_test_function_gradient *
                                            *weak_form_options.background_velocity_value;
         }

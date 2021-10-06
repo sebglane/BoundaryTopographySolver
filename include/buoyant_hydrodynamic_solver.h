@@ -8,6 +8,7 @@
 #ifndef INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 #define INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 
+#include <buoyant_hydrodynamic_options.h>
 #include <hydrodynamic_solver.h>
 
 namespace BuoyantHydrodynamic {
@@ -85,13 +86,19 @@ struct Scratch : Hydrodynamic::AssemblyData::Matrix::Scratch<dim>
           const Quadrature<dim-1>  &face_quadrature_formula,
           const UpdateFlags         face_update_flags,
           const StabilizationFlags  stabilization_flags,
-          const bool                allocate_body_force,
-          const bool                allocate_traction,
-          const bool                allocate_background_velocity,
-          const bool                allocate_reference_density,
-          const bool                allocate_density_bc);
+          const bool                use_stress_form = false,
+          const bool                allocate_background_velocity = false,
+          const bool                allocate_body_force = false,
+          const bool                allocate_traction = false,
+          const bool                allocate_gravity_field = false,
+          const bool                allocate_reference_density = false,
+          const bool                allocate_density_bc = false);
 
   Scratch(const Scratch<dim>  &data);
+
+  OptionalArgumentsStrongForm<dim>  strong_form_options;
+
+  OptionalArgumentsWeakForm<dim>    weak_form_options;
 
   // shape functions
   std::vector<double>         phi_density;
@@ -101,20 +108,16 @@ struct Scratch : Hydrodynamic::AssemblyData::Matrix::Scratch<dim>
   std::vector<double>         present_density_values;
   std::vector<Tensor<1, dim>> present_density_gradients;
 
-  // source term values
-  std::optional<std::vector<Tensor<1,dim>>> reference_density_gradients;
-  std::vector<Tensor<1,dim>>  gravity_field_values;
-
   // stabilization related quantities
-  std::vector<double> present_strong_density_residuals;
+  std::vector<double>         present_strong_density_residuals;
 
   // solution face values
-  std::optional<std::vector<double>>          present_density_face_values;
-  std::optional<std::vector<Tensor<1, dim>>>  present_velocity_face_values;
-  std::optional<std::vector<Tensor<1, dim>>>  face_normal_vectors;
+  std::vector<double>         present_density_face_values;
+  std::vector<Tensor<1, dim>> present_velocity_face_values;
+  std::vector<Tensor<1, dim>> face_normal_vectors;
 
   // source term face values
-  std::optional<std::vector<double>>  density_boundary_values;
+  std::vector<double>         density_boundary_values;
 
 };
 
@@ -133,13 +136,19 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
           const Quadrature<dim-1>  &face_quadrature_formula,
           const UpdateFlags         face_update_flags,
           const StabilizationFlags  stabilization_flags,
-          const bool                allocate_body_force,
-          const bool                allocate_traction,
-          const bool                allocate_background_velocity,
-          const bool                allocate_reference_density,
-          const bool                allocate_density_bc);
+          const bool                use_stress_form = false,
+          const bool                allocate_background_velocity = false,
+          const bool                allocate_body_force = false,
+          const bool                allocate_traction = false,
+          const bool                allocate_gravity_field = false,
+          const bool                allocate_reference_density = false,
+          const bool                allocate_density_bc = false);
 
   Scratch(const Scratch<dim>  &data);
+
+  OptionalArgumentsStrongForm<dim>  strong_form_options;
+
+  OptionalArgumentsWeakForm<dim>    weak_form_options;
 
   // shape functions
   std::vector<double>         phi_density;
@@ -150,19 +159,19 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
   std::vector<Tensor<1, dim>> present_density_gradients;
 
   // source term values
-  std::optional<std::vector<Tensor<1,dim>>> reference_density_gradients;
-  std::vector<Tensor<1,dim>>  gravity_field_values;
+  std::vector<Tensor<1, dim>> reference_density_gradients;
+  std::vector<Tensor<1, dim>> gravity_field_values;
 
   // stabilization related quantities
-  std::vector<double> present_strong_density_residuals;
+  std::vector<double>         present_strong_density_residuals;
 
   // solution face values
-  std::optional<std::vector<double>>          present_density_face_values;
-  std::optional<std::vector<Tensor<1, dim>>>  present_velocity_face_values;
-  std::optional<std::vector<Tensor<1, dim>>>  face_normal_vectors;
+  std::vector<double>         present_density_face_values;
+  std::vector<Tensor<1, dim>> present_velocity_face_values;
+  std::vector<Tensor<1, dim>> face_normal_vectors;
 
   // source term face values
-  std::optional<std::vector<double>>  density_boundary_values;
+  std::vector<double> density_boundary_values;
 
 };
 
@@ -209,12 +218,14 @@ private:
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
    AssemblyData::Matrix::Scratch<dim> &scratch,
    AssemblyBaseData::Matrix::Copy     &data,
-   const bool use_picard_linearization = false) const;
+   const bool use_picard_linearization,
+   const bool use_stress_tensor) const;
 
   void assemble_local_rhs
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
    AssemblyData::RightHandSide::Scratch<dim> &scratch,
-   AssemblyBaseData::RightHandSide::Copy     &data) const;
+   AssemblyBaseData::RightHandSide::Copy     &data,
+   const bool use_stress_form) const;
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
