@@ -76,12 +76,12 @@ EvaluationStabilization<dim>::~EvaluationStabilization()
 
 template <int dim>
 void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &/* mapping */,
- const FiniteElement<dim>  &/* fe */,
- const DoFHandler<dim>     &/* dof_handler */,
- const Vector<double>      &/* solution */)
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const Vector<double>      &solution)
 {
-  AssertThrow(false, ExcInternalError());
+  evaluate(mapping, fe, dof_handler, solution);
 }
 
 
@@ -92,6 +92,19 @@ void EvaluationStabilization<dim>::operator()
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,
  const BlockVector<double> &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
+template <typename VectorType>
+void EvaluationStabilization<dim>::evaluate
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const VectorType          &solution)
 {
   AssertThrow(c > std::numeric_limits<double>::min(), ExcInternalError());
   AssertThrow(mu > std::numeric_limits<double>::min(), ExcInternalError());

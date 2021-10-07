@@ -38,6 +38,13 @@ public:
                           const BlockVector<double> &solution) override;
 
 private:
+
+  template<typename VectorType>
+  void evaluate(const Mapping<dim>        &mapping,
+                const FiniteElement<dim>  &fe,
+                const DoFHandler<dim>     &dof_handler,
+                const VectorType          &solution);
+
   TableHandler  traction_table;
   TableHandler  pressure_table;
   TableHandler  viscous_table;

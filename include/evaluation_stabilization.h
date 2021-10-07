@@ -51,6 +51,13 @@ public:
                           const BlockVector<double> &solution) override;
 
 protected:
+
+  template<typename VectorType>
+  void evaluate(const Mapping<dim>        &mapping,
+                const FiniteElement<dim>  &fe,
+                const DoFHandler<dim>     &dof_handler,
+                const VectorType          &solution);
+
   TableHandler  data_table;
 
   const Utility::AngularVelocity<dim> *angular_velocity_ptr;

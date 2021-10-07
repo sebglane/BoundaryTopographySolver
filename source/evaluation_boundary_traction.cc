@@ -86,12 +86,12 @@ EvaluationBoundaryTraction<dim>::~EvaluationBoundaryTraction()
 
 template <int dim>
 void EvaluationBoundaryTraction<dim>::operator()
-(const Mapping<dim>        &/* mapping */,
- const FiniteElement<dim>  &/* fe */,
- const DoFHandler<dim>     &/* dof_handler */,
- const Vector<double>      &/* solution */)
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const Vector<double>      &solution)
 {
-  AssertThrow(false, ExcInternalError());
+  evaluate(mapping, fe, dof_handler, solution);
 }
 
 
@@ -102,6 +102,19 @@ void EvaluationBoundaryTraction<dim>::operator()
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,
  const BlockVector<double> &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
+template <typename VectorType>
+void EvaluationBoundaryTraction<dim>::evaluate
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const VectorType          &solution)
 {
   AssertThrow(boundary_id != numbers::invalid_boundary_id,
               ExcMessage("Boundary id was not specified."));
