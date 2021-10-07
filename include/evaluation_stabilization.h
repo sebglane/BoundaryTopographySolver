@@ -15,6 +15,8 @@
 #include <evaluation_base.h>
 #include <stabilization_flags.h>
 
+#include <filesystem>
+
 namespace Hydrodynamic {
 
 using namespace dealii;
@@ -23,10 +25,12 @@ template <int dim>
 class EvaluationStabilization : public SolverBase::EvaluationBase<dim>
 {
 public:
-  EvaluationStabilization(const StabilizationFlags  &stabilization,
+  EvaluationStabilization(const std::filesystem::path &output_directory,
+                          const StabilizationFlags  &stabilization,
                           const unsigned int velocity_start_index,
                           const unsigned int pressure_index,
                           const double reynolds_number,
+                          const bool   use_stress_form,
                           const double froude_number = 0.0,
                           const double rossby_number = 0.0,
                           const bool   print_table = false);
@@ -71,11 +75,16 @@ protected:
 
   const double       rossby_number;
 
+  const bool         use_stress_form;
+
   const bool  print_table;
 
   double c;
 
   double mu;
+
+private:
+  const std::filesystem::path output_directory;
 };
 
 // inline functions
@@ -129,14 +138,17 @@ template <int dim>
 class EvaluationStabilization : public Hydrodynamic::EvaluationStabilization<dim>
 {
 public:
-  EvaluationStabilization(const StabilizationFlags  &stabilization,
+  EvaluationStabilization(const std::filesystem::path &output_directory,
+                          const StabilizationFlags  &stabilization,
                           const unsigned int velocity_start_index,
                           const unsigned int pressure_index,
                           const unsigned int density_index,
                           const double reynolds_number,
                           const double stratification_number,
+                          const bool   use_stress_form,
                           const double froude_number = 0.0,
-                          const double rossby_number = 0.0);
+                          const double rossby_number = 0.0,
+                          const bool   print_table = false);
 
   void set_gravity_field(const TensorFunction<1, dim> &gravity_field);
 
@@ -163,7 +175,7 @@ private:
 
   const double        stratification_number;
 
-  double c_density;
+  double              c_density;
 
 };
 
