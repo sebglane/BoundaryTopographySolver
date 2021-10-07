@@ -16,8 +16,8 @@
 
 namespace Hydrodynamic {
 
-template <int dim>
-void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::assemble_rhs(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
     std::cout << "    Assemble rhs..." << std::endl;
@@ -103,8 +103,8 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 }
 
 
-template<int dim>
-void Solver<dim>::assemble_local_rhs
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::assemble_local_rhs
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
  AssemblyData::RightHandSide::Scratch<dim> &scratch,
  AssemblyBaseData::RightHandSide::Copy     &data,
@@ -375,8 +375,8 @@ void Solver<dim>::assemble_local_rhs
 
 
 
-template <int dim>
-void Solver<dim>::copy_local_to_global_rhs
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::copy_local_to_global_rhs
 (const AssemblyBaseData::RightHandSide::Copy  &data,
  const bool use_homogeneous_constraints)
 {

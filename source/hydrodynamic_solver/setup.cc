@@ -11,8 +11,8 @@
 
 namespace Hydrodynamic {
 
-template <int dim>
-void Solver<dim>::setup_fe_system()
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::setup_fe_system()
 {
   if (this->verbose)
     std::cout << "    Setup FE system..." << std::endl;
@@ -24,15 +24,15 @@ void Solver<dim>::setup_fe_system()
 
 
 
-template <int dim>
-void Solver<dim>::setup_dofs()
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::setup_dofs()
 {
   TimerOutput::Scope timer_section(this->computing_timer, "Setup dofs");
 
   if (this->verbose)
     std::cout << "    Setup dofs..." << std::endl;
 
-  SolverBase:: Solver<dim>::setup_dofs();
+  SolverBase:: Solver<dim, TriangulationType, VectorType, MatrixType>::setup_dofs();
 
   std::vector<types::global_dof_index> dofs_per_block =
       DoFTools::count_dofs_per_fe_block(this->dof_handler);

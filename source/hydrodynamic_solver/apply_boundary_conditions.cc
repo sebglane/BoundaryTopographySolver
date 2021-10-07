@@ -13,8 +13,8 @@
 
 namespace Hydrodynamic {
 
-template <int dim>
-void Solver<dim>::apply_boundary_conditions()
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::apply_boundary_conditions()
 {
   if (this->verbose)
     std::cout << "    Apply boundary conditions..." << std::endl;

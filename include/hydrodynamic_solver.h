@@ -345,11 +345,14 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
 } // namespace AssemblyData
 
 
-template <int dim>
-class Solver: public SolverBase::Solver<dim>
+template <int dim,
+          typename TriangulationType = Triangulation<dim>,
+          typename VectorType = BlockVector<double>,
+          typename MatrixType = BlockSparseMatrix<double>>
+class Solver: public SolverBase::Solver<dim, TriangulationType, VectorType, MatrixType>
 {
 public:
-  Solver(Triangulation<dim>  &tria,
+  Solver(TriangulationType   &tria,
          Mapping<dim>        &mapping,
          const SolverParameters &parameters,
          const double         reynolds_number = 1.0,
@@ -443,8 +446,8 @@ protected:
 
 
 // inline functions
-template <int dim>
-inline void Solver<dim>::set_angular_velocity
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_angular_velocity
 (const Utility::AngularVelocity<dim> &angular_velocity)
 {
   angular_velocity_ptr = &angular_velocity;
@@ -452,8 +455,8 @@ inline void Solver<dim>::set_angular_velocity
 
 
 
-template <int dim>
-inline void Solver<dim>::set_body_force
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_body_force
 (const TensorFunction<1, dim> &body_force)
 {
   body_force_ptr = &body_force;
@@ -461,8 +464,8 @@ inline void Solver<dim>::set_body_force
 
 
 
-template <int dim>
-inline void Solver<dim>::set_background_velocity
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_background_velocity
 (const TensorFunction<1, dim> &velocity)
 {
   background_velocity_ptr = &velocity;
@@ -470,51 +473,51 @@ inline void Solver<dim>::set_background_velocity
 
 
 
-template <int dim>
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
 inline VectorBoundaryConditions<dim> &
-Solver<dim>::get_velocity_bcs()
+Solver<dim, TriangulationType, VectorType, MatrixType>::get_velocity_bcs()
 {
   return velocity_boundary_conditions;
 }
 
 
 
-template <int dim>
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
 inline const VectorBoundaryConditions<dim> &
-Solver<dim>::get_velocity_bcs() const
+Solver<dim, TriangulationType, VectorType, MatrixType>::get_velocity_bcs() const
 {
   return velocity_boundary_conditions;
 }
 
 
-template <int dim>
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
 inline ScalarBoundaryConditions<dim> &
-Solver<dim>::get_pressure_bcs()
+Solver<dim, TriangulationType, VectorType, MatrixType>::get_pressure_bcs()
 {
   return pressure_boundary_conditions;
 }
 
 
 
-template <int dim>
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim>::get_pressure_bcs() const
+Solver<dim, TriangulationType, VectorType, MatrixType>::get_pressure_bcs() const
 {
   return pressure_boundary_conditions;
 }
 
 
 
-template <int dim>
-inline double Solver<dim>::get_reynolds_number() const
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline double Solver<dim, TriangulationType, VectorType, MatrixType>::get_reynolds_number() const
 {
   return reynolds_number;
 }
 
 
 
-template <int dim>
-inline double Solver<dim>::get_froude_number() const
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline double Solver<dim, TriangulationType, VectorType, MatrixType>::get_froude_number() const
 {
   return froude_number;
 }
