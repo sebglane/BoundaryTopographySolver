@@ -17,8 +17,8 @@
 
 namespace SolverBase {
 
-template <int dim, typename VectorType, typename MatrixType>
-void Solver<dim, VectorType, MatrixType>::refine_mesh()
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::refine_mesh()
 {
   std::cout << "Mesh refinement..." << std::endl;
 

@@ -128,14 +128,15 @@ Stream& operator<<(Stream &stream, const Parameters &prm);
  *
  */
 template <int dim,
+          typename TriangulationType = Triangulation<dim>,
           typename VectorType = BlockVector<double>,
           typename MatrixType = BlockSparseMatrix<double>>
 class Solver
 {
 public:
-  Solver(Triangulation<dim> &tria,
+  Solver(TriangulationType  &tria,
          Mapping<dim>       &mapping,
-         const Parameters &parameters);
+         const Parameters   &parameters);
 
   void add_postprocessor(EvaluationBase<dim> &postprocessor);
 
@@ -173,7 +174,7 @@ protected:
 
   virtual void output_results(const unsigned int cycle = 0) const = 0;
 
-  Triangulation<dim>         &triangulation;
+  TriangulationType          &triangulation;
   Mapping<dim>               &mapping;
 
   FESystem<dim>              *fe_system;
@@ -224,24 +225,27 @@ protected:
 };
 
 // inline methods
-template <int dim, typename VectorType, typename MatrixType >
-inline void Solver<dim, VectorType, MatrixType>::add_postprocessor(EvaluationBase<dim> &postprocessor)
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline void Solver<dim, TriangulationType, VectorType, MatrixType>::
+add_postprocessor(EvaluationBase<dim> &postprocessor)
 {
   postprocessor_ptrs.push_back(&postprocessor);
 }
 
 
 
-template <int dim, typename VectorType, typename MatrixType >
-inline void Solver<dim, VectorType, MatrixType>::preprocess_newton_iteration(const unsigned int, const bool)
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline void Solver<dim, TriangulationType, VectorType, MatrixType>::
+preprocess_newton_iteration(const unsigned int, const bool)
 {
   return;
 }
 
 
 
-template <int dim, typename VectorType, typename MatrixType >
-inline void Solver<dim, VectorType, MatrixType>::preprocess_picard_iteration(const unsigned int)
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline void Solver<dim, TriangulationType, VectorType, MatrixType>::
+preprocess_picard_iteration(const unsigned int)
 {
   return;
 }

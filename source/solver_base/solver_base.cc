@@ -155,9 +155,9 @@ Stream& operator<<(Stream &stream, const Parameters &prm)
 
 
 
-template <int dim, typename VectorType, typename MatrixType>
-Solver<dim, VectorType, MatrixType>::Solver
-(Triangulation<dim>  &tria,
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+Solver<dim, TriangulationType, VectorType, MatrixType>::Solver
+(TriangulationType   &tria,
  Mapping<dim>        &mapping,
  const Parameters    &parameters)
 :
@@ -217,8 +217,8 @@ verbose(parameters.verbose)
 
 
 
-template <int dim, typename VectorType, typename MatrixType>
-void Solver<dim, VectorType, MatrixType>::solve()
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::solve()
 {
   this->setup_fe_system();
 
@@ -248,8 +248,8 @@ void Solver<dim, VectorType, MatrixType>::solve()
 
 
 
-template <int dim, typename VectorType, typename MatrixType>
-void Solver<dim, VectorType, MatrixType>::postprocess_solution(const unsigned int cycle) const
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::postprocess_solution(const unsigned int cycle) const
 {
   if (postprocessor_ptrs.empty())
     return;
@@ -269,8 +269,9 @@ void Solver<dim, VectorType, MatrixType>::postprocess_solution(const unsigned in
 
 
 
-template <int dim, typename VectorType, typename MatrixType>
-void Solver<dim, VectorType, MatrixType>::newton_iteration(const bool is_initial_cycle)
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::
+newton_iteration(const bool is_initial_cycle)
 {
   VectorType  &evaluation_point = container.evaluation_point;
   VectorType  &present_solution = container.present_solution;
@@ -392,8 +393,8 @@ void Solver<dim, VectorType, MatrixType>::newton_iteration(const bool is_initial
 
 
 
-template <int dim, typename VectorType, typename MatrixType>
-void Solver<dim, VectorType, MatrixType>::picard_iteration()
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::picard_iteration()
 {
   VectorType  &evaluation_point = container.evaluation_point;
   VectorType  &present_solution = container.present_solution;
