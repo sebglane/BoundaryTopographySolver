@@ -78,13 +78,13 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 
 
-template <int dim>
-Solver<dim>::Solver
-(Triangulation<dim>     &tria,
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+Solver<dim, TriangulationType, VectorType, MatrixType>::Solver
+(TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters)
 :
-SolverBase::Solver<dim>(tria, mapping, parameters),
+SolverBase::Solver<dim, TriangulationType, VectorType, MatrixType>(tria, mapping, parameters),
 boundary_conditions(this->triangulation),
 advection_field_ptr(nullptr),
 source_term_ptr(nullptr),
@@ -96,8 +96,8 @@ global_entropy_variation{0.0}
 
 
 
-template<int dim>
-void Solver<dim>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void Solver<dim, TriangulationType, VectorType, MatrixType>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     std::cout << "    Output results..." << std::endl;
