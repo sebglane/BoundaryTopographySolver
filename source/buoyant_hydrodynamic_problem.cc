@@ -152,8 +152,8 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
 
 
-template <int dim>
-BuoyantHydrodynamicProblem<dim>::BuoyantHydrodynamicProblem(const ProblemParameters &parameters)
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+BuoyantHydrodynamicProblem<dim, TriangulationType, VectorType, MatrixType>::BuoyantHydrodynamicProblem(const ProblemParameters &parameters)
 :
 mapping(parameters.mapping_degree),
 solver(triangulation, mapping, parameters,
@@ -167,8 +167,8 @@ n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_ref
 
 
 
-template <int dim>
-void BuoyantHydrodynamicProblem<dim>::initialize_mapping()
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void BuoyantHydrodynamicProblem<dim, TriangulationType, VectorType, MatrixType>::initialize_mapping()
 {
   std::cout << "    Initialize mapping..." << std::endl;
 
@@ -177,8 +177,8 @@ void BuoyantHydrodynamicProblem<dim>::initialize_mapping()
 
 
 
-template <int dim>
-void BuoyantHydrodynamicProblem<dim>::run()
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+void BuoyantHydrodynamicProblem<dim, TriangulationType, VectorType, MatrixType>::run()
 {
   this->make_grid();
 
