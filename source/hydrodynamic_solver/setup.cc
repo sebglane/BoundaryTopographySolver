@@ -54,8 +54,11 @@ void Solver<dim>::setup_dofs()
   if (stabilization & apply_pspg)
     coupling_table[dim][dim] = DoFTools::always;
 
-  this->setup_system_matrix(dofs_per_block, coupling_table);
-  this->setup_vectors(dofs_per_block);
+  this->container.setup_system_matrix(this->dof_handler,
+                                      this->zero_constraints,
+                                      dofs_per_block,
+                                      coupling_table);
+  this->container.setup_vectors(dofs_per_block);
 
 }
 

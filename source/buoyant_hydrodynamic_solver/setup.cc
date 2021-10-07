@@ -66,8 +66,11 @@ void Solver<dim>::setup_dofs()
   // density-density coupling
   coupling_table[dim+1][dim+1] = DoFTools::always;
 
-  this->setup_system_matrix(dofs_per_block, coupling_table);
-  this->setup_vectors(dofs_per_block);
+  this->container.setup_system_matrix(this->dof_handler,
+                                      this->zero_constraints,
+                                      dofs_per_block,
+                                      coupling_table);
+  this->container.setup_vectors(dofs_per_block);
 
 }
 

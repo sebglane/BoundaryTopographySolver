@@ -13,8 +13,8 @@
 
 namespace SolverBase {
 
-template <int dim>
-void Solver<dim>::setup_dofs()
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::setup_dofs()
 {
   // distribute and renumber block-wise
   dof_handler.distribute_dofs(*fe_system);
@@ -50,55 +50,8 @@ void Solver<dim>::setup_dofs()
 }
 
 
-
-template<int dim>
-void Solver<dim>::setup_system_matrix
-(const std::vector<types::global_dof_index> &dofs_per_block,
- const Table<2, DoFTools::Coupling> &coupling_table)
-{
-  system_matrix.clear();
-
-  BlockDynamicSparsityPattern dsp(dofs_per_block,
-                                  dofs_per_block);
-
-  DoFTools::make_sparsity_pattern(dof_handler,
-                                  coupling_table,
-                                  dsp,
-                                  zero_constraints);
-  sparsity_pattern.copy_from(dsp);
-
-  system_matrix.reinit(sparsity_pattern);
-}
-
-
-
-template<int dim>
-void Solver<dim>::setup_vectors
-(const std::vector<types::global_dof_index> &dofs_per_block)
-{
-  evaluation_point.reinit(dofs_per_block);
-  present_solution.reinit(dofs_per_block);
-  solution_update.reinit(dofs_per_block);
-  system_rhs.reinit(dofs_per_block);
-}
-
 // explicit instantiations
 template void Solver<2>::setup_dofs();
 template void Solver<3>::setup_dofs();
-
-template void Solver<2>::setup_system_matrix
-(const std::vector<types::global_dof_index> &,
- const Table<2, DoFTools::Coupling> &);
-template void Solver<3>::setup_system_matrix
-(const std::vector<types::global_dof_index> &,
- const Table<2, DoFTools::Coupling> &);
-
-template void Solver<2>::setup_vectors
-(const std::vector<types::global_dof_index> &);
-template void Solver<3>::setup_vectors
-(const std::vector<types::global_dof_index> &);
-
-template class Solver<2>;
-template class Solver<3>;
 
 }  // namespace SolverBase

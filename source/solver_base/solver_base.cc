@@ -155,8 +155,8 @@ Stream& operator<<(Stream &stream, const Parameters &prm)
 
 
 
-template <int dim>
-Solver<dim>::Solver
+template <int dim, typename VectorType, typename MatrixType>
+Solver<dim, VectorType, MatrixType>::Solver
 (Triangulation<dim>  &tria,
  Mapping<dim>        &mapping,
  const Parameters    &parameters)
@@ -217,8 +217,8 @@ verbose(parameters.verbose)
 
 
 
-template <int dim>
-void Solver<dim>::solve()
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::solve()
 {
   this->setup_fe_system();
 
@@ -248,8 +248,8 @@ void Solver<dim>::solve()
 
 
 
-template<int dim>
-void Solver<dim>::postprocess_solution(const unsigned int cycle) const
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::postprocess_solution(const unsigned int cycle) const
 {
   if (postprocessor_ptrs.empty())
     return;
@@ -263,32 +263,37 @@ void Solver<dim>::postprocess_solution(const unsigned int cycle) const
     (*ptr)(mapping,
            *fe_system,
            dof_handler,
-           present_solution);
+           container.present_solution);
   }
 }
 
 
 
-template <int dim>
-void Solver<dim>::newton_iteration(const bool is_initial_cycle)
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::newton_iteration(const bool is_initial_cycle)
 {
-  auto compute_residual = [this, is_initial_cycle]
+  VectorType  &evaluation_point = container.evaluation_point;
+  VectorType  &present_solution = container.present_solution;
+  VectorType  &solution_update = container.solution_update;
+  VectorType  &system_rhs = container.system_rhs;
+
+  auto compute_residual = [&, this, is_initial_cycle]
                            (const double alpha = 0.0,
                             const bool use_homogeneous_constraints = true,
                             const unsigned int iteration)
       {
-        this->evaluation_point = this->present_solution;
+        evaluation_point = present_solution;
         if (alpha != 0.0)
-          this->evaluation_point.add(alpha, this->solution_update);
-        this->nonzero_constraints.distribute(this->evaluation_point);
+          evaluation_point.add(alpha, solution_update);
+        this->nonzero_constraints.distribute(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
-        std::vector<double> residual_components(this->system_rhs.n_blocks());
-        for (unsigned int i=0; i<this->system_rhs.n_blocks(); ++i)
-          residual_components[i] = this->system_rhs.block(i).l2_norm();
+        std::vector<double> residual_components(system_rhs.n_blocks());
+        for (unsigned int i=0; i<system_rhs.n_blocks(); ++i)
+          residual_components[i] = system_rhs.block(i).l2_norm();
 
         if (!is_initial_cycle || residual_components.size() < 3)
-          return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
+          return (std::make_tuple(system_rhs.l2_norm(), residual_components));
         else
         {
           if (iteration < 1)
@@ -299,7 +304,7 @@ void Solver<dim>::newton_iteration(const bool is_initial_cycle)
                                     residual_components));
           }
           else
-            return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
+            return (std::make_tuple(system_rhs.l2_norm(), residual_components));
         }
       };
 
@@ -315,7 +320,7 @@ void Solver<dim>::newton_iteration(const bool is_initial_cycle)
                                   relative_tolerance * initial_residual)};
 
   double current_residual = std::numeric_limits<double>::max();
-  std::vector<double> current_residual_components(this->system_rhs.n_blocks(),
+  std::vector<double> current_residual_components(system_rhs.n_blocks(),
                                                   std::numeric_limits<double>::max());
   double last_residual = std::numeric_limits<double>::max();
   bool first_step = is_initial_cycle;
@@ -387,20 +392,25 @@ void Solver<dim>::newton_iteration(const bool is_initial_cycle)
 
 
 
-template <int dim>
-void Solver<dim>::picard_iteration()
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::picard_iteration()
 {
-  auto compute_residual = [this](const bool use_homogeneous_constraints = true)
+  VectorType  &evaluation_point = container.evaluation_point;
+  VectorType  &present_solution = container.present_solution;
+  VectorType  &solution_update = container.solution_update;
+  VectorType  &system_rhs = container.system_rhs;
+
+  auto compute_residual = [&, this](const bool use_homogeneous_constraints = true)
       {
-        this->evaluation_point = this->present_solution;
-        this->nonzero_constraints.distribute(this->evaluation_point);
+        evaluation_point = present_solution;
+        this->nonzero_constraints.distribute(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
-        std::vector<double> residual_components(this->system_rhs.n_blocks());
-        for (unsigned int i=0; i<this->system_rhs.n_blocks(); ++i)
-          residual_components[i] = this->system_rhs.block(i).l2_norm();
+        std::vector<double> residual_components(system_rhs.n_blocks());
+        for (unsigned int i=0; i<system_rhs.n_blocks(); ++i)
+          residual_components[i] = system_rhs.block(i).l2_norm();
 
-        return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
+        return (std::make_tuple(system_rhs.l2_norm(), residual_components));
       };
 
   this->preprocess_picard_iteration(0);
@@ -415,7 +425,7 @@ void Solver<dim>::picard_iteration()
                                   relative_tolerance * initial_residual)};
 
   double current_residual = std::numeric_limits<double>::max();
-  std::vector<double> current_residual_components(this->system_rhs.n_blocks(),
+  std::vector<double> current_residual_components(system_rhs.n_blocks(),
                                                   std::numeric_limits<double>::max());
 
   unsigned int iteration = 0;

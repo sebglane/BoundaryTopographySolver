@@ -232,7 +232,8 @@ void Solver<dim>::output_results(const unsigned int cycle) const
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
   data_out.attach_dof_handler(this->dof_handler);
-  data_out.add_data_vector(this->present_solution, postprocessor);
+  data_out.add_data_vector(this->container.present_solution,
+                           postprocessor);
 
   data_out.build_patches(velocity_fe_degree);
 

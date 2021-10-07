@@ -17,15 +17,12 @@
 
 namespace SolverBase {
 
-template <int dim>
-void Solver<dim>::refine_mesh()
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::refine_mesh()
 {
   std::cout << "Mesh refinement..." << std::endl;
 
   TimerOutput::Scope timer_section(computing_timer, "Refine mesh");
-
-  using VectorType = BlockVector<double>;
-
 
   if (refinement_parameters.adaptive_mesh_refinement)
   {
@@ -36,7 +33,7 @@ void Solver<dim>::refine_mesh()
                                        dof_handler,
                                        QGauss<dim-1>(fe_system->degree + 1),
                                        std::map<types::boundary_id, const Function<dim> *>(),
-                                       present_solution,
+                                       container.present_solution,
                                        estimated_error_per_cell);
     // set refinement flags
     GridRefinement::refine_and_coarsen_fixed_fraction(triangulation,
@@ -70,7 +67,7 @@ void Solver<dim>::refine_mesh()
 
   // preparing temperature solution transfer
   std::vector<VectorType> x_solution(1);
-  x_solution[0] = present_solution;
+  x_solution[0] = container.present_solution;
   SolutionTransfer<dim, VectorType> solution_transfer(dof_handler);
 
   // preparing triangulation refinement
@@ -86,12 +83,12 @@ void Solver<dim>::refine_mesh()
   // transfer of solution
   {
     std::vector<VectorType> tmp_solution(1);
-    tmp_solution[0].reinit(present_solution);
+    tmp_solution[0].reinit(container.present_solution);
     solution_transfer.interpolate(x_solution, tmp_solution);
 
-    present_solution = tmp_solution[0];
+    container.present_solution = tmp_solution[0];
 
-    nonzero_constraints.distribute(present_solution);
+    nonzero_constraints.distribute(container.present_solution);
   }
 }
 

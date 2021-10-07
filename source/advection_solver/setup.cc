@@ -45,8 +45,11 @@ void Solver<dim>::setup_dofs()
     for (unsigned int c=0; c<coupling_table.n_cols(); ++c)
       coupling_table[r][c] = DoFTools::always;
 
-  this->setup_system_matrix(dofs_per_block, coupling_table);
-  this->setup_vectors(dofs_per_block);
+  this->container.setup_system_matrix(this->dof_handler,
+                                      this->zero_constraints,
+                                      dofs_per_block,
+                                      coupling_table);
+  this->container.setup_vectors(dofs_per_block);
 
 }
 

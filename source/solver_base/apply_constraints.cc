@@ -13,8 +13,8 @@
 
 namespace SolverBase {
 
-template <int dim>
-void Solver<dim>::apply_hanging_node_constraints()
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::apply_hanging_node_constraints()
 {
   DoFTools::make_hanging_node_constraints(dof_handler,
                                           nonzero_constraints);
@@ -25,8 +25,8 @@ void Solver<dim>::apply_hanging_node_constraints()
 
 
 
-template <int dim>
-void Solver<dim>::apply_periodicity_constraints
+template <int dim, typename VectorType, typename MatrixType >
+void Solver<dim, VectorType, MatrixType>::apply_periodicity_constraints
 (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs)
 {
   std::vector<GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
@@ -49,8 +49,8 @@ void Solver<dim>::apply_periodicity_constraints
 
 
 
-template <int dim>
-void Solver<dim>::apply_dirichlet_constraints
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<dim>::BCMapping &dirichlet_bcs,
  const ComponentMask                                   &mask)
 {
@@ -153,8 +153,8 @@ void Solver<dim>::apply_dirichlet_constraints
 
 
 
-template <int dim>
-void Solver<dim>::apply_normal_flux_constraints
+template <int dim, typename VectorType, typename MatrixType>
+void Solver<dim, VectorType, MatrixType>::apply_normal_flux_constraints
 (const typename BoundaryConditionsBase<dim>::BCMapping &normal_flux_bcs,
  const ComponentMask                                   &mask)
 {

@@ -19,11 +19,10 @@
 #include <deal.II/fe/fe_system.h>
 
 #include <deal.II/lac/affine_constraints.h>
-#include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/block_sparse_matrix.h>
 
 #include <boundary_conditions.h>
 #include <evaluation_base.h>
+#include <linear_algebra_container.h>
 #include <parameters.h>
 
 #include <memory>
@@ -128,7 +127,9 @@ Stream& operator<<(Stream &stream, const Parameters &prm);
  * @class Solver
  *
  */
-template <int dim>
+template <int dim,
+          typename VectorType = BlockVector<double>,
+          typename MatrixType = BlockSparseMatrix<double>>
 class Solver
 {
 public:
@@ -165,12 +166,6 @@ protected:
 
   virtual void setup_fe_system() = 0;
 
-  void setup_system_matrix
-  (const std::vector<types::global_dof_index> &dofs_per_block,
-   const Table<2, DoFTools::Coupling>         &coupling_table);
-
-  void setup_vectors(const std::vector<types::global_dof_index> &dofs_per_block);
-
   virtual void preprocess_newton_iteration(const unsigned int iteration,
                                            const bool         is_initial_cycle);
 
@@ -189,15 +184,8 @@ protected:
   AffineConstraints<double>   nonzero_constraints;
   AffineConstraints<double>   zero_constraints;
 
-  // system matrix
-  BlockSparsityPattern        sparsity_pattern;
-  BlockSparseMatrix<double>   system_matrix;
-
-  // vectors
-  BlockVector<double>         evaluation_point;
-  BlockVector<double>         present_solution;
-  BlockVector<double>         solution_update;
-  BlockVector<double>         system_rhs;
+  // linear algebra
+  LinearAlgebraContainer<VectorType, MatrixType>  container;
 
   // monitor of computing times
   TimerOutput                 computing_timer;
@@ -236,24 +224,24 @@ protected:
 };
 
 // inline methods
-template <int dim>
-inline void Solver<dim>::add_postprocessor(EvaluationBase<dim> &postprocessor)
+template <int dim, typename VectorType, typename MatrixType >
+inline void Solver<dim, VectorType, MatrixType>::add_postprocessor(EvaluationBase<dim> &postprocessor)
 {
   postprocessor_ptrs.push_back(&postprocessor);
 }
 
 
 
-template <int dim>
-inline void Solver<dim>::preprocess_newton_iteration(const unsigned int, const bool)
+template <int dim, typename VectorType, typename MatrixType >
+inline void Solver<dim, VectorType, MatrixType>::preprocess_newton_iteration(const unsigned int, const bool)
 {
   return;
 }
 
 
 
-template <int dim>
-inline void Solver<dim>::preprocess_picard_iteration(const unsigned int)
+template <int dim, typename VectorType, typename MatrixType >
+inline void Solver<dim, VectorType, MatrixType>::preprocess_picard_iteration(const unsigned int)
 {
   return;
 }
