@@ -9,6 +9,8 @@
 
 #include <hydrodynamic_solver.h>
 
+#include <set>
+
 namespace Hydrodynamic {
 
 template <int dim>
@@ -82,6 +84,19 @@ void Solver<dim>::apply_boundary_conditions()
     if (!pressure_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(pressure_boundary_conditions.dirichlet_bcs,
                                         this->fe_system->component_mask(pressure));
+  }
+
+  if (include_boundary_stress_terms)
+  {
+    std::set<types::boundary_id>  fully_constrained_boundary_ids;
+    for (const auto &[key, value]: velocity_boundary_conditions.neumann_bcs)
+      fully_constrained_boundary_ids.insert(key);
+    for (const auto &[key, value]: velocity_boundary_conditions.dirichlet_bcs)
+      fully_constrained_boundary_ids.insert(key);
+
+    for (const auto boundary_id: this->triangulation.get_boundary_ids())
+      if (fully_constrained_boundary_ids.find(boundary_id) != fully_constrained_boundary_ids.end())
+        boundary_stress_ids.push_back(boundary_id);
   }
 }
 

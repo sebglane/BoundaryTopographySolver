@@ -25,6 +25,8 @@ Scratch<dim>::Scratch
  const bool                use_stress_form,
  const bool                allocate_background_velocity,
  const bool                allocate_body_force,
+ const bool                allocate_face_normal,
+ const bool                allocate_face_stresses,
  const bool                allocate_traction)
 :
 AssemblyBaseData::Matrix::Scratch<dim>(mapping, quadrature_formula, fe, update_flags),
@@ -51,6 +53,10 @@ present_sym_velocity_gradients(),
 present_velocity_laplaceans(),
 present_pressure_gradients(),
 present_strong_residuals(),
+face_normal_vectors(),
+present_pressure_face_values(),
+present_velocity_face_gradients(),
+present_velocity_sym_face_gradients(),
 boundary_traction_values()
 {
   if (use_stress_form)
@@ -76,6 +82,23 @@ boundary_traction_values()
     present_pressure_gradients.resize(this->n_q_points);
 
     present_strong_residuals.resize(this->n_q_points);
+  }
+
+  if (allocate_face_normal)
+    face_normal_vectors.resize(this->n_face_q_points);
+
+  // solution face values
+  if (allocate_face_stresses)
+  {
+    present_pressure_face_values.resize(this->n_face_q_points);
+
+    if (use_stress_form)
+      present_velocity_sym_face_gradients.resize(this->n_face_q_points);
+    else
+      present_velocity_face_gradients.resize(this->n_face_q_points);
+
+    if (!allocate_traction)
+      boundary_traction_values.resize(this->n_face_q_points);
   }
 
   // source term face values
@@ -111,6 +134,10 @@ present_sym_velocity_gradients(data.present_sym_velocity_gradients),
 present_velocity_laplaceans(data.present_velocity_laplaceans),
 present_pressure_gradients(data.present_pressure_gradients),
 present_strong_residuals(data.present_strong_residuals),
+face_normal_vectors(data.face_normal_vectors),
+present_pressure_face_values(data.present_pressure_face_values),
+present_velocity_face_gradients(data.present_velocity_face_gradients),
+present_velocity_sym_face_gradients(data.present_velocity_sym_face_gradients),
 boundary_traction_values(data.boundary_traction_values)
 {}
 
@@ -134,6 +161,8 @@ Scratch<dim>::Scratch
  const bool                use_stress_form,
  const bool                allocate_background_velocity,
  const bool                allocate_body_force,
+ const bool                allocate_face_normal,
+ const bool                allocate_face_stresses,
  const bool                allocate_traction)
 :
 AssemblyBaseData::RightHandSide::Scratch<dim>(mapping, quadrature_formula, fe, update_flags),
@@ -158,6 +187,10 @@ present_sym_velocity_gradients(),
 present_velocity_laplaceans(),
 present_pressure_gradients(),
 present_strong_residuals(),
+face_normal_vectors(),
+present_pressure_face_values(),
+present_velocity_face_gradients(),
+present_velocity_sym_face_gradients(),
 boundary_traction_values()
 {
   if (use_stress_form)
@@ -177,6 +210,23 @@ boundary_traction_values()
 
     // stabilization related quantity
     present_strong_residuals.resize(this->n_q_points);
+  }
+
+  if (allocate_face_normal)
+    face_normal_vectors.resize(this->n_face_q_points);
+
+  // solution face values
+  if (allocate_face_stresses)
+  {
+    present_pressure_face_values.resize(this->n_face_q_points);
+
+    if (use_stress_form)
+      present_velocity_sym_face_gradients.resize(this->n_face_q_points);
+    else
+      present_velocity_face_gradients.resize(this->n_face_q_points);
+
+    if (!allocate_traction)
+      boundary_traction_values.resize(this->n_face_q_points);
   }
 
   // source term face values
@@ -210,6 +260,10 @@ present_sym_velocity_gradients(data.present_sym_velocity_gradients),
 present_velocity_laplaceans(data.present_velocity_laplaceans),
 present_pressure_gradients(data.present_pressure_gradients),
 present_strong_residuals(data.present_strong_residuals),
+face_normal_vectors(data.face_normal_vectors),
+present_pressure_face_values(data.present_pressure_face_values),
+present_velocity_face_gradients(data.present_velocity_face_gradients),
+present_velocity_sym_face_gradients(data.present_velocity_sym_face_gradients),
 boundary_traction_values(data.boundary_traction_values)
 {}
 

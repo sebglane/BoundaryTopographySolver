@@ -74,6 +74,9 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   UpdateFlags face_update_flags = update_values|
                                   update_quadrature_points|
                                   update_JxW_values;
+  if (this->include_boundary_stress_terms)
+    face_update_flags |= update_gradients|
+                         update_normal_vectors;
   if (!density_boundary_conditions.dirichlet_bcs.empty())
     face_update_flags |= update_normal_vectors;
 
@@ -92,6 +95,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
            use_stress_form,
            this->background_velocity_ptr != nullptr,
            this->body_force_ptr != nullptr,
+           this->include_boundary_stress_terms,
            !this->velocity_boundary_conditions.neumann_bcs.empty(),
            gravity_field_ptr != nullptr,
            reference_density_ptr != nullptr,
@@ -138,6 +142,7 @@ void Solver<dim>::assemble_local_rhs
   scratch.fe_values[pressure].get_function_values(this->evaluation_point,
                                                   scratch.present_pressure_values);
 
+  // stress form
   if (use_stress_form)
     scratch.fe_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
                                                                  scratch.present_sym_velocity_gradients);
@@ -155,6 +160,7 @@ void Solver<dim>::assemble_local_rhs
     scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
                                                        scratch.present_pressure_gradients);
 
+    // stress form
     if (use_stress_form)
     {
       std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
@@ -249,35 +255,53 @@ void Solver<dim>::assemble_local_rhs
       scratch.phi_density[i] = scratch.fe_values[density].value(i, q);
       scratch.grad_phi_density[i] = scratch.fe_values[density].gradient(i, q);
 
+      // stress form
+      if (use_stress_form)
+        scratch.sym_grad_phi_velocity[i] = scratch.fe_values[velocity].symmetric_gradient(i, q);
+
       // stabilization related shape functions
       if (this->stabilization & apply_pspg)
         scratch.grad_phi_pressure[i] = scratch.fe_values[pressure].gradient(i, q);
     }
 
+    // stress form
+    if (use_stress_form)
+      weak_form_options.present_symmetric_velocity_gradient =
+          scratch.present_sym_velocity_gradients[q];
+
+    // background field
     if (strong_form_options.background_velocity_values)
       weak_form_options.background_velocity_value =
           strong_form_options.background_velocity_values->at(q);
     if (strong_form_options.background_velocity_gradients)
       weak_form_options.background_velocity_gradient =
           strong_form_options.background_velocity_gradients->at(q);
+
+    // body force
     if (strong_form_options.body_force_values)
       weak_form_options.body_force_value =
           strong_form_options.body_force_values->at(q);
-    if (use_stress_form)
-      weak_form_options.present_symmetric_velocity_gradient =
-          scratch.present_sym_velocity_gradients[q];
 
-    if (buoyancy_strong_form_options.gravity_field_values)
-      buoyancy_weak_form_options.gravity_field_value =
-          buoyancy_strong_form_options.gravity_field_values->at(q);
+    // reference density
     if (buoyancy_strong_form_options.reference_density_gradients)
       buoyancy_weak_form_options.reference_density_gradient =
           buoyancy_strong_form_options.reference_density_gradients->at(q);
+
+    // gravity field
+    if (buoyancy_strong_form_options.gravity_field_values)
+      buoyancy_weak_form_options.gravity_field_value =
+          buoyancy_strong_form_options.gravity_field_values->at(q);
+
 
     const double JxW{scratch.fe_values.JxW(q)};
 
     for (const auto i: scratch.fe_values.dof_indices())
     {
+      // stress form
+      if (use_stress_form)
+        weak_form_options.velocity_test_function_symmetric_gradient =
+            scratch.sym_grad_phi_velocity[i];
+
       // rhs step 1: hydrodynamic part
       double rhs = compute_hydrodynamic_rhs(scratch.phi_velocity[i],
                                             scratch.grad_phi_velocity[i],
@@ -409,6 +433,60 @@ void Solver<dim>::assemble_local_rhs
               } // Loop over face quadrature points
           }
         }
+      } // Loop over the faces of the cell
+
+  if (this->include_boundary_stress_terms && cell->at_boundary())
+    for (const auto &face : cell->face_iterators())
+      if (face->at_boundary() &&
+          std::find(this->boundary_stress_ids.begin(),
+                    this->boundary_stress_ids.end(),
+                    face->boundary_id()) != this->boundary_stress_ids.end())
+      {
+        // unconstrained boundary condition
+        scratch.fe_face_values.reinit(cell, face);
+
+        scratch.fe_face_values[pressure].get_function_values(this->evaluation_point,
+                                                             scratch.present_pressure_face_values);
+
+        // normal vectors
+        scratch.face_normal_vectors = scratch.fe_face_values.get_normal_vectors();
+
+        // compute present boundary traction
+        if (use_stress_form)
+        {
+          scratch.fe_face_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
+                                                                            scratch.present_velocity_sym_face_gradients);
+
+          for (const auto q: scratch.fe_face_values.quadrature_point_indices())
+            scratch.boundary_traction_values[q] =
+                - scratch.present_pressure_face_values[q] * scratch.face_normal_vectors[q]
+                + 2.0 * nu * scratch.present_velocity_sym_face_gradients[q] * scratch.face_normal_vectors[q];
+        }
+        else
+        {
+          scratch.fe_face_values[velocity].get_function_gradients(this->evaluation_point,
+                                                                  scratch.present_velocity_face_gradients);
+
+          for (const auto q: scratch.fe_face_values.quadrature_point_indices())
+            scratch.boundary_traction_values[q] =
+                - scratch.present_pressure_face_values[q] * scratch.face_normal_vectors[q]
+                + nu * scratch.present_velocity_face_gradients[q] * scratch.face_normal_vectors[q];
+        }
+
+        // Loop over face quadrature points
+        for (const auto q: scratch.fe_face_values.quadrature_point_indices())
+        {
+          const double JxW_face{scratch.fe_face_values.JxW(q)};
+          // Extract the test function's values at the face quadrature points
+          for (const auto i: scratch.fe_face_values.dof_indices())
+            scratch.phi_velocity[i] = scratch.fe_face_values[velocity].value(i, q);
+
+          // Loop over the degrees of freedom
+          for (const auto i: scratch.fe_face_values.dof_indices())
+            data.local_rhs(i) += scratch.phi_velocity[i] *
+                                 scratch.boundary_traction_values[q] *
+                                 JxW_face;
+        } // Loop over face quadrature points
       } // Loop over the faces of the cell
 }
 
