@@ -179,12 +179,15 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
 
 } // namespace AssemblyData
 
-template <int dim>
-class Solver: public Hydrodynamic::Solver<dim>
+template <int dim,
+          typename TriangulationType = Triangulation<dim>,
+          typename VectorType = BlockVector<double>,
+          typename MatrixType = BlockSparseMatrix<double>>
+class Solver: public Hydrodynamic::Solver<dim, TriangulationType, VectorType, MatrixType>
 {
 
 public:
-  Solver(Triangulation<dim>  &tria,
+  Solver(TriangulationType   &tria,
          Mapping<dim>        &mapping,
          const SolverParameters &parameters,
          const double         reynolds_number = 1.0,
@@ -249,26 +252,26 @@ private:
 };
 
 // inline functions
-template <int dim>
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim>::get_density_bcs() const
+Solver<dim, TriangulationType, VectorType, MatrixType>::get_density_bcs() const
 {
   return density_boundary_conditions;
 }
 
 
 
-template <int dim>
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
 inline ScalarBoundaryConditions<dim> &
-Solver<dim>::get_density_bcs()
+Solver<dim, TriangulationType, VectorType, MatrixType>::get_density_bcs()
 {
   return density_boundary_conditions;
 }
 
 
 
-template <int dim>
-inline void Solver<dim>::set_reference_density(const Function<dim> &reference_density)
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_reference_density(const Function<dim> &reference_density)
 {
   reference_density_ptr = &reference_density;
   return;
@@ -276,8 +279,8 @@ inline void Solver<dim>::set_reference_density(const Function<dim> &reference_de
 
 
 
-template <int dim>
-inline void Solver<dim>::set_gravity_field(const TensorFunction<1, dim> &gravity_field)
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_gravity_field(const TensorFunction<1, dim> &gravity_field)
 {
   gravity_field_ptr = &gravity_field;
   return;
@@ -285,8 +288,8 @@ inline void Solver<dim>::set_gravity_field(const TensorFunction<1, dim> &gravity
 
 
 
-template <int dim>
-inline double Solver<dim>::get_stratification_number() const
+template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+inline double Solver<dim, TriangulationType, VectorType, MatrixType>::get_stratification_number() const
 {
   return (stratification_number);
 }
