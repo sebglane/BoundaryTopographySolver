@@ -74,6 +74,9 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   UpdateFlags face_update_flags = update_values|
                                   update_quadrature_points|
                                   update_JxW_values;
+  if (this->include_boundary_stress_terms)
+    face_update_flags |= update_gradients|
+                         update_normal_vectors;
   if (!density_boundary_conditions.dirichlet_bcs.empty())
     face_update_flags |= update_normal_vectors;
 
