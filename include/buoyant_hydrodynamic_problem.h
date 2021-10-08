@@ -93,8 +93,7 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 template <int dim,
           typename TriangulationType = Triangulation<dim>,
-          typename VectorType = BlockVector<double>,
-          typename MatrixType = BlockSparseMatrix<double>>
+          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
 class BuoyantHydrodynamicProblem
 {
 public:
@@ -125,7 +124,7 @@ protected:
 
   MappingQCache<dim>      mapping;
 
-  Solver<dim, TriangulationType, VectorType, MatrixType>  solver;
+  Solver<dim, TriangulationType, LinearAlgebraContainer>  solver;
 
   const unsigned int      n_initial_refinements;
 
@@ -133,32 +132,32 @@ protected:
 };
 
 // inline functions
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void BuoyantHydrodynamicProblem<dim, TriangulationType, VectorType, MatrixType>::set_angular_velocity()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_angular_velocity()
 {
   return;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void BuoyantHydrodynamicProblem<dim, TriangulationType, VectorType, MatrixType>::set_background_velocity()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_background_velocity()
 {
   return;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void BuoyantHydrodynamicProblem<dim, TriangulationType, VectorType, MatrixType>::set_body_force_term()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_body_force_term()
 {
   return;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void BuoyantHydrodynamicProblem<dim, TriangulationType, VectorType, MatrixType>::set_postprocessor()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_postprocessor()
 {
   return;
 }

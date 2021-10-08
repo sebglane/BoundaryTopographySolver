@@ -30,6 +30,8 @@ struct LinearAlgebraContainer
 {
   LinearAlgebraContainer();
 
+  using vector_type = VectorType;
+
   template<int dim, typename ValueType>
   void setup_system_matrix
   (const DoFHandler<dim>                      &dof_handler,

@@ -17,10 +17,12 @@
 
 namespace SolverBase {
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::refine_mesh()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
 {
   std::cout << "Mesh refinement..." << std::endl;
+
+  using VectorType = typename LinearAlgebraContainer::vector_type;
 
   TimerOutput::Scope timer_section(computing_timer, "Refine mesh");
 

@@ -129,8 +129,7 @@ Stream& operator<<(Stream &stream, const Parameters &prm);
  */
 template <int dim,
           typename TriangulationType = Triangulation<dim>,
-          typename VectorType = BlockVector<double>,
-          typename MatrixType = BlockSparseMatrix<double>>
+          typename LinearAlgebraContainer = LinearAlgebraContainer<>>
 class Solver
 {
 public:
@@ -186,7 +185,7 @@ protected:
   AffineConstraints<double>   zero_constraints;
 
   // linear algebra
-  LinearAlgebraContainer<VectorType, MatrixType>  container;
+  LinearAlgebraContainer      container;
 
   // monitor of computing times
   TimerOutput                 computing_timer;
@@ -225,8 +224,8 @@ protected:
 };
 
 // inline methods
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 add_postprocessor(EvaluationBase<dim> &postprocessor)
 {
   postprocessor_ptrs.push_back(&postprocessor);
@@ -234,8 +233,8 @@ add_postprocessor(EvaluationBase<dim> &postprocessor)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 preprocess_newton_iteration(const unsigned int, const bool)
 {
   return;
@@ -243,8 +242,8 @@ preprocess_newton_iteration(const unsigned int, const bool)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 preprocess_picard_iteration(const unsigned int)
 {
   return;

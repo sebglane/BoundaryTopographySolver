@@ -13,8 +13,8 @@
 
 namespace SolverBase {
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::setup_dofs()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
 {
   // distribute and renumber block-wise
   dof_handler.distribute_dofs(*fe_system);

@@ -13,8 +13,8 @@
 
 namespace Advection {
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::assemble_rhs(const bool use_homogeneous_constraints)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
     std::cout << "    Assemble rhs..." << std::endl;

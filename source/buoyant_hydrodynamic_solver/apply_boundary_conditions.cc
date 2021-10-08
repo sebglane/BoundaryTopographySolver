@@ -11,8 +11,8 @@
 
 namespace BuoyantHydrodynamic {
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::apply_boundary_conditions()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_conditions()
 {
   if (this->verbose)
     std::cout << "    Apply boundary conditions..." << std::endl;

@@ -82,8 +82,8 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-Solver<dim, TriangulationType, VectorType, MatrixType>::Solver
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
 (TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters,
@@ -92,7 +92,7 @@ Solver<dim, TriangulationType, VectorType, MatrixType>::Solver
  const double           stratification,
  const double           rossby)
 :
-Hydrodynamic::Solver<dim, TriangulationType, VectorType, MatrixType>(tria, mapping, parameters, reynolds, froude, rossby),
+Hydrodynamic::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters, reynolds, froude, rossby),
 density_boundary_conditions(this->triangulation),
 reference_density_ptr(nullptr),
 gravity_field_ptr(nullptr),
@@ -104,8 +104,8 @@ nu_density(parameters.nu_density)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     std::cout << "    Output results..." << std::endl;
@@ -137,8 +137,8 @@ void Solver<dim, TriangulationType, VectorType, MatrixType>::output_results(cons
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::preprocess_newton_iteration
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::preprocess_newton_iteration
 (const unsigned int iteration,
  const bool         is_initial_cycle)
 {

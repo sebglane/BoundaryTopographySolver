@@ -13,8 +13,8 @@
 
 namespace SolverBase {
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 apply_hanging_node_constraints()
 {
   DoFTools::make_hanging_node_constraints(dof_handler,
@@ -26,8 +26,8 @@ apply_hanging_node_constraints()
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 apply_periodicity_constraints
 (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs)
 {
@@ -51,8 +51,8 @@ apply_periodicity_constraints
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<dim>::BCMapping &dirichlet_bcs,
  const ComponentMask                                   &mask)
@@ -156,8 +156,8 @@ apply_dirichlet_constraints
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 apply_normal_flux_constraints
 (const typename BoundaryConditionsBase<dim>::BCMapping &normal_flux_bcs,
  const ComponentMask                                   &mask)

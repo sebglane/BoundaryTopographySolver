@@ -347,9 +347,8 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
 
 template <int dim,
           typename TriangulationType = Triangulation<dim>,
-          typename VectorType = BlockVector<double>,
-          typename MatrixType = BlockSparseMatrix<double>>
-class Solver: public SolverBase::Solver<dim, TriangulationType, VectorType, MatrixType>
+          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
+class Solver: public SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>
 {
 public:
   Solver(TriangulationType   &tria,
@@ -446,8 +445,8 @@ protected:
 
 
 // inline functions
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_angular_velocity
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_angular_velocity
 (const Utility::AngularVelocity<dim> &angular_velocity)
 {
   angular_velocity_ptr = &angular_velocity;
@@ -455,8 +454,8 @@ inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_angular_
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_body_force
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_body_force
 (const TensorFunction<1, dim> &body_force)
 {
   body_force_ptr = &body_force;
@@ -464,8 +463,8 @@ inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_body_for
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_background_velocity
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_background_velocity
 (const TensorFunction<1, dim> &velocity)
 {
   background_velocity_ptr = &velocity;
@@ -473,51 +472,51 @@ inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_backgrou
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline VectorBoundaryConditions<dim> &
-Solver<dim, TriangulationType, VectorType, MatrixType>::get_velocity_bcs()
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_velocity_bcs()
 {
   return velocity_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline const VectorBoundaryConditions<dim> &
-Solver<dim, TriangulationType, VectorType, MatrixType>::get_velocity_bcs() const
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_velocity_bcs() const
 {
   return velocity_boundary_conditions;
 }
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, VectorType, MatrixType>::get_pressure_bcs()
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_pressure_bcs()
 {
   return pressure_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, VectorType, MatrixType>::get_pressure_bcs() const
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_pressure_bcs() const
 {
   return pressure_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline double Solver<dim, TriangulationType, VectorType, MatrixType>::get_reynolds_number() const
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline double Solver<dim, TriangulationType, LinearAlgebraContainer>::get_reynolds_number() const
 {
   return reynolds_number;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline double Solver<dim, TriangulationType, VectorType, MatrixType>::get_froude_number() const
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline double Solver<dim, TriangulationType, LinearAlgebraContainer>::get_froude_number() const
 {
   return froude_number;
 }

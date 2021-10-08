@@ -96,8 +96,8 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-AdvectionProblem<dim, TriangulationType, VectorType, MatrixType>::AdvectionProblem(const ProblemParameters &parameters)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+AdvectionProblem<dim, TriangulationType, LinearAlgebraContainer>::AdvectionProblem(const ProblemParameters &parameters)
 :
 mapping(parameters.mapping_degree),
 solver(triangulation, mapping, parameters),
@@ -109,8 +109,8 @@ n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_ref
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void AdvectionProblem<dim, TriangulationType, VectorType, MatrixType>::initialize_mapping()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void AdvectionProblem<dim, TriangulationType, LinearAlgebraContainer>::initialize_mapping()
 {
   std::cout << "    Initialize mapping..." << std::endl;
 
@@ -119,8 +119,8 @@ void AdvectionProblem<dim, TriangulationType, VectorType, MatrixType>::initializ
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void AdvectionProblem<dim, TriangulationType, VectorType, MatrixType>::run()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void AdvectionProblem<dim, TriangulationType, LinearAlgebraContainer>::run()
 {
   this->make_grid();
 

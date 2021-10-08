@@ -155,8 +155,8 @@ Stream& operator<<(Stream &stream, const Parameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-Solver<dim, TriangulationType, VectorType, MatrixType>::Solver
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
 (TriangulationType   &tria,
  Mapping<dim>        &mapping,
  const Parameters    &parameters)
@@ -217,8 +217,8 @@ verbose(parameters.verbose)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::solve()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::solve()
 {
   this->setup_fe_system();
 
@@ -248,8 +248,8 @@ void Solver<dim, TriangulationType, VectorType, MatrixType>::solve()
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::postprocess_solution(const unsigned int cycle) const
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::postprocess_solution(const unsigned int cycle) const
 {
   if (postprocessor_ptrs.empty())
     return;
@@ -269,10 +269,11 @@ void Solver<dim, TriangulationType, VectorType, MatrixType>::postprocess_solutio
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 newton_iteration(const bool is_initial_cycle)
 {
+  using VectorType = typename LinearAlgebraContainer::vector_type;
   VectorType  &evaluation_point = container.evaluation_point;
   VectorType  &present_solution = container.present_solution;
   VectorType  &solution_update = container.solution_update;
@@ -393,9 +394,10 @@ newton_iteration(const bool is_initial_cycle)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::picard_iteration()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
 {
+  using VectorType = typename LinearAlgebraContainer::vector_type;
   VectorType  &evaluation_point = container.evaluation_point;
   VectorType  &present_solution = container.present_solution;
   VectorType  &solution_update = container.solution_update;

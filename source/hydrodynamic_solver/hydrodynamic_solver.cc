@@ -188,8 +188,8 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-Solver<dim, TriangulationType, VectorType, MatrixType>::Solver
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
 (TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters,
@@ -197,7 +197,7 @@ Solver<dim, TriangulationType, VectorType, MatrixType>::Solver
  const double           froude,
  const double           rossby)
 :
-SolverBase::Solver<dim, TriangulationType, VectorType, MatrixType>(tria, mapping, parameters),
+SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters),
 velocity_boundary_conditions(this->triangulation),
 pressure_boundary_conditions(this->triangulation),
 boundary_stress_ids(),
@@ -218,8 +218,8 @@ include_boundary_stress_terms(parameters.include_boundary_stress_terms)
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-void Solver<dim, TriangulationType, VectorType, MatrixType>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     std::cout << "    Output results..." << std::endl;

@@ -73,9 +73,8 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 template <int dim,
           typename TriangulationType = Triangulation<dim>,
-          typename VectorType = BlockVector<double>,
-          typename MatrixType = BlockSparseMatrix<double>>
-class Solver: public SolverBase::Solver<dim, TriangulationType, VectorType, MatrixType>
+          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
+class Solver: public SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>
 {
 
 public:
@@ -122,26 +121,26 @@ private:
 };
 
 // inline functions
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, VectorType, MatrixType>::get_bcs() const
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_bcs() const
 {
   return boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, VectorType, MatrixType>::get_bcs()
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_bcs()
 {
   return boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_advection_field(const TensorFunction<1, dim> &advection_field)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_advection_field(const TensorFunction<1, dim> &advection_field)
 {
   advection_field_ptr = &advection_field;
   return;
@@ -149,8 +148,8 @@ inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_advectio
 
 
 
-template <int dim, typename TriangulationType, typename VectorType, typename MatrixType >
-inline void Solver<dim, TriangulationType, VectorType, MatrixType>::set_source_term(const Function<dim> &source_term)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_source_term(const Function<dim> &source_term)
 {
   source_term_ptr = &source_term;
   return;

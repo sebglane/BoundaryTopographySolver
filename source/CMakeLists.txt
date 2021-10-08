@@ -42,8 +42,6 @@ SET(TARGET_SRC
     advection_solver/assemble_rhs.cc
     advection_solver/advection_solver.cc
     advection_solver/setup.cc
-    advection_solver/stabilization.cc
-    # postprocessing.cc
 )
 ADD_LIBRARY(boundary_topography SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(boundary_topography)
