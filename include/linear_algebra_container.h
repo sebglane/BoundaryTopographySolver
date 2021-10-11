@@ -28,20 +28,16 @@ using namespace dealii;
 template<typename VectorType = BlockVector<double>, typename MatrixType = BlockSparseMatrix<double>, typename SparsityPatternType = BlockSparsityPattern>
 struct LinearAlgebraContainer
 {
-  LinearAlgebraContainer();
+  LinearAlgebraContainer(const MPI_Comm &mpi_comm=MPI_COMM_SELF);
 
   using vector_type = VectorType;
 
   template<int dim, typename ValueType>
-  void setup_system_matrix
-  (const DoFHandler<dim>                      &dof_handler,
-   const AffineConstraints<ValueType>         &constraints,
-   const std::vector<types::global_dof_index> &dofs_per_block,
-   const Table<2, DoFTools::Coupling>         &coupling_table);
-
-  void setup_vectors(const std::vector<types::global_dof_index> &dofs_per_block);
-
-  SparsityPatternType sparsity_pattern;
+  void setup
+  (const DoFHandler<dim>              &dof_handler,
+   const AffineConstraints<ValueType> &constraints,
+   const Table<2, DoFTools::Coupling> &coupling_table,
+   const unsigned int                  n_blocks);
 
   MatrixType          system_matrix;
 
@@ -49,6 +45,35 @@ struct LinearAlgebraContainer
   VectorType          present_solution;
   VectorType          solution_update;
   VectorType          system_rhs;
+
+private:
+  const MPI_Comm  &mpi_communicator;
+
+  template<int dim, typename ValueType>
+  void setup_system_matrix
+  (const DoFHandler<dim>              &dof_handler,
+   const AffineConstraints<ValueType> &constraints,
+   const Table<2, DoFTools::Coupling> &coupling_table);
+
+  void setup_vectors();
+
+  SparsityPatternType sparsity_pattern;
+
+  /*!
+   * @brief The set of the degrees of freedom owned by the processor.
+   */
+  std::vector<IndexSet> locally_owned_dofs_per_block;
+
+  /*!
+   * @brief The set of the degrees of freedom that are relevant for
+   * the processor.
+   */
+  std::vector<IndexSet> locally_relevant_dofs_per_block;
+
+  /*!
+   * @brief
+   */
+  std::vector<types::global_dof_index>  dofs_per_block;
 };
 
 }  // namespace SolverBase

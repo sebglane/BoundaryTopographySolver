@@ -28,8 +28,14 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
             << dof_handler.n_dofs()
             << std::endl;
 
+  IndexSet locally_relevant_dofs;
+  DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+
   nonzero_constraints.clear();
+  nonzero_constraints.reinit(locally_relevant_dofs);
+
   zero_constraints.clear();
+  zero_constraints.reinit(locally_relevant_dofs);
 
   // possibly initialize the mapping
   MappingQCache<dim> *mapping_q_cache_ptr = dynamic_cast<MappingQCache<dim>*>(&mapping);

@@ -33,9 +33,6 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
 
   SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs();
 
-  std::vector<types::global_dof_index> dofs_per_block =
-      DoFTools::count_dofs_per_fe_block(this->dof_handler);
-
   Table<2, DoFTools::Coupling>  coupling_table;
   coupling_table.reinit(this->fe_system->n_components(),
                         this->fe_system->n_components());
@@ -45,12 +42,10 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
     for (unsigned int c=0; c<coupling_table.n_cols(); ++c)
       coupling_table[r][c] = DoFTools::always;
 
-  this->container.setup_system_matrix(this->dof_handler,
-                                      this->zero_constraints,
-                                      dofs_per_block,
-                                      coupling_table);
-  this->container.setup_vectors(dofs_per_block);
-
+  this->container.setup(this->dof_handler,
+                        this->zero_constraints,
+                        coupling_table,
+                        this->fe_system->n_blocks());
 }
 
 // explicit instantiation
