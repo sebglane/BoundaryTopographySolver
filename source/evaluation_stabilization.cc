@@ -25,9 +25,9 @@ EvaluationStabilization<dim>::EvaluationStabilization
  const double rossby_number,
  const bool print_table)
 :
-angular_velocity_ptr(nullptr),
-body_force_ptr(nullptr),
-background_velocity_ptr(nullptr),
+angular_velocity_ptr(),
+body_force_ptr(),
+background_velocity_ptr(),
 stabilization(stabilization_flags),
 velocity_start_index(velocity_start_index),
 pressure_index(pressure_index),
@@ -96,11 +96,11 @@ void EvaluationStabilization<dim>::operator()
   AssertThrow(c > std::numeric_limits<double>::min(), ExcInternalError());
   AssertThrow(mu > std::numeric_limits<double>::min(), ExcInternalError());
 
-  if (angular_velocity_ptr != nullptr)
+  if (angular_velocity_ptr)
     AssertThrow(rossby_number > 0.0,
                 ExcMessage("Non-vanishing Rossby number is required if the angular "
                            "velocity vector is specified."));
-  if (body_force_ptr != nullptr)
+  if (body_force_ptr)
     AssertThrow(froude_number > 0.0,
                 ExcMessage("Non-vanishing Froude number is required if the body "
                            "force is specified."));
@@ -114,8 +114,7 @@ void EvaluationStabilization<dim>::operator()
                            update_gradients|
                            update_hessians|
                            update_JxW_values};
-  if ((angular_velocity_ptr != nullptr) ||
-      (background_velocity_ptr != nullptr))
+  if (angular_velocity_ptr || background_velocity_ptr)
     update_flags |= update_quadrature_points;
 
   FEValues<dim> fe_values(mapping,
@@ -149,7 +148,7 @@ void EvaluationStabilization<dim>::operator()
 
   std::vector<Tensor<1, dim>> background_velocity_values;
   std::vector<Tensor<2, dim>> background_velocity_gradients;
-  if (background_velocity_ptr != nullptr)
+  if (background_velocity_ptr)
   {
     background_velocity_values.resize(n_q_points);
     background_velocity_gradients.resize(n_q_points);
@@ -157,11 +156,11 @@ void EvaluationStabilization<dim>::operator()
 
   // source term values
   std::vector<Tensor<1,dim>>  body_force_values;
-  if (body_force_ptr != nullptr)
+  if (body_force_ptr)
     body_force_values.resize(n_q_points);
 
   typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
-  if (angular_velocity_ptr != nullptr)
+  if (angular_velocity_ptr)
     angular_velocity_value = angular_velocity_ptr->value();
 
   const double nu{1.0 / reynolds_number};
@@ -204,12 +203,12 @@ void EvaluationStabilization<dim>::operator()
                                                present_pressure_gradients);
 
     // body force
-    if (body_force_ptr != nullptr)
+    if (body_force_ptr)
       body_force_ptr->value_list(fe_values.get_quadrature_points(),
                                  body_force_values);
 
     // background field
-    if (background_velocity_ptr != nullptr)
+    if (background_velocity_ptr)
     {
       background_velocity_ptr->value_list(fe_values.get_quadrature_points(),
                                           background_velocity_values);
@@ -253,7 +252,7 @@ void EvaluationStabilization<dim>::operator()
                                            grad_phi_velocity[i]);
 
         // body force term
-        if (body_force_ptr != nullptr)
+        if (body_force_ptr)
         {
           Tensor<1, dim> body_force_test_function;
 
@@ -261,7 +260,7 @@ void EvaluationStabilization<dim>::operator()
           {
             body_force_test_function += delta * grad_phi_velocity[i] *
                                         present_velocity_values[q];
-            if (background_velocity_ptr != nullptr)
+            if (background_velocity_ptr)
               body_force_test_function += delta * grad_phi_velocity[i] *
                                           background_velocity_values[q];
           }
@@ -272,7 +271,7 @@ void EvaluationStabilization<dim>::operator()
         }
 
         // background field term
-        if (background_velocity_ptr != nullptr)
+        if (background_velocity_ptr)
         {
           Tensor<1, dim> background_velocity_test_function;
 
@@ -301,7 +300,7 @@ void EvaluationStabilization<dim>::operator()
         }
 
         // Coriolis term
-        if (angular_velocity_ptr != nullptr)
+        if (angular_velocity_ptr)
         {
           Tensor<1, dim> coriolis_term_test_function;
 
@@ -310,7 +309,7 @@ void EvaluationStabilization<dim>::operator()
           {
             coriolis_term_test_function += delta * grad_phi_velocity[i] *
                                            present_velocity_values[q];
-            if (background_velocity_ptr != nullptr)
+            if (background_velocity_ptr)
               coriolis_term_test_function += delta * grad_phi_velocity[i] *
                                              background_velocity_values[q];
           }
@@ -337,14 +336,14 @@ void EvaluationStabilization<dim>::operator()
         mass_residual = trace(present_velocity_gradients[q]);
 
         // body force term
-        if (body_force_ptr != nullptr)
+        if (body_force_ptr)
           momentum_residual -= body_force_values[q] / std::pow(this->froude_number, 2);
         // background field term
-        if (background_velocity_ptr != nullptr)
+        if (background_velocity_ptr)
           momentum_residual += (present_velocity_gradients[q] * background_velocity_values[q] +
                                 background_velocity_gradients[q] * present_velocity_values[q]);
         // Coriolis term
-        if (angular_velocity_ptr != nullptr)
+        if (angular_velocity_ptr)
         {
           if constexpr(dim == 2)
             momentum_residual += 2.0 / rossby_number * angular_velocity_value[0] *
@@ -420,8 +419,8 @@ EvaluationStabilization<dim>::EvaluationStabilization
 Hydrodynamic::EvaluationStabilization<dim>(stabilization_flags,
                                            velocity_start_index, pressure_index,
                                            reynolds_number, froude_number, rossby_number),
-reference_density_ptr(nullptr),
-gravity_field_ptr(nullptr),
+reference_density_ptr(),
+gravity_field_ptr(),
 density_index(density_index),
 stratification_number(stratification_number),
 c_density(std::numeric_limits<double>::min())
@@ -466,13 +465,13 @@ void EvaluationStabilization<dim>::operator()
   AssertThrow(this->mu > std::numeric_limits<double>::min(), ExcInternalError());
   AssertThrow(this->c_density > std::numeric_limits<double>::min(), ExcInternalError());
 
-  if (this->angular_velocity_ptr != nullptr)
+  if (this->angular_velocity_ptr)
     AssertThrow(this->rossby_number > 0.0,
                 ExcMessage("Non-vanishing Rossby number is required if the angular "
                            "velocity vector is specified."));
-  AssertThrow(gravity_field_ptr != nullptr,
+  AssertThrow(gravity_field_ptr,
               ExcMessage("For a buoyant fluid, the gravity field must be specified."));
-  AssertThrow(reference_density_ptr != nullptr,
+  AssertThrow(reference_density_ptr,
               ExcMessage("For a buoyant fluid, the reference density field must be specified."));
 
   AssertThrow(this->froude_number > 0.0,
@@ -523,7 +522,7 @@ void EvaluationStabilization<dim>::operator()
 
   std::vector<Tensor<1, dim>> background_velocity_values;
   std::vector<Tensor<2, dim>> background_velocity_gradients;
-  if (this->background_velocity_ptr != nullptr)
+  if (this->background_velocity_ptr)
   {
     background_velocity_values.resize(n_q_points);
     background_velocity_gradients.resize(n_q_points);
@@ -533,11 +532,11 @@ void EvaluationStabilization<dim>::operator()
   std::vector<Tensor<1,dim>>  reference_density_gradients(n_q_points);
   std::vector<Tensor<1,dim>>  gravity_field_values(n_q_points);
   std::vector<Tensor<1,dim>>  body_force_values;
-  if (this->body_force_ptr != nullptr)
+  if (this->body_force_ptr)
     body_force_values.resize(n_q_points);
 
   typename Utility::AngularVelocity<dim>::value_type angular_velocity_value;
-  if (this->angular_velocity_ptr != nullptr)
+  if (this->angular_velocity_ptr)
     angular_velocity_value = this->angular_velocity_ptr->value();
 
   const double nu{1.0 / this->reynolds_number};
@@ -596,12 +595,12 @@ void EvaluationStabilization<dim>::operator()
 
 
     // body force
-    if (this->body_force_ptr != nullptr)
+    if (this->body_force_ptr)
       this->body_force_ptr->value_list(fe_values.get_quadrature_points(),
                                        body_force_values);
 
     // background field
-    if (this->background_velocity_ptr != nullptr)
+    if (this->background_velocity_ptr)
     {
       this->background_velocity_ptr->value_list(fe_values.get_quadrature_points(),
                                                 background_velocity_values);
@@ -661,7 +660,7 @@ void EvaluationStabilization<dim>::operator()
                                       grad_phi_velocity[i]);
 
         // body force term
-        if (this->body_force_ptr != nullptr)
+        if (this->body_force_ptr)
         {
           Tensor<1, dim> body_force_test_function;
 
@@ -669,7 +668,7 @@ void EvaluationStabilization<dim>::operator()
           {
             body_force_test_function += delta * grad_phi_velocity[i] *
                                         present_velocity_values[q];
-            if (this->background_velocity_ptr != nullptr)
+            if (this->background_velocity_ptr)
               body_force_test_function += delta * grad_phi_velocity[i] *
                                           background_velocity_values[q];
           }
@@ -688,7 +687,7 @@ void EvaluationStabilization<dim>::operator()
           {
             buoyancy_test_function += delta * grad_phi_velocity[i] *
                                       present_velocity_values[q];
-            if (this->background_velocity_ptr != nullptr)
+            if (this->background_velocity_ptr)
               buoyancy_test_function += delta * grad_phi_velocity[i] *
                                         background_velocity_values[q];
           }
@@ -701,7 +700,7 @@ void EvaluationStabilization<dim>::operator()
 
 
         // background field term
-        if (this->background_velocity_ptr != nullptr)
+        if (this->background_velocity_ptr)
         {
           Tensor<1, dim> background_velocity_test_function;
 
@@ -730,7 +729,7 @@ void EvaluationStabilization<dim>::operator()
         }
 
         // Coriolis term
-        if (this->angular_velocity_ptr != nullptr)
+        if (this->angular_velocity_ptr)
         {
           Tensor<1, dim> coriolis_term_test_function;
 
@@ -739,7 +738,7 @@ void EvaluationStabilization<dim>::operator()
           {
             coriolis_term_test_function += delta * grad_phi_velocity[i] *
                                            present_velocity_values[q];
-            if (this->background_velocity_ptr != nullptr)
+            if (this->background_velocity_ptr)
               coriolis_term_test_function += delta * grad_phi_velocity[i] *
                                              background_velocity_values[q];
           }
@@ -766,7 +765,7 @@ void EvaluationStabilization<dim>::operator()
 //                                                0.0);
 
         // background field term
-        if (this->background_velocity_ptr != nullptr)
+        if (this->background_velocity_ptr)
         {
           const double background_velocity_test_function
             = delta_density * (present_velocity_values[q] + background_velocity_values[q]) *
@@ -791,16 +790,16 @@ void EvaluationStabilization<dim>::operator()
         mass_residual = trace(present_velocity_gradients[q]);
 
         // body force term
-        if (this->body_force_ptr != nullptr)
+        if (this->body_force_ptr)
           momentum_residual -= body_force_values[q] / std::pow(this->froude_number, 2);
         // buoyancy term
         momentum_residual -= present_density_values[q] * gravity_field_values[q] / std::pow(this->froude_number, 2);
         // background field term
-        if (this->background_velocity_ptr != nullptr)
+        if (this->background_velocity_ptr)
           momentum_residual += (present_velocity_gradients[q] * background_velocity_values[q] +
                                 background_velocity_gradients[q] * present_velocity_values[q]);
         // Coriolis term
-        if (this->angular_velocity_ptr != nullptr)
+        if (this->angular_velocity_ptr)
         {
           if constexpr(dim == 2)
             momentum_residual += 2.0 / this->rossby_number * angular_velocity_value[0] *
@@ -817,7 +816,7 @@ void EvaluationStabilization<dim>::operator()
                            reference_density_gradients[q] +
                            present_velocity_values[q] * present_density_gradients[q];
         // background field term
-        if (this->background_velocity_ptr != nullptr)
+        if (this->background_velocity_ptr)
           density_residual  += (stratification_number * background_velocity_values[q] * reference_density_gradients[q] +
                                 background_velocity_values[q] * present_density_gradients[q]);
 

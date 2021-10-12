@@ -6,11 +6,12 @@
  */
 
 #include <deal.II/base/function_lib.h>
-
 #include <deal.II/grid/grid_generator.h>
 
 #include <angular_velocity.h>
 #include <hydrodynamic_problem.h>
+
+#include <memory>
 
 using namespace Hydrodynamic;
 
@@ -72,7 +73,7 @@ protected:
   virtual void set_angular_velocity() override;
 
 private:
-  const ConstantAngularVelocity<dim>  angular_velocity;
+  std::shared_ptr<const ConstantAngularVelocity<dim>> angular_velocity_ptr;
 
   const types::boundary_id  left_bndry_id;
   const types::boundary_id  right_bndry_id;
@@ -89,7 +90,7 @@ template <int dim>
 RotatingCavityProblem<dim>::RotatingCavityProblem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
-angular_velocity(),
+angular_velocity_ptr(new ConstantAngularVelocity<dim>()),
 left_bndry_id(0),
 right_bndry_id(1),
 bottom_bndry_id(2),
@@ -148,7 +149,7 @@ void RotatingCavityProblem<dim>::set_boundary_conditions()
 template <int dim>
 void RotatingCavityProblem<dim>::set_angular_velocity()
 {
-  this->solver.set_angular_velocity(angular_velocity);
+  this->solver.set_angular_velocity(angular_velocity_ptr);
 }
 
 

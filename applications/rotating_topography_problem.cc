@@ -11,6 +11,8 @@
 #include <grid_factory.h>
 #include <hydrodynamic_problem.h>
 
+#include <memory>
+
 namespace TopographyProblem {
 
 using namespace Hydrodynamic;
@@ -60,7 +62,7 @@ protected:
   virtual void set_boundary_conditions() override;
 
 private:
-  const ConstantAngularVelocity<dim>  angular_velocity;
+  std::shared_ptr<const ConstantAngularVelocity<dim>> angular_velocity_ptr;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -78,7 +80,7 @@ template <int dim>
 Problem<dim>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
-angular_velocity(),
+angular_velocity_ptr(new ConstantAngularVelocity<dim>()),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -190,7 +192,7 @@ void Problem<dim>::set_boundary_conditions()
 template <int dim>
 void Problem<dim>::set_angular_velocity()
 {
-  this->solver.set_angular_velocity(angular_velocity);
+  this->solver.set_angular_velocity(angular_velocity_ptr);
 }
 
 

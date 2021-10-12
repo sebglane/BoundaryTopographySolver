@@ -17,9 +17,8 @@ void Solver<dim>::setup_fe_system()
   if (this->verbose)
     std::cout << "    Setup FE system..." << std::endl;
 
-  this->fe_system = new FESystem<dim>(FESystem<dim>(FE_Q<dim>(velocity_fe_degree), dim), 1,
-                                      FE_Q<dim>(velocity_fe_degree - 1), 1);
-
+  this->fe_system = std::make_shared<FESystem<dim>>(FESystem<dim>(FE_Q<dim>(velocity_fe_degree), dim), 1,
+                                                    FE_Q<dim>(velocity_fe_degree - 1), 1);
 }
 
 

@@ -12,6 +12,8 @@
 #include <advection_problem.h>
 #include <grid_factory.h>
 
+#include <memory>
+
 namespace AdvectionProblem {
 
 using namespace Advection;
@@ -76,9 +78,9 @@ protected:
   virtual void set_source_term() override;
 
 private:
-  ConstantTensorFunction<1, dim>  advection_field;
+  std::shared_ptr<const ConstantTensorFunction<1, dim>> advection_field_ptr;
 
-  SourceFunction<dim>             source_term;
+  std::shared_ptr<const SourceFunction<dim>> source_term_ptr;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -95,8 +97,16 @@ template <>
 Problem<2>::Problem(ProblemParameters &parameters)
 :
 AdvectionProblem<2>(parameters),
-advection_field(Tensor<1, 2>({numbers::SQRT1_2, numbers::SQRT1_2})),
-source_term(2.0 * numbers::PI)
+advection_field_ptr(new ConstantTensorFunction<1,2>{Tensor<1, 2>({numbers::SQRT1_2,
+                                                                  numbers::SQRT1_2})}),
+source_term_ptr(new SourceFunction<2>{2.0 * numbers::PI}),
+left_bndry_id(numbers::invalid_boundary_id),
+right_bndry_id(numbers::invalid_boundary_id),
+bottom_bndry_id(numbers::invalid_boundary_id),
+top_bndry_id(numbers::invalid_boundary_id),
+topographic_bndry_id(numbers::invalid_boundary_id),
+back_bndry_id(numbers::invalid_boundary_id),
+front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving viscous buoyant topography problem" << std::endl;
 }
@@ -107,10 +117,17 @@ template <>
 Problem<3>::Problem(ProblemParameters &parameters)
 :
 AdvectionProblem<3>(parameters),
-advection_field(Tensor<1, 3>({1.0 / std::sqrt(3.0),
-                              1.0 / std::sqrt(3.0),
-                              1.0 / std::sqrt(3.0)})),
-source_term(2.0 * numbers::PI)
+advection_field_ptr(new ConstantTensorFunction<1,3>{Tensor<1, 3>({1.0 / std::sqrt(3.0),
+                                                                  1.0 / std::sqrt(3.0),
+                                                                  1.0 / std::sqrt(3.0)})}),
+source_term_ptr(new SourceFunction<3>{2.0 * numbers::PI}),
+left_bndry_id(numbers::invalid_boundary_id),
+right_bndry_id(numbers::invalid_boundary_id),
+bottom_bndry_id(numbers::invalid_boundary_id),
+top_bndry_id(numbers::invalid_boundary_id),
+topographic_bndry_id(numbers::invalid_boundary_id),
+back_bndry_id(numbers::invalid_boundary_id),
+front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving viscous buoyant topography problem" << std::endl;
 }
@@ -120,7 +137,7 @@ source_term(2.0 * numbers::PI)
 template <int dim>
 void Problem<dim>::set_advection_field()
 {
-  this->solver.set_advection_field(advection_field);
+  this->solver.set_advection_field(advection_field_ptr);
 }
 
 
@@ -128,7 +145,7 @@ void Problem<dim>::set_advection_field()
 template <int dim>
 void Problem<dim>::set_source_term()
 {
-  this->solver.set_source_term(source_term);
+  this->solver.set_source_term(source_term_ptr);
 }
 
 
