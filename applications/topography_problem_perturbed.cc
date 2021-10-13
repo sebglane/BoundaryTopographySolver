@@ -54,12 +54,17 @@ template <>
 Problem<2>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<2>(parameters),
-background_velocity_ptr(new ConstantTensorFunction<1, 2>{Tensor<1, 2>({1.0, 0.0})}),
-traction_evaluation_ptr(new EvaluationBoundaryTraction<2>{0, 2, parameters.reynolds_number}),
-stabilization_evaluation_ptr(new EvaluationStabilization<2>{parameters.stabilization, 0, 2,
-                                                              parameters.reynolds_number,
-                                                              parameters.froude_number,
-                                                              parameters.rossby_number}),
+background_velocity_ptr(
+new ConstantTensorFunction<1, 2>{Tensor<1, 2>({1.0, 0.0})}),
+traction_evaluation_ptr(
+new EvaluationBoundaryTraction<2>{0, 2, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<2>{parameters.graphical_output_directory,
+                               parameters.stabilization,
+                               0,
+                               2,
+                               parameters.reynolds_number,
+                               parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress}),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -80,13 +85,17 @@ template <>
 Problem<3>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<3>(parameters),
-background_velocity_ptr(new ConstantTensorFunction<1, 3>{Tensor<1, 3>({1.0, 0.0, 0.0})}),
-traction_evaluation_ptr(new EvaluationBoundaryTraction<3>{0, 3, parameters.reynolds_number}),
-stabilization_evaluation_ptr(new EvaluationStabilization<3>{parameters.stabilization, 0, 3,
-                                                              parameters.reynolds_number,
-                                                              parameters.froude_number,
-                                                              parameters.rossby_number}),
-left_bndry_id(numbers::invalid_boundary_id),
+background_velocity_ptr(
+new ConstantTensorFunction<1, 3>{Tensor<1, 3>({1.0, 0.0, 0.0})}),
+traction_evaluation_ptr(
+new EvaluationBoundaryTraction<3>{0, 3, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<3>{parameters.graphical_output_directory,
+                               parameters.stabilization,
+                               0,
+                               3,
+                               parameters.reynolds_number,
+                               parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress}),left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
 top_bndry_id(numbers::invalid_boundary_id),

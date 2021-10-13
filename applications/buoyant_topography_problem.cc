@@ -14,6 +14,8 @@
 #include <evaluation_stabilization.h>
 #include <grid_factory.h>
 
+#include <memory>
+
 namespace TopographyProblem {
 
 using namespace BuoyantHydrodynamic;
@@ -114,12 +116,19 @@ template <>
 Problem<2>::Problem(ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<2>(parameters),
-traction_evaluation_ptr(new Hydrodynamic::EvaluationBoundaryTraction<2>{0, 2, parameters.reynolds_number}),
-stabilization_evaluation_ptr(new EvaluationStabilization<2>{parameters.stabilization,
-                                                            0, 2, 2 + 1,
-                                                            parameters.reynolds_number,
-                                                            parameters.froude_number,
-                                                            parameters.rossby_number}),
+traction_evaluation_ptr(
+new Hydrodynamic::EvaluationBoundaryTraction<2>{0, 2, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<2>{parameters.graphical_output_directory,
+                               parameters.stabilization,
+                               0,
+                               2,
+                               2 + 1,
+                               parameters.reynolds_number,
+                               parameters.stratification_number,
+                               parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress,
+                               parameters.froude_number,
+                               parameters.rossby_number}),
 gravity_field_ptr(new ConstantTensorFunction<1, 2>{Tensor<1, 2>({0.0, -1.0})}),
 reference_density_ptr(new ReferenceDensity<2>()),
 left_bndry_id(numbers::invalid_boundary_id),
@@ -147,12 +156,19 @@ template <>
 Problem<3>::Problem(ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<3>(parameters),
-traction_evaluation_ptr(new Hydrodynamic::EvaluationBoundaryTraction<3>{0, 3, parameters.reynolds_number}),
-stabilization_evaluation_ptr(new EvaluationStabilization<3>{parameters.stabilization,
-                                                            0, 3, 3 + 1,
-                                                            parameters.reynolds_number,
-                                                            parameters.froude_number,
-                                                            parameters.rossby_number}),
+traction_evaluation_ptr(
+new Hydrodynamic::EvaluationBoundaryTraction<3>{0, 3, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<3>{parameters.graphical_output_directory,
+                               parameters.stabilization,
+                               0,
+                               3,
+                               3 + 1,
+                               parameters.reynolds_number,
+                               parameters.stratification_number,
+                               parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress,
+                               parameters.froude_number,
+                               parameters.rossby_number}),
 gravity_field_ptr(new ConstantTensorFunction<1, 3>{Tensor<1, 3>({0.0, 0.0, -1.0})}),
 reference_density_ptr(new ReferenceDensity<3>()),
 left_bndry_id(numbers::invalid_boundary_id),

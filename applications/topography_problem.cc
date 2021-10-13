@@ -53,11 +53,15 @@ template <int dim>
 Problem<dim>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
-traction_evaluation_ptr(new EvaluationBoundaryTraction<dim>{0, dim, parameters.reynolds_number}),
-stabilization_evaluation_ptr(new EvaluationStabilization<dim>{parameters.stabilization, 0, dim,
-                                                              parameters.reynolds_number,
-                                                              parameters.froude_number,
-                                                              parameters.rossby_number}),
+traction_evaluation_ptr(
+new EvaluationBoundaryTraction<dim>{0, dim, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<dim>{parameters.graphical_output_directory,
+                                 parameters.stabilization,
+                                 0,
+                                 dim,
+                                 parameters.reynolds_number,
+                                 parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress}),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
