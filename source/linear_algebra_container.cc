@@ -7,9 +7,6 @@
 
 #include <linear_algebra_container.h>
 
-#include <deal.II/lac/trilinos_parallel_block_vector.h>
-#include <deal.II/lac/trilinos_block_sparse_matrix.h>
-
 #include <iterator>
 #include <numeric>
 
@@ -21,7 +18,8 @@ template <typename VectorType, typename MatrixType, typename SparsityPatternType
 LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 LinearAlgebraContainer(const MPI_Comm &mpi_comm)
 :
-mpi_communicator(mpi_comm)
+mpi_communicator(mpi_comm),
+distributed_vector_ptr()
 {}
 
 
@@ -46,7 +44,7 @@ void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::setup
   }
 
 
-  IndexSet locally_owned_dofs = dof_handler.locally_owned_dofs();
+  locally_owned_dofs = dof_handler.locally_owned_dofs();
   for (unsigned int i=0; i<dofs_per_block.size(); ++i)
     locally_owned_dofs_per_block.push_back(locally_owned_dofs.get_view(accumulated_dofs_per_block[i],
                                                                        accumulated_dofs_per_block[i+1]));
@@ -227,6 +225,9 @@ template struct LinearAlgebraContainer<>;
 template struct LinearAlgebraContainer<TrilinosWrappers::MPI::BlockVector,
                                        TrilinosWrappers::BlockSparseMatrix,
                                        TrilinosWrappers::BlockSparsityPattern>;
+template struct LinearAlgebraContainer<TrilinosWrappers::MPI::BlockVector,
+                                       TrilinosWrappers::SparseMatrix,
+                                       TrilinosWrappers::SparsityPattern>;
 
 }  // namespace SolverBase
 

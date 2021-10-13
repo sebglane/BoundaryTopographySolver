@@ -17,6 +17,8 @@
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/block_sparsity_pattern.h>
 #include <deal.II/lac/block_sparse_matrix.h>
+#include <deal.II/lac/trilinos_parallel_block_vector.h>
+#include <deal.II/lac/trilinos_block_sparse_matrix.h>
 
 #include <vector>
 
@@ -25,7 +27,9 @@ namespace SolverBase
 
 using namespace dealii;
 
-template<typename VectorType = BlockVector<double>, typename MatrixType = BlockSparseMatrix<double>, typename SparsityPatternType = BlockSparsityPattern>
+template<typename VectorType = BlockVector<double>,
+         typename MatrixType = BlockSparseMatrix<double>,
+         typename SparsityPatternType = BlockSparsityPattern>
 struct LinearAlgebraContainer
 {
   LinearAlgebraContainer(const MPI_Comm &mpi_comm=MPI_COMM_SELF);
@@ -39,17 +43,19 @@ struct LinearAlgebraContainer
    const Table<2, DoFTools::Coupling> &coupling_table,
    const unsigned int                  n_blocks);
 
-  inline void add_to_evaluation_point(const VectorType &other,
+  void add_to_evaluation_point(const VectorType &other,
                                       const double s = 1.0);
 
-  inline void add_to_present_solution(const VectorType &other,
+  void add_to_present_solution(const VectorType &other,
                                       const double s = 1.0);
 
-  inline void set_evaluation_point(const VectorType &other);
+  const IndexSet& get_locally_owned_dofs() const;
 
-  inline void set_present_solution(const VectorType &other);
+  void set_evaluation_point(const VectorType &other);
 
-  inline void set_solution_update(const VectorType &other);
+  void set_present_solution(const VectorType &other);
+
+  void set_solution_update(const VectorType &other);
 
   MatrixType          system_matrix;
 
@@ -61,6 +67,8 @@ struct LinearAlgebraContainer
 private:
   const MPI_Comm  &mpi_communicator;
 
+  std::shared_ptr<VectorType> distributed_vector_ptr;
+
   template<int dim, typename ValueType>
   void setup_system_matrix
   (const DoFHandler<dim>              &dof_handler,
@@ -70,6 +78,8 @@ private:
   void setup_vectors();
 
   SparsityPatternType sparsity_pattern;
+
+  IndexSet              locally_owned_dofs;
 
   /*!
    * @brief The set of the degrees of freedom owned by the processor.
@@ -87,6 +97,101 @@ private:
    */
   std::vector<types::global_dof_index>  dofs_per_block;
 };
+
+
+
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+inline const IndexSet& LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+get_locally_owned_dofs() const
+{
+  return (locally_owned_dofs);
+}
+
+
+
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+add_to_present_solution(const VectorType &other, const double s)
+{
+  if (!distributed_vector_ptr)
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+                                                          mpi_communicator);
+
+  VectorType &distributed_vector(*distributed_vector_ptr);
+  VectorType other_distributed_vector(distributed_vector);
+  distributed_vector = present_solution;
+  other_distributed_vector = other;
+  distributed_vector.add(s, other_distributed_vector);
+
+  present_solution = distributed_vector;
+}
+
+
+
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+add_to_evaluation_point(const VectorType &other, const double s)
+{
+  if (!distributed_vector_ptr)
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+                                                          mpi_communicator);
+
+  VectorType &distributed_vector(*distributed_vector_ptr);
+  VectorType other_distributed_vector(distributed_vector);
+  distributed_vector = evaluation_point;
+  other_distributed_vector = other;
+  distributed_vector.add(s, other_distributed_vector);
+
+  evaluation_point = distributed_vector;
+}
+
+
+
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+set_evaluation_point(const VectorType &other)
+{
+  if (!distributed_vector_ptr)
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+                                                          mpi_communicator);
+
+  VectorType &distributed_vector(*distributed_vector_ptr);
+  distributed_vector = other;
+
+  evaluation_point = distributed_vector;
+}
+
+
+
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+set_present_solution(const VectorType &other)
+{
+  if (!distributed_vector_ptr)
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+                                                          mpi_communicator);
+
+  VectorType &distributed_vector(*distributed_vector_ptr);
+  distributed_vector = other;
+
+  present_solution = distributed_vector;
+}
+
+
+
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+set_solution_update(const VectorType &other)
+{
+  if (!distributed_vector_ptr)
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+                                                          mpi_communicator);
+
+  VectorType &distributed_vector(*distributed_vector_ptr);
+  distributed_vector = other;
+
+  solution_update = distributed_vector;
+}
 
 
 
