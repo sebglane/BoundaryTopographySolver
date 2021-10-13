@@ -39,6 +39,18 @@ struct LinearAlgebraContainer
    const Table<2, DoFTools::Coupling> &coupling_table,
    const unsigned int                  n_blocks);
 
+  inline void add_to_evaluation_point(const VectorType &other,
+                                      const double s = 1.0);
+
+  inline void add_to_present_solution(const VectorType &other,
+                                      const double s = 1.0);
+
+  inline void set_evaluation_point(const VectorType &other);
+
+  inline void set_present_solution(const VectorType &other);
+
+  inline void set_solution_update(const VectorType &other);
+
   MatrixType          system_matrix;
 
   VectorType          evaluation_point;
@@ -75,6 +87,51 @@ private:
    */
   std::vector<types::global_dof_index>  dofs_per_block;
 };
+
+
+
+template<>
+inline void LinearAlgebraContainer<>::add_to_evaluation_point
+(const BlockVector<double> &other, const double s)
+{
+  evaluation_point.add(s, other);
+}
+
+
+
+template<>
+inline void LinearAlgebraContainer<>::add_to_present_solution
+(const BlockVector<double> &other, const double s)
+{
+  present_solution.add(s, other);
+}
+
+
+
+template<>
+inline void LinearAlgebraContainer<>::set_evaluation_point
+(const BlockVector<double> &other)
+{
+  evaluation_point = other;
+}
+
+
+
+template<>
+inline void LinearAlgebraContainer<>::set_present_solution
+(const BlockVector<double> &other)
+{
+  present_solution = other;
+}
+
+
+
+template<>
+inline void LinearAlgebraContainer<>::set_solution_update
+(const BlockVector<double> &other)
+{
+  solution_update = other;
+}
 
 }  // namespace SolverBase
 

@@ -286,9 +286,9 @@ newton_iteration(const bool is_initial_cycle)
                             const bool use_homogeneous_constraints = true,
                             const unsigned int iteration)
       {
-        evaluation_point = present_solution;
+        this->container.set_evaluation_point(present_solution);
         if (alpha != 0.0)
-          evaluation_point.add(alpha, solution_update);
+          this->container.add_to_evaluation_point(solution_update, alpha);
         this->nonzero_constraints.distribute(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
@@ -340,10 +340,10 @@ newton_iteration(const bool is_initial_cycle)
     if (first_step)
     {
       // solve problem
-      evaluation_point = present_solution;
+      container.set_evaluation_point(present_solution);
       this->assemble_system(/* use_homogeneous_constraints ? */ false);
       solve_linear_system(/* use_homogeneous_constraints ? */ false);
-      present_solution = solution_update;
+      container.set_present_solution(solution_update);
       nonzero_constraints.distribute(present_solution);
       first_step = false;
       // compute residual
@@ -352,7 +352,7 @@ newton_iteration(const bool is_initial_cycle)
     else
     {
       // solve problem
-      evaluation_point = present_solution;
+      container.set_evaluation_point(present_solution);
       this->assemble_system(/* use_homogeneous_constraints ? */ true);
       solve_linear_system(/* use_homogeneous_constraints ? */ true);
       // line search
@@ -370,7 +370,7 @@ newton_iteration(const bool is_initial_cycle)
         if (current_residual < last_residual)
           break;
       }
-      present_solution = evaluation_point;
+      container.set_present_solution(evaluation_point);
     }
 
     // output residual
@@ -407,7 +407,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
 
   auto compute_residual = [&, this](const bool use_homogeneous_constraints = true)
       {
-        evaluation_point = present_solution;
+        container.set_evaluation_point(present_solution);
         this->nonzero_constraints.distribute(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
@@ -443,21 +443,20 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
     if (iteration == 0)
     {
       // solve problem
-      evaluation_point = present_solution;
+      container.set_evaluation_point(present_solution);
       this->assemble_system(/* use_homogeneous_constraints ? */ false,
                             /* use_newton_linearization ? */ false);
       solve_linear_system(/* use_homogeneous_constraints ? */ false);
-      present_solution = solution_update;
+      container.set_present_solution(solution_update);
     }
     else
     {
       // solve problem
-      evaluation_point = present_solution;
+      container.set_evaluation_point(present_solution);
       this->assemble_system(/* use_homogeneous_constraints ? */ true,
                             /* use_newton_linearization ? */ false);
       solve_linear_system(/* use_homogeneous_constraints ? */ true);
-      present_solution += solution_update;
-
+      container.add_to_present_solution(solution_update);
     }
 
     nonzero_constraints.distribute(present_solution);
