@@ -201,9 +201,9 @@ SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping
 velocity_boundary_conditions(this->triangulation),
 pressure_boundary_conditions(this->triangulation),
 boundary_stress_ids(),
-angular_velocity_ptr(nullptr),
-body_force_ptr(nullptr),
-background_velocity_ptr(nullptr),
+angular_velocity_ptr(),
+body_force_ptr(),
+background_velocity_ptr(),
 convective_term_weak_form(parameters.convective_term_weak_form),
 viscous_term_weak_form(parameters.viscous_term_weak_form),
 stabilization(parameters.stabilization),
@@ -226,8 +226,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(cons
 
   Postprocessor<dim>  postprocessor(0, dim);
 
-  if (background_velocity_ptr != nullptr)
-    postprocessor.set_background_velocity(*background_velocity_ptr);
+  if (background_velocity_ptr)
+    postprocessor.set_background_velocity(background_velocity_ptr);
 
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;

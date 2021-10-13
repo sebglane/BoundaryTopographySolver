@@ -82,9 +82,9 @@ public:
          Mapping<dim>        &mapping,
          const SolverParameters &parameters);
 
-  void set_advection_field(const TensorFunction<1, dim> &advection_field);
+  void set_advection_field(const std::shared_ptr<const TensorFunction<1, dim>> &advection_field);
 
-  void set_source_term(const Function<dim> &reference_density);
+  void set_source_term(const std::shared_ptr<const Function<dim>> &reference_density);
 
   ScalarBoundaryConditions<dim>&  get_bcs();
 
@@ -107,9 +107,9 @@ private:
 
   ScalarBoundaryConditions<dim> boundary_conditions;
 
-  const TensorFunction<1, dim> *advection_field_ptr;
+  std::shared_ptr<const TensorFunction<1, dim>> advection_field_ptr;
 
-  const Function<dim>          *source_term_ptr;
+  std::shared_ptr<const Function<dim>> source_term_ptr;
 
   const unsigned int  fe_degree;
 
@@ -140,18 +140,20 @@ Solver<dim, TriangulationType, LinearAlgebraContainer>::get_bcs()
 
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_advection_field(const TensorFunction<1, dim> &advection_field)
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_advection_field
+(const std::shared_ptr<const TensorFunction<1, dim>> &advection_field)
 {
-  advection_field_ptr = &advection_field;
+  advection_field_ptr = advection_field;
   return;
 }
 
 
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_source_term(const Function<dim> &source_term)
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_source_term
+(const std::shared_ptr<const Function<dim>> &source_term)
 {
-  source_term_ptr = &source_term;
+  source_term_ptr = source_term;
   return;
 }
 

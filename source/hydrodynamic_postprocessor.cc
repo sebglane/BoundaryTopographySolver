@@ -15,7 +15,7 @@ Postprocessor<dim>::Postprocessor
  const unsigned int pressure_index)
 :
 DataPostprocessor<dim>(),
-background_velocity_ptr(nullptr),
+background_velocity_ptr(),
 velocity_start_index(velocity_start_index),
 pressure_index(pressure_index)
 {}
@@ -28,7 +28,7 @@ std::vector<std::string> Postprocessor<dim>::get_names() const
   std::vector<std::string> solution_names;
 
   // velocity
-  if (background_velocity_ptr != nullptr)
+  if (background_velocity_ptr)
     for (unsigned int d=0; d<dim; ++d)
       solution_names.push_back("velocity_perturbation");
   else
@@ -46,7 +46,7 @@ std::vector<std::string> Postprocessor<dim>::get_names() const
   for (unsigned int d=0; d<dim; ++d)
     solution_names.push_back("pressure_gradient");
   // background velocity
-  if (background_velocity_ptr != nullptr)
+  if (background_velocity_ptr)
     for (unsigned int d=0; d<dim; ++d)
       solution_names.push_back("velocity");
 
@@ -59,7 +59,7 @@ template<int dim>
 UpdateFlags Postprocessor<dim>::get_needed_update_flags() const
 {
   UpdateFlags update_flags{update_values|update_gradients};
-  if (background_velocity_ptr != nullptr)
+  if (background_velocity_ptr)
     update_flags |= update_quadrature_points;
 
   return (update_flags);
@@ -89,7 +89,7 @@ Postprocessor<dim>::get_data_component_interpretation() const
   for (unsigned int d=0; d<dim; ++d)
     component_interpretation.push_back(DataComponentInterpretation::component_is_part_of_vector);
   // background velocity
-  if (background_velocity_ptr != nullptr)
+  if (background_velocity_ptr)
     for (unsigned int d=0; d<dim; ++d)
       component_interpretation.push_back(DataComponentInterpretation::component_is_part_of_vector);
 
@@ -153,7 +153,7 @@ void Postprocessor<dim>::evaluate_vector_field
       computed_quantities[q](cnt + d) = inputs.solution_gradients[q][pressure_index][d];
     cnt += dim;
     // background value
-    if (background_velocity_ptr != nullptr)
+    if (background_velocity_ptr)
     {
       background_velocity = background_velocity_ptr->value(inputs.evaluation_points[q]);
       for (unsigned int d=0; d<dim; ++d)

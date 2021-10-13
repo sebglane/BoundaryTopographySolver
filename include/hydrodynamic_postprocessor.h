@@ -12,6 +12,8 @@
 
 #include <deal.II/numerics/data_postprocessor.h>
 
+#include <memory>
+
 namespace Hydrodynamic {
 
 using namespace dealii;
@@ -23,7 +25,7 @@ public:
   Postprocessor(const unsigned int velocity_start_index,
                 const unsigned int pressure_index);
 
-  void set_background_velocity(const TensorFunction<1, dim> &velocity);
+  void set_background_velocity(const std::shared_ptr<const TensorFunction<1, dim>> &velocity);
 
   virtual void evaluate_vector_field
   (const DataPostprocessorInputs::Vector<dim> &inputs,
@@ -37,7 +39,7 @@ public:
   virtual UpdateFlags get_needed_update_flags() const;
 
 private:
-  const TensorFunction<1, dim>  *background_velocity_ptr;
+  std::shared_ptr<const TensorFunction<1, dim>> background_velocity_ptr;
 
   const unsigned int velocity_start_index;
 
@@ -46,9 +48,10 @@ private:
 
 // inline functions
 template <int dim>
-inline void Postprocessor<dim>::set_background_velocity(const TensorFunction<1, dim> &velocity)
+inline void Postprocessor<dim>::set_background_velocity
+(const std::shared_ptr<const TensorFunction<1, dim>> &velocity)
 {
-  background_velocity_ptr = &velocity;
+  background_velocity_ptr = velocity;
 }
 
 }  // namespace Hydrodynamic

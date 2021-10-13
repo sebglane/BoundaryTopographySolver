@@ -163,7 +163,7 @@ Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
 :
 triangulation(tria),
 mapping(mapping),
-fe_system(nullptr),
+fe_system(),
 dof_handler(triangulation),
 //container(triangulation.get_communicator()),
 computing_timer(std::cout,

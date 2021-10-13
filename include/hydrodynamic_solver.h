@@ -15,6 +15,7 @@
 #include <solver_base.h>
 #include <stabilization_flags.h>
 
+#include <memory>
 #include <optional>
 
 namespace Hydrodynamic {
@@ -358,11 +359,11 @@ public:
          const double         froude_number = 0.0,
          const double         rossby_number = 0.0);
 
-  void set_angular_velocity(const Utility::AngularVelocity<dim> &angular_velocity);
+  void set_angular_velocity(const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity);
 
-  void set_body_force(const TensorFunction<1, dim> &body_force);
+  void set_body_force(const std::shared_ptr<const TensorFunction<1, dim>> &body_force);
 
-  void set_background_velocity(const TensorFunction<1, dim> &background_velocity);
+  void set_background_velocity(const std::shared_ptr<const TensorFunction<1, dim>> &background_velocity);
 
   VectorBoundaryConditions<dim>&  get_velocity_bcs();
   const VectorBoundaryConditions<dim>&  get_velocity_bcs() const;
@@ -416,11 +417,11 @@ protected:
 
   std::vector<types::boundary_id> boundary_stress_ids;
 
-  const Utility::AngularVelocity<dim> *angular_velocity_ptr;
+  std::shared_ptr<const Utility::AngularVelocity<dim>> angular_velocity_ptr;
 
-  const TensorFunction<1, dim>        *body_force_ptr;
+  std::shared_ptr<const TensorFunction<1, dim>> body_force_ptr;
 
-  const TensorFunction<1, dim>        *background_velocity_ptr;
+  std::shared_ptr<const TensorFunction<1, dim>> background_velocity_ptr;
 
   const ConvectiveTermWeakForm  convective_term_weak_form;
 
@@ -447,27 +448,27 @@ protected:
 // inline functions
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_angular_velocity
-(const Utility::AngularVelocity<dim> &angular_velocity)
+(const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity)
 {
-  angular_velocity_ptr = &angular_velocity;
+  angular_velocity_ptr = angular_velocity;
 }
 
 
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_body_force
-(const TensorFunction<1, dim> &body_force)
+(const std::shared_ptr<const TensorFunction<1, dim>> &body_force)
 {
-  body_force_ptr = &body_force;
+  body_force_ptr = body_force;
 }
 
 
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_background_velocity
-(const TensorFunction<1, dim> &velocity)
+(const std::shared_ptr<const TensorFunction<1, dim>> &velocity)
 {
-  background_velocity_ptr = &velocity;
+  background_velocity_ptr = velocity;
 }
 
 

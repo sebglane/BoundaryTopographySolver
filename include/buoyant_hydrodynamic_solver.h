@@ -11,6 +11,8 @@
 #include <buoyant_hydrodynamic_options.h>
 #include <hydrodynamic_solver.h>
 
+#include <memory>
+
 namespace BuoyantHydrodynamic {
 
 using namespace BoundaryConditions;
@@ -194,9 +196,9 @@ public:
          const double         stratification_number = 1.0,
          const double         rossby_number = 0.0);
 
-  void set_reference_density(const Function<dim> &reference_density);
+  void set_reference_density(const std::shared_ptr<const Function<dim>> &reference_density);
 
-  void set_gravity_field(const TensorFunction<1, dim> &gravity_field);
+  void set_gravity_field(const std::shared_ptr<const TensorFunction<1, dim>> &gravity_field);
 
   ScalarBoundaryConditions<dim>&  get_density_bcs();
 
@@ -236,9 +238,9 @@ private:
 
   ScalarBoundaryConditions<dim> density_boundary_conditions;
 
-  const Function<dim>          *reference_density_ptr;
+  std::shared_ptr<const Function<dim>> reference_density_ptr;
 
-  const TensorFunction<1, dim> *gravity_field_ptr;
+  std::shared_ptr<const TensorFunction<1, dim>> gravity_field_ptr;
 
   const double        stratification_number;
 
@@ -270,18 +272,20 @@ Solver<dim, TriangulationType, LinearAlgebraContainer>::get_density_bcs()
 
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_reference_density(const Function<dim> &reference_density)
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_reference_density
+(const std::shared_ptr<const Function<dim>> &reference_density)
 {
-  reference_density_ptr = &reference_density;
+  reference_density_ptr = reference_density;
   return;
 }
 
 
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_gravity_field(const TensorFunction<1, dim> &gravity_field)
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_gravity_field
+(const std::shared_ptr<const TensorFunction<1, dim>> &gravity_field)
 {
-  gravity_field_ptr = &gravity_field;
+  gravity_field_ptr = gravity_field;
   return;
 }
 
