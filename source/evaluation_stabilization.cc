@@ -30,9 +30,9 @@ EvaluationStabilization<dim>::EvaluationStabilization
  const double rossby_number,
  const bool   print_table)
 :
-angular_velocity_ptr(nullptr),
-body_force_ptr(nullptr),
-background_velocity_ptr(nullptr),
+angular_velocity_ptr(),
+body_force_ptr(),
+background_velocity_ptr(),
 stabilization(stabilization_flags),
 velocity_start_index(velocity_start_index),
 pressure_index(pressure_index),
@@ -113,11 +113,11 @@ void EvaluationStabilization<dim>::operator()
   AssertThrow(c > std::numeric_limits<double>::min(), ExcInternalError());
   AssertThrow(mu > std::numeric_limits<double>::min(), ExcInternalError());
 
-  if (angular_velocity_ptr != nullptr)
+  if (angular_velocity_ptr)
     AssertThrow(rossby_number > 0.0,
                 ExcMessage("Non-vanishing Rossby number is required if the angular "
                            "velocity vector is specified."));
-  if (body_force_ptr != nullptr)
+  if (body_force_ptr)
     AssertThrow(froude_number > 0.0,
                 ExcMessage("Non-vanishing Froude number is required if the body "
                            "force is specified."));
@@ -131,8 +131,7 @@ void EvaluationStabilization<dim>::operator()
                            update_gradients|
                            update_hessians|
                            update_JxW_values};
-  if ((angular_velocity_ptr != nullptr) ||
-      (background_velocity_ptr != nullptr))
+  if (angular_velocity_ptr || background_velocity_ptr)
     update_flags |= update_quadrature_points;
 
   using Scratch = AssemblyData::RightHandSide::Scratch<dim>;
@@ -148,8 +147,8 @@ void EvaluationStabilization<dim>::operator()
                   background_velocity_ptr != nullptr,
                   body_force_ptr != nullptr);
 
-  const FEValuesExtractors::Vector  velocity(0);
-  const FEValuesExtractors::Scalar  pressure(dim);
+  const FEValuesExtractors::Vector  velocity(velocity_start_index);
+  const FEValuesExtractors::Scalar  pressure(pressure_index);
 
   const double nu{1.0 / reynolds_number};
 
@@ -157,7 +156,7 @@ void EvaluationStabilization<dim>::operator()
   strong_form_options.use_stress_form = use_stress_form;
 
   // Coriolis term
-  if (angular_velocity_ptr != nullptr)
+  if (angular_velocity_ptr)
   {
     strong_form_options.angular_velocity = angular_velocity_ptr->value();
     strong_form_options.rossby_number = rossby_number;
@@ -227,7 +226,7 @@ void EvaluationStabilization<dim>::operator()
     }
 
     // body force
-    if (body_force_ptr != nullptr)
+    if (body_force_ptr)
     {
       body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
                                  *strong_form_options.body_force_values);
@@ -235,7 +234,7 @@ void EvaluationStabilization<dim>::operator()
     }
 
     // background field
-    if (background_velocity_ptr != nullptr)
+    if (background_velocity_ptr)
     {
       background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
                                           *strong_form_options.background_velocity_values);
@@ -349,8 +348,8 @@ Hydrodynamic::EvaluationStabilization<dim>(output_directory,
                                            froude_number,
                                            rossby_number,
                                            print_table),
-reference_density_ptr(nullptr),
-gravity_field_ptr(nullptr),
+reference_density_ptr(),
+gravity_field_ptr(),
 density_index(density_index),
 stratification_number(stratification_number),
 c_density(std::numeric_limits<double>::min())
@@ -395,15 +394,15 @@ void EvaluationStabilization<dim>::operator()
   AssertThrow(this->mu > std::numeric_limits<double>::min(), ExcInternalError());
   AssertThrow(c_density > std::numeric_limits<double>::min(), ExcInternalError());
 
-  if (this->angular_velocity_ptr != nullptr)
+  if (this->angular_velocity_ptr)
     AssertThrow(this->rossby_number > 0.0,
                 ExcMessage("Non-vanishing Rossby number is required if the angular "
                            "velocity vector is specified."));
-  if (this->body_force_ptr != nullptr)
+  if (this->body_force_ptr)
     AssertThrow(this->froude_number > 0.0,
                 ExcMessage("Non-vanishing Froude number is required if the body "
                            "force is specified."));
-  if (gravity_field_ptr != nullptr)
+  if (gravity_field_ptr)
     AssertThrow(this->froude_number > 0.0,
                 ExcMessage("For a buoyant fluid, the Froude number must be specified."));
   AssertThrow(this->reynolds_number > 0.0,
@@ -435,9 +434,9 @@ void EvaluationStabilization<dim>::operator()
                   gravity_field_ptr != nullptr,
                   reference_density_ptr != nullptr);
 
-  const FEValuesExtractors::Vector  velocity(0);
-  const FEValuesExtractors::Scalar  pressure(dim);
-  const FEValuesExtractors::Scalar  density(dim+1);
+  const FEValuesExtractors::Vector  velocity(this->velocity_start_index);
+  const FEValuesExtractors::Scalar  pressure(this->pressure_index);
+  const FEValuesExtractors::Scalar  density(density_index);
 
   const double nu{1.0 / this->reynolds_number};
 
@@ -447,7 +446,7 @@ void EvaluationStabilization<dim>::operator()
   BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_strong_form_options = scratch.strong_form_options;
 
   // Coriolis term
-  if (this->angular_velocity_ptr != nullptr)
+  if (this->angular_velocity_ptr)
   {
     strong_form_options.angular_velocity = this->angular_velocity_ptr->value();
     strong_form_options.rossby_number = this->rossby_number;
@@ -531,7 +530,7 @@ void EvaluationStabilization<dim>::operator()
     }
 
     // body force
-    if (this->body_force_ptr != nullptr)
+    if (this->body_force_ptr)
     {
       this->body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
                                        *strong_form_options.body_force_values);
@@ -539,7 +538,7 @@ void EvaluationStabilization<dim>::operator()
     }
 
     // background field
-    if (this->background_velocity_ptr != nullptr)
+    if (this->background_velocity_ptr)
     {
       this->background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
                                                 *strong_form_options.background_velocity_values);
@@ -548,7 +547,7 @@ void EvaluationStabilization<dim>::operator()
     }
 
     // reference density
-    if (reference_density_ptr != nullptr)
+    if (reference_density_ptr)
     {
       reference_density_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
                                            *buoyancy_strong_form_options.reference_density_gradients);
@@ -557,7 +556,7 @@ void EvaluationStabilization<dim>::operator()
     }
 
     // gravity field
-    if (gravity_field_ptr != nullptr)
+    if (gravity_field_ptr)
     {
       gravity_field_ptr->value_list(scratch.fe_values.get_quadrature_points(),
                                     *buoyancy_strong_form_options.gravity_field_values);

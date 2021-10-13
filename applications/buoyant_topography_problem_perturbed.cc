@@ -92,16 +92,15 @@ protected:
   virtual void set_postprocessor() override;
 
 private:
-  Hydrodynamic::
-  EvaluationBoundaryTraction<dim> traction_evaluation;
+  std::shared_ptr<Hydrodynamic::EvaluationBoundaryTraction<dim>> traction_evaluation_ptr;
 
-  EvaluationStabilization<dim>    stabilization_evaluation;
+  std::shared_ptr<EvaluationStabilization<dim>>    stabilization_evaluation_ptr;
 
-  const ConstantTensorFunction<1, dim>  gravity_field;
+  std::shared_ptr<const ConstantTensorFunction<1, dim>> gravity_field_ptr;
 
-  const ConstantTensorFunction<1, dim>  background_velocity;
+  std::shared_ptr<const ConstantTensorFunction<1, dim>>  background_velocity_ptr;
 
-  const ReferenceDensity<dim> reference_density;
+  std::shared_ptr<const ReferenceDensity<dim>>          reference_density_ptr;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -118,20 +117,22 @@ template <>
 Problem<2>::Problem(ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<2>(parameters),
-traction_evaluation(0, 2, parameters.reynolds_number),
-stabilization_evaluation(parameters.graphical_output_directory,
-                         parameters.stabilization,
-                         0,
-                         2,
-                         2 + 1,
-                         parameters.reynolds_number,
-                         parameters.stratification_number,
-                         parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress,
-                         parameters.froude_number,
-                         parameters.rossby_number),
-gravity_field(Tensor<1, 2>({0.0, -1.0})),
-background_velocity(Tensor<1, 2>({1.0, 0.0})),
-reference_density(),
+traction_evaluation_ptr(
+new Hydrodynamic::EvaluationBoundaryTraction<2>{0, 2, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<2>{parameters.graphical_output_directory,
+                               parameters.stabilization,
+                               0,
+                               2,
+                               2 + 1,
+                               parameters.reynolds_number,
+                               parameters.stratification_number,
+                               parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress,
+                               parameters.froude_number,
+                               parameters.rossby_number}),
+gravity_field_ptr(new ConstantTensorFunction<1, 2>{Tensor<1, 2>({0.0, -1.0})}),
+background_velocity_ptr(new ConstantTensorFunction<1, 2>{Tensor<1, 2>({1.0, 0.0})}),
+reference_density_ptr(new ReferenceDensity<2>()),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -143,13 +144,13 @@ front_bndry_id(numbers::invalid_boundary_id)
   std::cout << "Solving perturbed buoyant topography problem" << std::endl;
 
   Point<2> point;
-  Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
+  Assert(reference_density_ptr->gradient(point) * gravity_field_ptr->value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 
-  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu, parameters.c_density);
-  stabilization_evaluation.set_background_velocity(background_velocity);
-  stabilization_evaluation.set_gravity_field(gravity_field);
-  stabilization_evaluation.set_reference_density(reference_density);
+  stabilization_evaluation_ptr->set_stabilization_parameters(parameters.c, parameters.mu, parameters.c_density);
+  stabilization_evaluation_ptr->set_background_velocity(background_velocity_ptr);
+  stabilization_evaluation_ptr->set_gravity_field(gravity_field_ptr);
+  stabilization_evaluation_ptr->set_reference_density(reference_density_ptr);
 }
 
 
@@ -158,20 +159,22 @@ template <>
 Problem<3>::Problem(ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<3>(parameters),
-traction_evaluation(0, 3, parameters.reynolds_number),
-stabilization_evaluation(parameters.graphical_output_directory,
-                         parameters.stabilization,
-                         0,
-                         3,
-                         3 + 1,
-                         parameters.reynolds_number,
-                         parameters.stratification_number,
-                         parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress,
-                         parameters.froude_number,
-                         parameters.rossby_number),
-gravity_field(Tensor<1, 3>({0.0, 0.0, -1.0})),
-background_velocity(Tensor<1, 3>({1.0, 0.0, 0.0})),
-reference_density(),
+traction_evaluation_ptr(
+new Hydrodynamic::EvaluationBoundaryTraction<3>{0, 3, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<3>{parameters.graphical_output_directory,
+                               parameters.stabilization,
+                               0,
+                               3,
+                               3 + 1,
+                               parameters.reynolds_number,
+                               parameters.stratification_number,
+                               parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress,
+                               parameters.froude_number,
+                               parameters.rossby_number}),
+gravity_field_ptr(new ConstantTensorFunction<1, 3>{Tensor<1, 3>({0.0, 0.0, -1.0})}),
+background_velocity_ptr(new ConstantTensorFunction<1, 3>{Tensor<1, 3>({1.0, 0.0, 0.0})}),
+reference_density_ptr(new ReferenceDensity<3>()),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -183,12 +186,14 @@ front_bndry_id(numbers::invalid_boundary_id)
   std::cout << "Solving perturbed buoyant topography problem" << std::endl;
 
   Point<3> point;
-  Assert(reference_density.gradient(point) * gravity_field.value(point) >= 0.0,
+  Assert(reference_density_ptr->gradient(point) * gravity_field_ptr->value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 
-  stabilization_evaluation.set_background_velocity(background_velocity);
-  stabilization_evaluation.set_gravity_field(gravity_field);
-  stabilization_evaluation.set_reference_density(reference_density);
+  stabilization_evaluation_ptr->set_stabilization_parameters(parameters.c, parameters.mu, parameters.c_density);
+  stabilization_evaluation_ptr->set_background_velocity(background_velocity_ptr);
+  stabilization_evaluation_ptr->set_gravity_field(gravity_field_ptr);
+  stabilization_evaluation_ptr->set_reference_density(reference_density_ptr);
+
 }
 
 
@@ -196,7 +201,7 @@ front_bndry_id(numbers::invalid_boundary_id)
 template <int dim>
 void Problem<dim>::set_background_velocity()
 {
-  this->solver.set_background_velocity(background_velocity);
+  this->solver.set_background_velocity(background_velocity_ptr);
 }
 
 
@@ -204,7 +209,7 @@ void Problem<dim>::set_background_velocity()
 template <int dim>
 void Problem<dim>::set_gravity_field()
 {
-  this->solver.set_gravity_field(gravity_field);
+  this->solver.set_gravity_field(gravity_field_ptr);
 }
 
 
@@ -212,7 +217,7 @@ void Problem<dim>::set_gravity_field()
 template <int dim>
 void Problem<dim>::set_reference_density()
 {
-  this->solver.set_reference_density(reference_density);
+  this->solver.set_reference_density(reference_density_ptr);
 }
 
 
@@ -220,8 +225,8 @@ void Problem<dim>::set_reference_density()
 template <int dim>
 void Problem<dim>::set_postprocessor()
 {
-  this->solver.add_postprocessor(traction_evaluation);
-  this->solver.add_postprocessor(stabilization_evaluation);
+  this->solver.add_postprocessor(traction_evaluation_ptr);
+  this->solver.add_postprocessor(stabilization_evaluation_ptr);
 }
 
 
@@ -240,7 +245,7 @@ void Problem<dim>::make_grid()
   front_bndry_id = topography_box.front;
 
   topographic_bndry_id = topography_box.topographic_boundary;
-  traction_evaluation.set_boundary_id(topographic_bndry_id);
+  traction_evaluation_ptr->set_boundary_id(topographic_bndry_id);
 
   topography_box.create_coarse_mesh(this->triangulation);
 

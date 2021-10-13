@@ -86,8 +86,8 @@ Solver<dim>::Solver
 :
 SolverBase::Solver<dim>(tria, mapping, parameters),
 boundary_conditions(this->triangulation),
-advection_field_ptr(nullptr),
-source_term_ptr(nullptr),
+advection_field_ptr(),
+source_term_ptr(),
 fe_degree(1),
 c_max(parameters.c_max),
 c_entropy(parameters.c_entropy),

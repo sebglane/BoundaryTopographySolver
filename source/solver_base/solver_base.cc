@@ -163,7 +163,7 @@ Solver<dim>::Solver
 :
 triangulation(tria),
 mapping(mapping),
-fe_system(nullptr),
+fe_system(),
 dof_handler(triangulation),
 computing_timer(std::cout,
                 TimerOutput::summary,

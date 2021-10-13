@@ -94,8 +94,8 @@ Solver<dim>::Solver
 :
 Hydrodynamic::Solver<dim>(tria, mapping, parameters, reynolds, froude, rossby),
 density_boundary_conditions(this->triangulation),
-reference_density_ptr(nullptr),
-gravity_field_ptr(nullptr),
+reference_density_ptr(),
+gravity_field_ptr(),
 stratification_number(stratification),
 density_fe_degree(1),
 c_density(parameters.c_density),

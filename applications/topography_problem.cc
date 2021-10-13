@@ -13,6 +13,8 @@
 #include <grid_factory.h>
 #include <hydrodynamic_problem.h>
 
+#include <memory>
+
 namespace TopographyProblem {
 
 using namespace Hydrodynamic;
@@ -31,9 +33,9 @@ protected:
   virtual void set_postprocessor() override;
 
 private:
-  EvaluationBoundaryTraction<dim> traction_evaluation;
+  std::shared_ptr<EvaluationBoundaryTraction<dim>> traction_evaluation_ptr;
 
-  EvaluationStabilization<dim>    stabilization_evaluation;
+  std::shared_ptr<EvaluationStabilization<dim>>    stabilization_evaluation_ptr;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -51,13 +53,15 @@ template <int dim>
 Problem<dim>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
-traction_evaluation(0, dim, parameters.reynolds_number),
-stabilization_evaluation(parameters.graphical_output_directory,
-                         parameters.stabilization,
-                         0,
-                         dim,
-                         parameters.reynolds_number,
-                         parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress),
+traction_evaluation_ptr(
+new EvaluationBoundaryTraction<dim>{0, dim, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<dim>{parameters.graphical_output_directory,
+                                 parameters.stabilization,
+                                 0,
+                                 dim,
+                                 parameters.reynolds_number,
+                                 parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress}),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -68,7 +72,7 @@ front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving viscous topography problem" << std::endl;
 
-  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu);
+  stabilization_evaluation_ptr->set_stabilization_parameters(parameters.c, parameters.mu);
 }
 
 
@@ -87,7 +91,7 @@ void Problem<dim>::make_grid()
   front_bndry_id = topography_box.front;
 
   topographic_bndry_id = topography_box.topographic_boundary;
-  traction_evaluation.set_boundary_id(topographic_bndry_id);
+  traction_evaluation_ptr->set_boundary_id(topographic_bndry_id);
 
   topography_box.create_coarse_mesh(this->triangulation);
 
@@ -172,8 +176,8 @@ void Problem<dim>::set_boundary_conditions()
 template <int dim>
 void Problem<dim>::set_postprocessor()
 {
-  this->solver.add_postprocessor(traction_evaluation);
-  this->solver.add_postprocessor(stabilization_evaluation);
+  this->solver.add_postprocessor(traction_evaluation_ptr);
+  this->solver.add_postprocessor(stabilization_evaluation_ptr);
 }
 
 }  // namespace TopographyProblem

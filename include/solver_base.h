@@ -136,7 +136,7 @@ public:
          Mapping<dim>       &mapping,
          const Parameters &parameters);
 
-  void add_postprocessor(EvaluationBase<dim> &postprocessor);
+  void add_postprocessor(const std::shared_ptr<EvaluationBase<dim>> &postprocessor);
 
   void solve();
 
@@ -181,7 +181,7 @@ protected:
   Triangulation<dim>         &triangulation;
   Mapping<dim>               &mapping;
 
-  FESystem<dim>              *fe_system;
+  std::shared_ptr<FESystem<dim>> fe_system;
 
   DoFHandler<dim>             dof_handler;
 
@@ -213,7 +213,7 @@ private:
 
   void solve_linear_system(const bool initial_step);
 
-  std::vector<EvaluationBase<dim> *>  postprocessor_ptrs;
+  std::vector<std::shared_ptr<EvaluationBase<dim>>> postprocessor_ptrs;
 
   const Utility::RefinementParameters refinement_parameters;
 
@@ -237,9 +237,9 @@ protected:
 
 // inline methods
 template <int dim>
-inline void Solver<dim>::add_postprocessor(EvaluationBase<dim> &postprocessor)
+inline void Solver<dim>::add_postprocessor(const std::shared_ptr<EvaluationBase<dim>> &postprocessor)
 {
-  postprocessor_ptrs.push_back(&postprocessor);
+  postprocessor_ptrs.push_back(postprocessor);
 }
 
 

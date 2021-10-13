@@ -32,11 +32,11 @@ protected:
   virtual void set_postprocessor() override;
 
 private:
-  const ConstantTensorFunction<1, dim>  background_velocity;
+  std::shared_ptr<const ConstantTensorFunction<1, dim>>  background_velocity_ptr;
 
-  EvaluationBoundaryTraction<dim> traction_evaluation;
+  std::shared_ptr<EvaluationBoundaryTraction<dim>> traction_evaluation_ptr;
 
-  EvaluationStabilization<dim>    stabilization_evaluation;
+  std::shared_ptr<EvaluationStabilization<dim>>    stabilization_evaluation_ptr;
 
   types::boundary_id  left_bndry_id;
   types::boundary_id  right_bndry_id;
@@ -54,14 +54,17 @@ template <>
 Problem<2>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<2>(parameters),
-background_velocity(Tensor<1, 2>({1.0, 0.0})),
-traction_evaluation(0, 2, parameters.reynolds_number),
-stabilization_evaluation(parameters.graphical_output_directory,
-                         parameters.stabilization,
-                         0,
-                         2,
-                         parameters.reynolds_number,
-                         parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress),
+background_velocity_ptr(
+new ConstantTensorFunction<1, 2>{Tensor<1, 2>({1.0, 0.0})}),
+traction_evaluation_ptr(
+new EvaluationBoundaryTraction<2>{0, 2, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<2>{parameters.graphical_output_directory,
+                               parameters.stabilization,
+                               0,
+                               2,
+                               parameters.reynolds_number,
+                               parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress}),
 left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
@@ -72,8 +75,8 @@ front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving perturbed topography problem" << std::endl;
 
-  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu);
-  stabilization_evaluation.set_background_velocity(background_velocity);
+  stabilization_evaluation_ptr->set_stabilization_parameters(parameters.c, parameters.mu);
+  stabilization_evaluation_ptr->set_background_velocity(background_velocity_ptr);
 }
 
 
@@ -82,15 +85,17 @@ template <>
 Problem<3>::Problem(ProblemParameters &parameters)
 :
 HydrodynamicProblem<3>(parameters),
-background_velocity(Tensor<1, 3>({1.0, 0.0, 0.0})),
-traction_evaluation(0, 3, parameters.reynolds_number),
-stabilization_evaluation(parameters.graphical_output_directory,
-                         parameters.stabilization,
-                         0,
-                         3,
-                         parameters.reynolds_number,
-                         parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress),
-left_bndry_id(numbers::invalid_boundary_id),
+background_velocity_ptr(
+new ConstantTensorFunction<1, 3>{Tensor<1, 3>({1.0, 0.0, 0.0})}),
+traction_evaluation_ptr(
+new EvaluationBoundaryTraction<3>{0, 3, parameters.reynolds_number}),
+stabilization_evaluation_ptr(
+new EvaluationStabilization<3>{parameters.graphical_output_directory,
+                               parameters.stabilization,
+                               0,
+                               3,
+                               parameters.reynolds_number,
+                               parameters.viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress}),left_bndry_id(numbers::invalid_boundary_id),
 right_bndry_id(numbers::invalid_boundary_id),
 bottom_bndry_id(numbers::invalid_boundary_id),
 top_bndry_id(numbers::invalid_boundary_id),
@@ -100,8 +105,8 @@ front_bndry_id(numbers::invalid_boundary_id)
 {
   std::cout << "Solving perturbed topography problem" << std::endl;
 
-  stabilization_evaluation.set_stabilization_parameters(parameters.c, parameters.mu);
-  stabilization_evaluation.set_background_velocity(background_velocity);
+  stabilization_evaluation_ptr->set_stabilization_parameters(parameters.c, parameters.mu);
+  stabilization_evaluation_ptr->set_background_velocity(background_velocity_ptr);
 }
 
 
@@ -120,7 +125,7 @@ void Problem<dim>::make_grid()
   front_bndry_id = topography_box.front;
 
   topographic_bndry_id = topography_box.topographic_boundary;
-  traction_evaluation.set_boundary_id(topographic_bndry_id);
+  traction_evaluation_ptr->set_boundary_id(topographic_bndry_id);
 
   topography_box.create_coarse_mesh(this->triangulation);
 
@@ -211,7 +216,7 @@ void Problem<dim>::set_boundary_conditions()
 template <int dim>
 void Problem<dim>::set_background_velocity()
 {
-  this->solver.set_background_velocity(background_velocity);
+  this->solver.set_background_velocity(background_velocity_ptr);
 }
 
 
@@ -219,8 +224,8 @@ void Problem<dim>::set_background_velocity()
 template <int dim>
 void Problem<dim>::set_postprocessor()
 {
-  this->solver.add_postprocessor(traction_evaluation);
-  this->solver.add_postprocessor(stabilization_evaluation);
+  this->solver.add_postprocessor(traction_evaluation_ptr);
+  this->solver.add_postprocessor(stabilization_evaluation_ptr);
 }
 
 }  // namespace TopographyProblem
