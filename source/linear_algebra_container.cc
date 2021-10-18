@@ -40,8 +40,6 @@ void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::setup
  const Table<2, DoFTools::Coupling> &coupling_table,
  const unsigned int                  n_blocks)
 {
-  std::cout << "    Setup linear algebra container..." << std::endl;
-
   dofs_per_block.resize(n_blocks);
   dofs_per_block = DoFTools::count_dofs_per_fe_block(dof_handler);
 
