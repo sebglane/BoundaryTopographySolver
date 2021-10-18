@@ -292,8 +292,8 @@ newton_iteration(const bool is_initial_cycle)
         this->nonzero_constraints.distribute(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
-        std::vector<double> residual_components(system_rhs.n_blocks());
-        for (unsigned int i=0; i<system_rhs.n_blocks(); ++i)
+        std::vector<double> residual_components(fe_system->n_blocks());
+        for (unsigned int i=0; i<fe_system->n_blocks(); ++i)
           residual_components[i] = system_rhs.block(i).l2_norm();
 
         if (!is_initial_cycle || residual_components.size() < 3)
@@ -324,7 +324,7 @@ newton_iteration(const bool is_initial_cycle)
                                   relative_tolerance * initial_residual)};
 
   double current_residual = std::numeric_limits<double>::max();
-  std::vector<double> current_residual_components(system_rhs.n_blocks(),
+  std::vector<double> current_residual_components(fe_system->n_blocks(),
                                                   std::numeric_limits<double>::max());
   double last_residual = std::numeric_limits<double>::max();
   bool first_step = is_initial_cycle;
@@ -411,8 +411,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
         this->nonzero_constraints.distribute(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
-        std::vector<double> residual_components(system_rhs.n_blocks());
-        for (unsigned int i=0; i<system_rhs.n_blocks(); ++i)
+        std::vector<double> residual_components(fe_system->n_blocks());
+        for (unsigned int i=0; i<fe_system->n_blocks(); ++i)
           residual_components[i] = system_rhs.block(i).l2_norm();
 
         return (std::make_tuple(system_rhs.l2_norm(), residual_components));
@@ -430,7 +430,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
                                   relative_tolerance * initial_residual)};
 
   double current_residual = std::numeric_limits<double>::max();
-  std::vector<double> current_residual_components(system_rhs.n_blocks(),
+  std::vector<double> current_residual_components(fe_system->n_blocks(),
                                                   std::numeric_limits<double>::max());
 
   unsigned int iteration = 0;
