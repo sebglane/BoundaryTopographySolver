@@ -222,7 +222,7 @@ template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
-    std::cout << "    Output results..." << std::endl;
+    this->pcout << "    Output results..." << std::endl;
 
   Postprocessor<dim>  postprocessor(0, dim);
 
@@ -250,6 +250,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(cons
 
 // explicit instantiation
 template std::ostream & operator<<(std::ostream &, const SolverParameters &);
+template ConditionalOStream & operator<<(ConditionalOStream &, const SolverParameters &);
 
 template Solver<2>::Solver
 (Triangulation<2>  &,

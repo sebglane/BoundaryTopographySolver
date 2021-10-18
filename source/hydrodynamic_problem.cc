@@ -148,7 +148,7 @@ solver(triangulation, mapping, parameters,
 n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
 n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
 {
-  std::cout << parameters << std::endl;
+  solver.get_conditional_output_stream()  << parameters << std::endl;
 }
 
 
@@ -156,7 +156,7 @@ n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_ref
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::initialize_mapping()
 {
-  std::cout << "    Initialize mapping..." << std::endl;
+  solver.get_conditional_output_stream() << "    Initialize mapping..." << std::endl;
 
   mapping.initialize(triangulation, MappingQGeneric<dim>(mapping.get_degree()));
 }
@@ -185,6 +185,7 @@ void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::run()
 
 // explicit instantiations
 template std::ostream & operator<<(std::ostream &, const ProblemParameters &);
+template ConditionalOStream & operator<<(ConditionalOStream &, const ProblemParameters &);
 
 template HydrodynamicProblem<2>::HydrodynamicProblem(const ProblemParameters &);
 template HydrodynamicProblem<3>::HydrodynamicProblem(const ProblemParameters &);

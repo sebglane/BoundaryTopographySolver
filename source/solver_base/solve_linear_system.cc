@@ -156,7 +156,7 @@ template <>
 void Solver<2>::solve_linear_system(const bool use_homogeneous_constraints)
 {
   if (verbose)
-    std::cout << "    Solving linear system..." << std::endl;
+    pcout << "    Solving linear system..." << std::endl;
 
   TimerOutput::Scope timer_section(computing_timer, "Solve linear system");
 
@@ -176,7 +176,7 @@ template <>
 void Solver<3>::solve_linear_system(const bool use_homogeneous_constraints)
 {
   if (verbose)
-    std::cout << "    Solving linear system..." << std::endl;
+    pcout << "    Solving linear system..." << std::endl;
 
   TimerOutput::Scope timer_section(computing_timer, "Solve linear system");
 

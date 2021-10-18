@@ -8,6 +8,7 @@
 #ifndef INCLUDE_SOLVER_H_
 #define INCLUDE_SOLVER_H_
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/timer.h>
 
@@ -141,6 +142,8 @@ public:
 
   void solve();
 
+  ConditionalOStream& get_conditional_output_stream();
+
 protected:
   virtual void apply_boundary_conditions() = 0;
 
@@ -172,6 +175,8 @@ protected:
   virtual void preprocess_picard_iteration(const unsigned int iteration);
 
   virtual void output_results(const unsigned int cycle = 0) const = 0;
+
+  ConditionalOStream          pcout;
 
   TriangulationType          &triangulation;
   Mapping<dim>               &mapping;
@@ -224,6 +229,15 @@ protected:
 };
 
 // inline methods
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline ConditionalOStream&
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_conditional_output_stream()
+{
+  return (pcout);
+}
+
+
+
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::add_postprocessor
 (const std::shared_ptr<EvaluationBase<dim>> &postprocessor)

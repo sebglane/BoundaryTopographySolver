@@ -19,7 +19,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
  const bool /* use_newton_linearization */)
 {
   if (this->verbose)
-    std::cout << "    Assemble linear system..." << std::endl;
+    this->pcout << "    Assemble linear system..." << std::endl;
 
   AssertThrow(advection_field_ptr != nullptr,
               ExcMessage("The advection field must be specified."));

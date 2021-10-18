@@ -9,6 +9,7 @@
 #define INCLUDE_LINEAR_ALGEBRA_CONTAINER_H_
 
 #include <deal.II/base/table.h>
+#include <deal.II/base/mpi.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -69,7 +70,7 @@ struct LinearAlgebraContainer
   VectorType          system_rhs;
 
 private:
-  const MPI_Comm  &mpi_communicator;
+  const MPI_Comm  mpi_communicator;
 
   std::shared_ptr<VectorType> distributed_vector_ptr;
 

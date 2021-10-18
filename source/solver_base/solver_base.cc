@@ -4,6 +4,8 @@
  *  Created on: Aug 30, 2021
  *      Author: sg
  */
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
 
 #include <solver_base.h>
 
@@ -161,15 +163,17 @@ Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
  Mapping<dim>        &mapping,
  const Parameters    &parameters)
 :
+pcout(std::cout,
+      (Utilities::MPI::this_mpi_process(tria.get_communicator()) == 0)),
 triangulation(tria),
 mapping(mapping),
 fe_system(),
 dof_handler(triangulation),
-//container(triangulation.get_communicator()),
-computing_timer(std::cout,
+container(triangulation.get_communicator()),
+computing_timer(triangulation.get_communicator(),
+                pcout,
                 TimerOutput::summary,
-                TimerOutput::wall_times // ,
-                /* Utilities::MPI::this_mpi_process(triangulation.get_communicator()) == 0  */),
+                TimerOutput::wall_times),
 refinement_parameters(parameters.refinement_parameters),
 n_maximum_iterations(parameters.n_iterations),
 n_picard_iterations(parameters.n_picard_iterations),
@@ -228,7 +232,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::solve()
 
   for (unsigned int cycle = 0; cycle < refinement_parameters.n_cycles; ++cycle)
   {
-    std::cout << "Cycle " << cycle << ':' << std::endl;
+    pcout << "Cycle " << cycle << ':' << std::endl;
 
     if (apply_picard_iteration && cycle == 0)
     {
@@ -242,7 +246,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::solve()
 
     this->output_results(cycle);
 
-    std::cout << "End cycle " << cycle << std::endl;
+    pcout << "End cycle " << cycle << std::endl;
 
     this->refine_mesh();
   }
@@ -257,7 +261,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::postprocess_solutio
     return;
 
   if (verbose)
-    std::cout << "    Postprocess solution..." << std::endl;
+    pcout << "    Postprocess solution..." << std::endl;
 
   for (const auto &ptr: postprocessor_ptrs)
   {
@@ -313,10 +317,10 @@ newton_iteration(const bool is_initial_cycle)
   this->preprocess_newton_iteration(0, is_initial_cycle);
   const double initial_residual{std::get<0>(compute_residual(0.0, false, 0))};
 
-  std::cout << "Initial residual: "
-            << std::scientific << initial_residual
-            << std::endl
-            << std::defaultfloat;
+  pcout << "Initial residual: "
+        << std::scientific << initial_residual
+        << std::endl
+        << std::defaultfloat;
 
   const double tolerance{std::max(absolute_tolerance,
                                   relative_tolerance * initial_residual)};
@@ -355,12 +359,12 @@ newton_iteration(const bool is_initial_cycle)
       solve_linear_system(/* use_homogeneous_constraints ? */ true);
       // line search
       if (verbose)
-        std::cout << "   Line search: " << std::endl;
+        pcout << "   Line search: " << std::endl;
       for (double alpha = 1.0; alpha > 1e-2; alpha *= 0.5)
       {
         std::tie(current_residual, current_residual_components) = compute_residual(alpha, true, iteration);
         if (verbose)
-          std::cout << "      alpha = " << std::setw(6)
+          pcout << "      alpha = " << std::setw(6)
                     << std::scientific << alpha
                     << " residual = " << current_residual
                     << std::endl
@@ -372,16 +376,16 @@ newton_iteration(const bool is_initial_cycle)
     }
 
     // output residual
-    std::cout << "Iteration: " << std::setw(3) << std::right << iteration
-              << ", Current residual: "
-              << std::scientific << std::setprecision(4) << current_residual
-              << " (Tolerance: "
-              << std::scientific << std::setprecision(4) << tolerance
-              << "), Residual components: ";
+    pcout << "Iteration: " << std::setw(3) << std::right << iteration
+          << ", Current residual: "
+          << std::scientific << std::setprecision(4) << current_residual
+          << " (Tolerance: "
+          << std::scientific << std::setprecision(4) << tolerance
+          << "), Residual components: ";
     for (const auto residual_component: current_residual_components)
-      std::cout << std::scientific << std::setprecision(4) << residual_component << ", ";
-    std::cout << std::endl
-              << std::defaultfloat;
+      pcout << std::scientific << std::setprecision(4) << residual_component << ", ";
+    pcout << std::endl
+          << std::defaultfloat;
 
     // update residual
     last_residual = current_residual;
@@ -417,7 +421,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
   this->preprocess_picard_iteration(0);
   const double initial_residual{std::get<0>(compute_residual(false))};
 
-  std::cout << "Initial residual: "
+  pcout << "Initial residual: "
             << std::scientific << initial_residual
             << std::endl
             << std::defaultfloat;
@@ -462,15 +466,15 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
 
 
     // output residual
-    std::cout << "Picard  Iteration: " << std::setw(3) << std::right << iteration
+    pcout << "Picard  Iteration: " << std::setw(3) << std::right << iteration
               << ", Current residual: "
               << std::scientific << std::setprecision(4) << current_residual
               << " (Tolerance: "
               << std::scientific << std::setprecision(4) << tolerance
               << "), Residual components: ";
     for (const auto residual_component: current_residual_components)
-      std::cout << std::scientific << std::setprecision(4) << residual_component << ", ";
-    std::cout << std::endl
+      pcout << std::scientific << std::setprecision(4) << residual_component << ", ";
+    pcout << std::endl
               << std::defaultfloat;
 
     // update iteration number
@@ -482,6 +486,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
 
 // explicit instantiations
 template std::ostream & operator<<(std::ostream &, const Parameters &);
+template ConditionalOStream & operator<<(ConditionalOStream &, const Parameters &);
 
 template Solver<2>::Solver
 (Triangulation<2> &, Mapping<2> &, const Parameters &);

@@ -5,6 +5,7 @@
  *      Author: sg
  */
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/utilities.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -74,16 +75,19 @@ output_directory(output_directory)
 template <int dim>
 EvaluationStabilization<dim>::~EvaluationStabilization()
 {
-  std::cout << std::endl;
+  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  {
+    std::cout << std::endl;
 
-  std::filesystem::path output_file(output_directory);
-  output_file /= "Stabilization.txt";
+    std::filesystem::path output_file(output_directory);
+    output_file /= "Stabilization.txt";
 
-  std::ofstream fstream(output_file.c_str());
-  data_table.write_text(fstream, TableHandler::TextOutputFormat::org_mode_table);
+    std::ofstream fstream(output_file.c_str());
+    data_table.write_text(fstream, TableHandler::TextOutputFormat::org_mode_table);
 
-  if (print_table)
-    data_table.write_text(std::cout);
+    if (print_table)
+      data_table.write_text(std::cout);
+  }
 }
 
 

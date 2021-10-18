@@ -20,7 +20,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
  const bool use_newton_linearization)
 {
   if (this->verbose)
-    std::cout << "    Assemble linear system..." << std::endl;
+    this->pcout << "    Assemble linear system..." << std::endl;
 
   if (this->angular_velocity_ptr != nullptr)
     AssertThrow(this->rossby_number > 0.0,

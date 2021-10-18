@@ -6,6 +6,7 @@
  */
 
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/utilities.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -72,14 +73,17 @@ reynolds_number(reynolds_number)
 template <int dim>
 EvaluationBoundaryTraction<dim>::~EvaluationBoundaryTraction()
 {
-  std::cout << std::endl;
-  traction_table.write_text(std::cout);
+  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  {
+    std::cout << std::endl;
+    traction_table.write_text(std::cout);
 
-  std::cout << std::endl;
-  pressure_table.write_text(std::cout);
+    std::cout << std::endl;
+    pressure_table.write_text(std::cout);
 
-  std::cout << std::endl;
-  viscous_table.write_text(std::cout);
+    std::cout << std::endl;
+    viscous_table.write_text(std::cout);
+  }
 }
 
 

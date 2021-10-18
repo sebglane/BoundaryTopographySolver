@@ -18,7 +18,7 @@ template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
-    std::cout << "    Assemble rhs..." << std::endl;
+    this->pcout << "    Assemble rhs..." << std::endl;
 
   if (this->angular_velocity_ptr != nullptr)
     AssertThrow(this->rossby_number > 0.0,

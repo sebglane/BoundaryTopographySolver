@@ -17,7 +17,7 @@ template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
-    std::cout << "    Assemble rhs..." << std::endl;
+    this->pcout << "    Assemble rhs..." << std::endl;
 
   AssertThrow(advection_field_ptr != nullptr,
               ExcMessage("The advection field must be specified."));

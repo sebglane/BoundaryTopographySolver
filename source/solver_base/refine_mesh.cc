@@ -20,7 +20,7 @@ namespace SolverBase {
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
 {
-  std::cout << "Mesh refinement..." << std::endl;
+  pcout << "Mesh refinement..." << std::endl;
 
   using VectorType = typename LinearAlgebraContainer::vector_type;
 
@@ -60,8 +60,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
         else if (cell->is_locally_owned() && cell->coarsen_flag_set())
           cell_counts[1] += 1;
 
-    std::cout << "    Number of cells set for refinement: " << cell_counts[0] << std::endl
-              << "    Number of cells set for coarsening: " << cell_counts[1] << std::endl;
+    pcout << "    Number of cells set for refinement: " << cell_counts[0] << std::endl
+          << "    Number of cells set for coarsening: " << cell_counts[1] << std::endl;
 
   }
   else

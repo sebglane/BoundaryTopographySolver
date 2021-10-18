@@ -108,7 +108,7 @@ template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
-    std::cout << "    Output results..." << std::endl;
+    this->pcout << "    Output results..." << std::endl;
 
   Hydrodynamic::Postprocessor<dim>  postprocessor(0, dim);
 
@@ -144,7 +144,7 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::preprocess_n
 {
   if (iteration < 2 && is_initial_cycle)
   {
-    std::cout << "Reseting density solution..." << std::endl;
+    this->pcout << "Reseting density solution..." << std::endl;
 
     this->container.set_block(this->container.present_solution, 2, 0.0);
     this->container.set_block(this->container.solution_update, 2, 0.0);
@@ -155,6 +155,7 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::preprocess_n
 
 // explicit instantiation
 template std::ostream & operator<<(std::ostream &, const SolverParameters &);
+template ConditionalOStream & operator<<(ConditionalOStream &, const SolverParameters &);
 
 template Solver<2>::Solver
 (Triangulation<2>  &,

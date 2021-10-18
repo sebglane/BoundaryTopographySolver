@@ -21,12 +21,12 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
 
   DoFRenumbering::block_wise(dof_handler);
 
-  std::cout << "    Number of active cells: "
-            << triangulation.n_active_cells()
-            << std::endl
-            << "    Number of total degrees of freedom: "
-            << dof_handler.n_dofs()
-            << std::endl;
+  pcout << "    Number of active cells: "
+        << triangulation.n_active_cells()
+        << std::endl
+        << "    Number of total degrees of freedom: "
+        << dof_handler.n_dofs()
+        << std::endl;
 
   IndexSet locally_relevant_dofs;
   DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
@@ -42,7 +42,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
   if (mapping_q_cache_ptr != nullptr)
   {
     if (verbose)
-      std::cout << "Initialize mapping..." << std::endl;
+      pcout << "Initialize mapping..." << std::endl;
     mapping_q_cache_ptr->initialize(triangulation,
                                     MappingQGeneric<dim>(mapping_q_cache_ptr->get_degree()));
   }
