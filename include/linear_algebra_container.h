@@ -57,6 +57,10 @@ struct LinearAlgebraContainer
 
   void set_solution_update(const VectorType &other);
 
+  void set_block(VectorType          &vector,
+                 const unsigned int   block_number,
+                 const double         value = 0.0);
+
   MatrixType          system_matrix;
 
   VectorType          evaluation_point;

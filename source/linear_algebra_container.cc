@@ -316,6 +316,62 @@ get_residual_components() const
 
 
 
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+set_block
+(VectorType &vector,
+ const unsigned int block_number,
+ const double value)
+{
+  const std::size_t n_blocks{dofs_per_block.size()};
+  AssertIndexRange(block_number, n_blocks);
+
+  if (!distributed_vector_ptr)
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs,
+                                                          mpi_communicator);
+  VectorType &distributed_vector(*distributed_vector_ptr);
+  distributed_vector = vector;
+
+  for (const auto idx: locally_owned_dofs_per_block[block_number])
+    distributed_vector[idx] = value;
+
+  vector = distributed_vector;
+}
+
+
+
+template <>
+void LinearAlgebraContainer<Vector<double>,
+                            SparseMatrix<double>,
+                            SparsityPattern>::
+set_block
+(Vector<double>      &vector,
+ const unsigned int   block_number,
+ const double         value)
+{
+  const std::size_t n_blocks{dofs_per_block.size()};
+  AssertIndexRange(block_number, n_blocks);
+
+  for (const auto idx: locally_owned_dofs_per_block[block_number])
+    vector[idx] = value;
+}
+
+
+
+template <>
+void LinearAlgebraContainer<BlockVector<double>,
+                            BlockSparseMatrix<double>,
+                            BlockSparsityPattern>::
+set_block
+(BlockVector<double>      &vector,
+ const unsigned int   block_number,
+ const double         value)
+{
+  vector.block(block_number) = value;
+}
+
+
+
 // explicit instantiations
 template void LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
                                      TrilinosWrappers::SparseMatrix,
@@ -387,6 +443,14 @@ template std::vector<double> LinearAlgebraContainer<TrilinosWrappers::MPI::Vecto
                                                     TrilinosWrappers::SparseMatrix,
                                                     TrilinosWrappers::SparsityPattern>::
                                                     get_residual_components() const;
+
+template void LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                     TrilinosWrappers::SparseMatrix,
+                                     TrilinosWrappers::SparsityPattern>::
+set_block
+(TrilinosWrappers::MPI::Vector &,
+ const unsigned int ,
+ const double );
 
 template struct LinearAlgebraContainer<Vector<double>,
                                        SparseMatrix<double>,

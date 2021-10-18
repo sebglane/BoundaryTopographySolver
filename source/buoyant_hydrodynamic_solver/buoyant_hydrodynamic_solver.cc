@@ -145,8 +145,9 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::preprocess_n
   if (iteration < 2 && is_initial_cycle)
   {
     std::cout << "Reseting density solution..." << std::endl;
-    this->container.present_solution.block(2) = 0;
-    this->container.solution_update.block(2) = 0;
+
+    this->container.set_block(this->container.present_solution, 2, 0.0);
+    this->container.set_block(this->container.solution_update, 2, 0.0);
   }
   return;
 }
