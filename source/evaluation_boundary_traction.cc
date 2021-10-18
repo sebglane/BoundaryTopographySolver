@@ -149,7 +149,7 @@ void EvaluationBoundaryTraction<dim>::evaluate
 
 
   for (const auto cell: dof_handler.active_cell_iterators())
-    if (cell->at_boundary())
+    if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() &&
             face->boundary_id() == boundary_id)
@@ -184,6 +184,11 @@ void EvaluationBoundaryTraction<dim>::evaluate
         }
 
   Assert(area > 0.0, ExcLowerRangeType<double>(0.0, area));
+
+  area = Utilities::MPI::sum(area, MPI_COMM_WORLD);
+  traction = Utilities::MPI::sum(traction, MPI_COMM_WORLD);
+  pressure_component = Utilities::MPI::sum(pressure_component, MPI_COMM_WORLD);
+  viscous_component = Utilities::MPI::sum(viscous_component, MPI_COMM_WORLD);
 
   traction /= area;
   pressure_component /= area;

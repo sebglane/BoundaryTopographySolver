@@ -8,6 +8,7 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/work_stream.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/grid/filtered_iterator.h>
 
 #include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
@@ -83,9 +84,13 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
     face_update_flags |= update_gradients|
                          update_normal_vectors;
 
+  using CellFilter = FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
   WorkStream::run
-  (this->dof_handler.begin_active(),
-   this->dof_handler.end(),
+  (CellFilter(IteratorFilters::LocallyOwnedCell(),
+              this->dof_handler.begin_active()),
+   CellFilter(IteratorFilters::LocallyOwnedCell(),
+              this->dof_handler.end()),
    worker,
    copier,
    Scratch(this->mapping,

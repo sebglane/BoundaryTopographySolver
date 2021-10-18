@@ -88,6 +88,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
   }
 
   for (const auto &cell : this->dof_handler.active_cell_iterators())
+  if (cell->is_locally_owned())
   {
     fe_values.reinit(cell);
 

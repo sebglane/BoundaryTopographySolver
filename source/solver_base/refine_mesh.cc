@@ -46,11 +46,13 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
     // Clear refinement flags if refinement level exceeds maximum
     if (triangulation.n_levels() > refinement_parameters.n_maximum_levels)
       for (const auto &cell: triangulation.active_cell_iterators_on_level(refinement_parameters.n_maximum_levels))
-        cell->clear_refine_flag();
+        if (cell->is_locally_owned())
+          cell->clear_refine_flag();
 
     // Clear coarsen flags if level decreases minimum
     for (const auto &cell: triangulation.active_cell_iterators_on_level(refinement_parameters.n_minimum_levels))
-      cell->clear_coarsen_flag();
+      if (cell->is_locally_owned())
+        cell->clear_coarsen_flag();
 
     // Count number of cells to be refined and coarsened
     unsigned int cell_counts[2] = {0, 0};
