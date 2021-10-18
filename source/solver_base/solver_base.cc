@@ -292,9 +292,7 @@ newton_iteration(const bool is_initial_cycle)
         this->nonzero_constraints.distribute(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
-        std::vector<double> residual_components(fe_system->n_blocks());
-        for (unsigned int i=0; i<fe_system->n_blocks(); ++i)
-          residual_components[i] = system_rhs.block(i).l2_norm();
+        std::vector<double> residual_components = this->container.get_residual_components();
 
         if (!is_initial_cycle || residual_components.size() < 3)
           return (std::make_tuple(system_rhs.l2_norm(), residual_components));
@@ -411,9 +409,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
         this->nonzero_constraints.distribute(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
-        std::vector<double> residual_components(fe_system->n_blocks());
-        for (unsigned int i=0; i<fe_system->n_blocks(); ++i)
-          residual_components[i] = system_rhs.block(i).l2_norm();
+        const std::vector<double> residual_components = this->container.get_residual_components();
 
         return (std::make_tuple(system_rhs.l2_norm(), residual_components));
       };

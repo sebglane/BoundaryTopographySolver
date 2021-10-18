@@ -247,6 +247,77 @@ void LinearAlgebraContainer<Vector<double>,
 
 
 
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+std::vector<double> LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+get_residual_components() const
+{
+  const std::size_t n_blocks{dofs_per_block.size()};
+
+  std::vector<double> l2_norms(n_blocks, std::numeric_limits<double>::min());
+
+  for (std::size_t i=0; i<n_blocks; ++i)
+  {
+    double l2_norm{0.0};
+    for (const auto idx: locally_owned_dofs_per_block[i])
+      l2_norm += system_rhs[idx] * system_rhs[idx];
+    Utilities::MPI::sum(l2_norm, mpi_communicator);
+    l2_norms[i] = l2_norm;
+  }
+
+  for (auto x: l2_norms)
+  {
+    AssertThrow(x >= 0.0, ExcLowerRangeType<double>(x, 0.0));
+    x = std::sqrt(x);
+  }
+
+  return (l2_norms);
+}
+
+
+
+template <>
+std::vector<double> LinearAlgebraContainer<Vector<double>,
+                                           SparseMatrix<double>,
+                                           SparsityPattern>::
+get_residual_components() const
+{
+  const std::size_t n_blocks{dofs_per_block.size()};
+
+  std::vector<double> l2_norms(n_blocks, std::numeric_limits<double>::min());
+
+  for (std::size_t i=0; i<n_blocks; ++i)
+  {
+    double l2_norm{0.0};
+    for (const auto idx: locally_owned_dofs_per_block[i])
+      l2_norm += system_rhs[idx] * system_rhs[idx];
+    AssertThrow(l2_norm >= 0.0, ExcLowerRangeType<double>(l2_norm, 0.0));
+
+    l2_norms[i] = std::sqrt(l2_norm);
+  }
+
+  return (l2_norms);
+}
+
+
+
+template <>
+std::vector<double> LinearAlgebraContainer<BlockVector<double>,
+                                           BlockSparseMatrix<double>,
+                                           BlockSparsityPattern>::
+get_residual_components() const
+{
+  const std::size_t n_blocks{dofs_per_block.size()};
+
+  std::vector<double> l2_norms(n_blocks, std::numeric_limits<double>::min());
+
+  for (std::size_t i=0; i<n_blocks; ++i)
+    l2_norms[i] = system_rhs.block(i).l2_norm();
+
+  return (l2_norms);
+}
+
+
+
 // explicit instantiations
 template void LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
                                      TrilinosWrappers::SparseMatrix,
@@ -313,6 +384,11 @@ setup<3, double>
  const AffineConstraints<double>    &constraints,
  const Table<2, DoFTools::Coupling> &coupling_table,
  const unsigned int                  n_blocks);
+
+template std::vector<double> LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                    TrilinosWrappers::SparseMatrix,
+                                                    TrilinosWrappers::SparsityPattern>::
+                                                    get_residual_components() const;
 
 template struct LinearAlgebraContainer<Vector<double>,
                                        SparseMatrix<double>,

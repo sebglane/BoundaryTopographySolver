@@ -49,6 +49,8 @@ struct LinearAlgebraContainer
 
   const IndexSet& get_locally_owned_dofs() const;
 
+  std::vector<double> get_residual_components() const;
+
   void set_evaluation_point(const VectorType &other);
 
   void set_present_solution(const VectorType &other);
