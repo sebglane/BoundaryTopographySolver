@@ -15,10 +15,8 @@
 #include <deal.II/lac/affine_constraints.h>
 
 #include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/block_sparsity_pattern.h>
 #include <deal.II/lac/block_sparse_matrix.h>
-#include <deal.II/lac/trilinos_parallel_block_vector.h>
-#include <deal.II/lac/trilinos_block_sparse_matrix.h>
+#include <deal.II/lac/block_sparsity_pattern.h>
 
 #include <vector>
 
@@ -36,7 +34,7 @@ struct LinearAlgebraContainer
 
   using vector_type = VectorType;
 
-  template<int dim, typename ValueType>
+  template <int dim, typename ValueType>
   void setup
   (const DoFHandler<dim>              &dof_handler,
    const AffineConstraints<ValueType> &constraints,
@@ -69,7 +67,7 @@ private:
 
   std::shared_ptr<VectorType> distributed_vector_ptr;
 
-  template<int dim, typename ValueType>
+  template <int dim, typename ValueType>
   void setup_system_matrix
   (const DoFHandler<dim>              &dof_handler,
    const AffineConstraints<ValueType> &constraints,
@@ -79,15 +77,24 @@ private:
 
   SparsityPatternType sparsity_pattern;
 
+  /*!
+   * @brief The set of the degrees of freedom owned by the processor.
+   */
   IndexSet              locally_owned_dofs;
 
   /*!
-   * @brief The set of the degrees of freedom owned by the processor.
+   * @brief The set of the degrees of freedom that are relevant for by
+   * the processor.
+   */
+  IndexSet              locally_relevant_dofs;
+
+  /*!
+   * @brief The set of the degrees of freedom per block owned by the processor.
    */
   std::vector<IndexSet> locally_owned_dofs_per_block;
 
   /*!
-   * @brief The set of the degrees of freedom that are relevant for
+   * @brief The set of the degrees of freedom per block that are relevant for
    * the processor.
    */
   std::vector<IndexSet> locally_relevant_dofs_per_block;
@@ -114,7 +121,7 @@ inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>:
 add_to_present_solution(const VectorType &other, const double s)
 {
   if (!distributed_vector_ptr)
-    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs,
                                                           mpi_communicator);
 
   VectorType &distributed_vector(*distributed_vector_ptr);
@@ -133,7 +140,7 @@ inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>:
 add_to_evaluation_point(const VectorType &other, const double s)
 {
   if (!distributed_vector_ptr)
-    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs,
                                                           mpi_communicator);
 
   VectorType &distributed_vector(*distributed_vector_ptr);
@@ -152,7 +159,7 @@ inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>:
 set_evaluation_point(const VectorType &other)
 {
   if (!distributed_vector_ptr)
-    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs,
                                                           mpi_communicator);
 
   VectorType &distributed_vector(*distributed_vector_ptr);
@@ -168,7 +175,7 @@ inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>:
 set_present_solution(const VectorType &other)
 {
   if (!distributed_vector_ptr)
-    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs,
                                                           mpi_communicator);
 
   VectorType &distributed_vector(*distributed_vector_ptr);
@@ -184,7 +191,7 @@ inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>:
 set_solution_update(const VectorType &other)
 {
   if (!distributed_vector_ptr)
-    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs_per_block,
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs,
                                                           mpi_communicator);
 
   VectorType &distributed_vector(*distributed_vector_ptr);
@@ -194,9 +201,64 @@ set_solution_update(const VectorType &other)
 }
 
 
+template <>
+inline void LinearAlgebraContainer<Vector<double>,
+                                   SparseMatrix<double>,
+                                   SparsityPattern>::add_to_evaluation_point
+(const Vector<double> &other, const double s)
+{
+  evaluation_point.add(s, other);
+}
 
-template<>
-inline void LinearAlgebraContainer<>::add_to_evaluation_point
+
+
+template <>
+inline void LinearAlgebraContainer<Vector<double>,
+                                   SparseMatrix<double>,
+                                   SparsityPattern>::add_to_present_solution
+(const Vector<double> &other, const double s)
+{
+  present_solution.add(s, other);
+}
+
+
+
+template <>
+inline void LinearAlgebraContainer<Vector<double>,
+                                   SparseMatrix<double>,
+                                   SparsityPattern>::set_evaluation_point
+(const Vector<double> &other)
+{
+  evaluation_point = other;
+}
+
+
+
+template <>
+inline void LinearAlgebraContainer<Vector<double>,
+                                   SparseMatrix<double>,
+                                   SparsityPattern>::set_present_solution
+(const Vector<double> &other)
+{
+  present_solution = other;
+}
+
+
+
+template <>
+inline void LinearAlgebraContainer<Vector<double>,
+                                   SparseMatrix<double>,
+                                   SparsityPattern>::set_solution_update
+(const Vector<double> &other)
+{
+  solution_update = other;
+}
+
+
+template <>
+inline void LinearAlgebraContainer<BlockVector<double>,
+                                   BlockSparseMatrix<double>,
+                                   BlockSparsityPattern>::add_to_evaluation_point
 (const BlockVector<double> &other, const double s)
 {
   evaluation_point.add(s, other);
@@ -204,8 +266,10 @@ inline void LinearAlgebraContainer<>::add_to_evaluation_point
 
 
 
-template<>
-inline void LinearAlgebraContainer<>::add_to_present_solution
+template <>
+inline void LinearAlgebraContainer<BlockVector<double>,
+BlockSparseMatrix<double>,
+BlockSparsityPattern>::add_to_present_solution
 (const BlockVector<double> &other, const double s)
 {
   present_solution.add(s, other);
@@ -213,8 +277,10 @@ inline void LinearAlgebraContainer<>::add_to_present_solution
 
 
 
-template<>
-inline void LinearAlgebraContainer<>::set_evaluation_point
+template <>
+inline void LinearAlgebraContainer<BlockVector<double>,
+BlockSparseMatrix<double>,
+BlockSparsityPattern>::set_evaluation_point
 (const BlockVector<double> &other)
 {
   evaluation_point = other;
@@ -222,8 +288,10 @@ inline void LinearAlgebraContainer<>::set_evaluation_point
 
 
 
-template<>
-inline void LinearAlgebraContainer<>::set_present_solution
+template <>
+inline void LinearAlgebraContainer<BlockVector<double>,
+                                   BlockSparseMatrix<double>,
+                                   BlockSparsityPattern>::set_present_solution
 (const BlockVector<double> &other)
 {
   present_solution = other;
@@ -231,8 +299,10 @@ inline void LinearAlgebraContainer<>::set_present_solution
 
 
 
-template<>
-inline void LinearAlgebraContainer<>::set_solution_update
+template <>
+inline void LinearAlgebraContainer<BlockVector<double>,
+BlockSparseMatrix<double>,
+BlockSparsityPattern>::set_solution_update
 (const BlockVector<double> &other)
 {
   solution_update = other;
