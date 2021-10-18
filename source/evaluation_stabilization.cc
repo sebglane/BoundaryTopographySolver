@@ -174,17 +174,17 @@ void EvaluationStabilization<dim>::evaluate
 
   double cell_momentum_residual;
   double mean_momentum_residual{0.0};
-  std::array<double, 2> max_momentum_residual{std::numeric_limits<double>::min(),
-                                              std::numeric_limits<double>::min()};
+  std::array<double, 2> max_momentum_residual{{std::numeric_limits<double>::min(),
+                                               std::numeric_limits<double>::min()}};
 
   double cell_mass_residual;
   double mean_mass_residual{0.0};
-  std::array<double, 2> max_mass_residual{std::numeric_limits<double>::min(),
-                                          std::numeric_limits<double>::min()};
+  std::array<double, 2> max_mass_residual{{std::numeric_limits<double>::min(),
+                                           std::numeric_limits<double>::min()}};
 
   double mean_momentum_viscosity{0.0};
-  std::array<double, 2> max_momentum_viscosity{std::numeric_limits<double>::min(),
-                                               std::numeric_limits<double>::min()};
+  std::array<double, 2> max_momentum_viscosity{{std::numeric_limits<double>::min(),
+                                                std::numeric_limits<double>::min()}};
 
   double cell_volume;
   double volume{0};
@@ -464,26 +464,26 @@ void EvaluationStabilization<dim>::operator()
 
   double cell_momentum_residual;
   double mean_momentum_residual{0.0};
-  std::array<double, 2> max_momentum_residual{std::numeric_limits<double>::min(),
-                                              std::numeric_limits<double>::min()};
+  std::array<double, 2> max_momentum_residual{{std::numeric_limits<double>::min(),
+                                               std::numeric_limits<double>::min()}};
 
   double cell_mass_residual;
   double mean_mass_residual{0.0};
-  std::array<double, 2> max_mass_residual{std::numeric_limits<double>::min(),
-                                          std::numeric_limits<double>::min()};
+  std::array<double, 2> max_mass_residual{{std::numeric_limits<double>::min(),
+                                           std::numeric_limits<double>::min()}};
 
   double cell_density_residual;
   double mean_density_residual{0.0};
-  std::array<double, 2> max_density_residual{std::numeric_limits<double>::min(),
-                                             std::numeric_limits<double>::min()};
+  std::array<double, 2> max_density_residual{{std::numeric_limits<double>::min(),
+                                              std::numeric_limits<double>::min()}};
 
   double mean_momentum_viscosity{0.0};
-  std::array<double, 2> max_momentum_viscosity{std::numeric_limits<double>::min(),
-                                               std::numeric_limits<double>::min()};
+  std::array<double, 2> max_momentum_viscosity{{std::numeric_limits<double>::min(),
+                                                std::numeric_limits<double>::min()}};
 
   double mean_density_viscosity{0.0};
-  std::array<double, 2> max_density_viscosity{std::numeric_limits<double>::min(),
-                                              std::numeric_limits<double>::min()};
+  std::array<double, 2> max_density_viscosity{{std::numeric_limits<double>::min(),
+                                               std::numeric_limits<double>::min()}};
 
   double cell_volume;
   double volume{0};

@@ -41,11 +41,11 @@ apply_periodicity_constraints
                                       periodic_bc.direction,
                                       periodicity_vector);
 
-  DoFTools::make_periodicity_constraints<DoFHandler<dim>>(periodicity_vector,
-                                                          nonzero_constraints);
+  DoFTools::make_periodicity_constraints<dim, dim>(periodicity_vector,
+                                                   nonzero_constraints);
 
-  DoFTools::make_periodicity_constraints<DoFHandler<dim>>(periodicity_vector,
-                                                          zero_constraints);
+  DoFTools::make_periodicity_constraints<dim, dim>(periodicity_vector,
+                                                   zero_constraints);
 
 }
 
