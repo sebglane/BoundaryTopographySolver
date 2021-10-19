@@ -1,0 +1,2 @@
+SET(TEST_LIBRARIES boundary_topography)
+DEAL_II_PICKUP_TESTS()
