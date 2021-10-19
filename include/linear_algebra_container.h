@@ -10,6 +10,7 @@
 
 #include <deal.II/base/table.h>
 #include <deal.II/base/mpi.h>
+#include <deal.II/base/subscriptor.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -18,6 +19,9 @@
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/block_sparse_matrix.h>
 #include <deal.II/lac/block_sparsity_pattern.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/sparsity_pattern.h>
+#include <deal.II/lac/vector.h>
 
 #include <vector>
 
@@ -26,10 +30,10 @@ namespace SolverBase
 
 using namespace dealii;
 
-template<typename VectorType = BlockVector<double>,
-         typename MatrixType = BlockSparseMatrix<double>,
-         typename SparsityPatternType = BlockSparsityPattern>
-struct LinearAlgebraContainer
+template<typename VectorType = Vector<double>,
+         typename MatrixType = SparseMatrix<double>,
+         typename SparsityPatternType = SparsityPattern>
+struct LinearAlgebraContainer : public Subscriptor
 {
   LinearAlgebraContainer(const MPI_Comm &mpi_comm=MPI_COMM_SELF);
 
@@ -43,10 +47,10 @@ struct LinearAlgebraContainer
    const unsigned int                  n_blocks);
 
   void add_to_evaluation_point(const VectorType &other,
-                                      const double s = 1.0);
+                               const double s = 1.0);
 
   void add_to_present_solution(const VectorType &other,
-                                      const double s = 1.0);
+                               const double s = 1.0);
 
   const IndexSet& get_locally_owned_dofs() const;
 
@@ -61,13 +65,6 @@ struct LinearAlgebraContainer
   void set_block(VectorType          &vector,
                  const unsigned int   block_number,
                  const double         value = 0.0);
-
-  MatrixType          system_matrix;
-
-  VectorType          evaluation_point;
-  VectorType          present_solution;
-  VectorType          solution_update;
-  VectorType          system_rhs;
 
 private:
   const MPI_Comm  mpi_communicator;
@@ -110,12 +107,22 @@ private:
    * @brief
    */
   std::vector<types::global_dof_index>  dofs_per_block;
+
+public:
+  MatrixType          system_matrix;
+
+  VectorType          evaluation_point;
+  VectorType          present_solution;
+  VectorType          solution_update;
+  VectorType          system_rhs;
 };
 
 
 
 template <typename VectorType, typename MatrixType, typename SparsityPatternType>
-inline const IndexSet& LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+inline const
+IndexSet&
+LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 get_locally_owned_dofs() const
 {
   return (locally_owned_dofs);
@@ -124,7 +131,8 @@ get_locally_owned_dofs() const
 
 
 template <typename VectorType, typename MatrixType, typename SparsityPatternType>
-inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+inline void
+LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 add_to_present_solution(const VectorType &other, const double s)
 {
   if (!distributed_vector_ptr)
@@ -143,7 +151,8 @@ add_to_present_solution(const VectorType &other, const double s)
 
 
 template <typename VectorType, typename MatrixType, typename SparsityPatternType>
-inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+inline void
+LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 add_to_evaluation_point(const VectorType &other, const double s)
 {
   if (!distributed_vector_ptr)
@@ -162,7 +171,8 @@ add_to_evaluation_point(const VectorType &other, const double s)
 
 
 template <typename VectorType, typename MatrixType, typename SparsityPatternType>
-inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+inline void
+LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 set_evaluation_point(const VectorType &other)
 {
   if (!distributed_vector_ptr)
@@ -178,7 +188,8 @@ set_evaluation_point(const VectorType &other)
 
 
 template <typename VectorType, typename MatrixType, typename SparsityPatternType>
-inline void LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+inline void
+LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 set_present_solution(const VectorType &other)
 {
   if (!distributed_vector_ptr)
@@ -209,9 +220,9 @@ set_solution_update(const VectorType &other)
 
 
 template <>
-inline void LinearAlgebraContainer<Vector<double>,
-                                   SparseMatrix<double>,
-                                   SparsityPattern>::add_to_evaluation_point
+inline void
+LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
+add_to_evaluation_point
 (const Vector<double> &other, const double s)
 {
   evaluation_point.add(s, other);
@@ -220,9 +231,9 @@ inline void LinearAlgebraContainer<Vector<double>,
 
 
 template <>
-inline void LinearAlgebraContainer<Vector<double>,
-                                   SparseMatrix<double>,
-                                   SparsityPattern>::add_to_present_solution
+inline void
+LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
+add_to_present_solution
 (const Vector<double> &other, const double s)
 {
   present_solution.add(s, other);
@@ -231,9 +242,9 @@ inline void LinearAlgebraContainer<Vector<double>,
 
 
 template <>
-inline void LinearAlgebraContainer<Vector<double>,
-                                   SparseMatrix<double>,
-                                   SparsityPattern>::set_evaluation_point
+inline void
+LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
+set_evaluation_point
 (const Vector<double> &other)
 {
   evaluation_point = other;
@@ -242,9 +253,9 @@ inline void LinearAlgebraContainer<Vector<double>,
 
 
 template <>
-inline void LinearAlgebraContainer<Vector<double>,
-                                   SparseMatrix<double>,
-                                   SparsityPattern>::set_present_solution
+inline void
+LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
+set_present_solution
 (const Vector<double> &other)
 {
   present_solution = other;
@@ -253,9 +264,9 @@ inline void LinearAlgebraContainer<Vector<double>,
 
 
 template <>
-inline void LinearAlgebraContainer<Vector<double>,
-                                   SparseMatrix<double>,
-                                   SparsityPattern>::set_solution_update
+inline void
+LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
+set_solution_update
 (const Vector<double> &other)
 {
   solution_update = other;
@@ -263,9 +274,9 @@ inline void LinearAlgebraContainer<Vector<double>,
 
 
 template <>
-inline void LinearAlgebraContainer<BlockVector<double>,
-                                   BlockSparseMatrix<double>,
-                                   BlockSparsityPattern>::add_to_evaluation_point
+inline void
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+add_to_evaluation_point
 (const BlockVector<double> &other, const double s)
 {
   evaluation_point.add(s, other);
@@ -274,9 +285,9 @@ inline void LinearAlgebraContainer<BlockVector<double>,
 
 
 template <>
-inline void LinearAlgebraContainer<BlockVector<double>,
-BlockSparseMatrix<double>,
-BlockSparsityPattern>::add_to_present_solution
+inline void
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+add_to_present_solution
 (const BlockVector<double> &other, const double s)
 {
   present_solution.add(s, other);
@@ -285,9 +296,9 @@ BlockSparsityPattern>::add_to_present_solution
 
 
 template <>
-inline void LinearAlgebraContainer<BlockVector<double>,
-BlockSparseMatrix<double>,
-BlockSparsityPattern>::set_evaluation_point
+inline void
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+set_evaluation_point
 (const BlockVector<double> &other)
 {
   evaluation_point = other;
@@ -296,9 +307,9 @@ BlockSparsityPattern>::set_evaluation_point
 
 
 template <>
-inline void LinearAlgebraContainer<BlockVector<double>,
-                                   BlockSparseMatrix<double>,
-                                   BlockSparsityPattern>::set_present_solution
+inline void
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+set_present_solution
 (const BlockVector<double> &other)
 {
   present_solution = other;
@@ -307,9 +318,9 @@ inline void LinearAlgebraContainer<BlockVector<double>,
 
 
 template <>
-inline void LinearAlgebraContainer<BlockVector<double>,
-BlockSparseMatrix<double>,
-BlockSparsityPattern>::set_solution_update
+inline void
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+set_solution_update
 (const BlockVector<double> &other)
 {
   solution_update = other;

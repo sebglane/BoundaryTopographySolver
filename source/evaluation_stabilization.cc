@@ -11,7 +11,8 @@
 #include <deal.II/fe/fe_values.h>
 
 #include <assembly_functions.h>
-#include <buoyant_hydrodynamic_solver.h>
+#include <buoyant_hydrodynamic_problem.h>
+#include <hydrodynamic_problem.h>
 #include <evaluation_stabilization.h>
 #include <hydrodynamic_solver.h>
 
