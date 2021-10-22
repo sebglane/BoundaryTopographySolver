@@ -86,8 +86,6 @@ template <>
 void Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
 solve_linear_system(const bool use_homogeneous_constraints)
 {
-  TrilinosWrappers::MPI::Vector solution(container.system_rhs);
-
   internal::solve_trilinos(container.system_matrix,
                            container.system_rhs,
                            container.solution_update);
@@ -95,7 +93,8 @@ solve_linear_system(const bool use_homogeneous_constraints)
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
 
-  constraints_used.distribute(container.solution_update);
+  container.distribute_constraints(container.solution_update,
+                                   constraints_used);
 }
 
 
@@ -104,8 +103,6 @@ template <>
 void Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
 solve_linear_system(const bool use_homogeneous_constraints)
 {
-  TrilinosWrappers::MPI::Vector solution(container.system_rhs);
-
   internal::solve_trilinos(container.system_matrix,
                            container.system_rhs,
                            container.solution_update);
@@ -113,7 +110,8 @@ solve_linear_system(const bool use_homogeneous_constraints)
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
 
-  constraints_used.distribute(container.solution_update);
+  container.distribute_constraints(container.solution_update,
+                                   constraints_used);
 }
 
 
@@ -133,7 +131,9 @@ void Solver<2>::solve_linear_system(const bool use_homogeneous_constraints)
 
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
-  constraints_used.distribute(container.solution_update);
+
+  container.distribute_constraints(container.solution_update,
+                                   constraints_used);
 }
 
 
@@ -153,7 +153,9 @@ void Solver<3>::solve_linear_system(const bool use_homogeneous_constraints)
 
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
-  constraints_used.distribute(container.solution_update);
+
+  container.distribute_constraints(container.solution_update,
+                                   constraints_used);
 }
 
 }  // namespace SolverBase

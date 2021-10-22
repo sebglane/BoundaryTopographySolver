@@ -440,7 +440,8 @@ newton_iteration(const bool is_initial_cycle)
         this->container.set_evaluation_point(present_solution);
         if (alpha != 0.0)
           this->container.add_to_evaluation_point(solution_update, alpha);
-        this->nonzero_constraints.distribute(evaluation_point);
+        this->container.distribute_constraints(evaluation_point,
+                                               this->nonzero_constraints);
         this->assemble_rhs(use_homogeneous_constraints);
 
         std::vector<double> residual_components = this->container.get_residual_components();
@@ -493,7 +494,8 @@ newton_iteration(const bool is_initial_cycle)
       this->assemble_system(/* use_homogeneous_constraints ? */ false);
       solve_linear_system(/* use_homogeneous_constraints ? */ false);
       container.set_present_solution(solution_update);
-      nonzero_constraints.distribute(present_solution);
+      container.distribute_constraints(present_solution,
+                                       nonzero_constraints);
       first_step = false;
       // compute residual
       std::tie(current_residual, current_residual_components) = compute_residual(0.0, true, iteration);
@@ -557,7 +559,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
   auto compute_residual = [&, this](const bool use_homogeneous_constraints = true)
       {
         container.set_evaluation_point(present_solution);
-        this->nonzero_constraints.distribute(evaluation_point);
+        this->container.distribute_constraints(evaluation_point,
+                                               this->nonzero_constraints);
         this->assemble_rhs(use_homogeneous_constraints);
 
         const std::vector<double> residual_components = this->container.get_residual_components();
@@ -606,7 +609,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
       container.add_to_present_solution(solution_update);
     }
 
-    nonzero_constraints.distribute(present_solution);
+    container.distribute_constraints(present_solution,
+                                     nonzero_constraints);
 
     // compute residual
     std::tie(current_residual, current_residual_components) = compute_residual(true);

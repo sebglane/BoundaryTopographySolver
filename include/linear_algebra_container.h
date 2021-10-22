@@ -66,6 +66,9 @@ struct LinearAlgebraContainer : public Subscriptor
                  const unsigned int   block_number,
                  const double         value = 0.0);
 
+  void distribute_constraints(VectorType &vector,
+                              const AffineConstraints<double> &constraints);
+
 private:
   const MPI_Comm  mpi_communicator;
 
@@ -325,6 +328,86 @@ set_solution_update
 {
   solution_update = other;
 }
+
+
+
+template <>
+inline std::vector<double>
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+get_residual_components() const
+{
+  const std::size_t n_blocks{dofs_per_block.size()};
+
+  std::vector<double> l2_norms(n_blocks, std::numeric_limits<double>::min());
+
+  for (std::size_t i=0; i<n_blocks; ++i)
+    l2_norms[i] = system_rhs.block(i).l2_norm();
+
+  return (l2_norms);
+}
+
+
+
+template <>
+inline void
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+set_block
+(BlockVector<double> &vector,
+ const unsigned int   block_number,
+ const double         value)
+{
+  vector.block(block_number) = value;
+}
+
+
+
+
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+void
+LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+distribute_constraints
+(VectorType &vector,
+ const AffineConstraints<double> &constraints)
+{
+  if (!distributed_vector_ptr)
+    distributed_vector_ptr = std::make_shared<VectorType>(locally_owned_dofs,
+                                                          mpi_communicator);
+
+  VectorType &distributed_vector(*distributed_vector_ptr);
+  distributed_vector = vector;
+
+  constraints.distribute(distributed_vector);
+
+  vector = distributed_vector;
+}
+
+
+
+
+template <>
+inline void
+LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
+distribute_constraints
+(Vector<double> &vector,
+ const AffineConstraints<double> &constraints)
+{
+  constraints.distribute(vector);
+}
+
+
+
+template <>
+inline void
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+distribute_constraints
+(BlockVector<double> &vector,
+ const AffineConstraints<double> &constraints)
+{
+  constraints.distribute(vector);
+}
+
+
+
 
 }  // namespace SolverBase
 

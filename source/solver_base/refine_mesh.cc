@@ -107,7 +107,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
 
     container.present_solution = tmp_solution[0];
 
-    nonzero_constraints.distribute(container.present_solution);
+    container.distribute_constraints(container.present_solution,
+                                     nonzero_constraints);
   }
 }
 

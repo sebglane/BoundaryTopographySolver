@@ -19,6 +19,23 @@
 namespace SolverBase
 {
 
+using StandardContainer = LinearAlgebraContainer<Vector<double>,
+                                                 SparseMatrix<double>,
+                                                 SparsityPattern>;
+
+
+
+using BlockContainer = LinearAlgebraContainer<BlockVector<double>,
+                                              BlockSparseMatrix<double>,
+                                              BlockSparsityPattern>;
+
+
+
+using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
 
 template <typename VectorType, typename MatrixType, typename SparsityPatternType>
 LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
@@ -52,6 +69,7 @@ setup
     accumulated_dofs_per_block[i] = sum;
   }
 
+  locally_owned_dofs.clear();
   locally_owned_dofs = dof_handler.locally_owned_dofs();
 
   locally_owned_dofs_per_block.clear();
@@ -59,6 +77,7 @@ setup
     locally_owned_dofs_per_block.push_back(locally_owned_dofs.get_view(accumulated_dofs_per_block[i],
                                                                        accumulated_dofs_per_block[i+1]));
 
+  locally_relevant_dofs.clear();
   DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
   locally_relevant_dofs_per_block.clear();
   for (unsigned int i=0; i<dofs_per_block.size(); ++i)
@@ -205,15 +224,14 @@ void
 LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 setup_vectors()
 {
-  evaluation_point.reinit(locally_relevant_dofs,
-                          mpi_communicator);
+  evaluation_point.reinit(locally_owned_dofs,
+                            locally_relevant_dofs,
+                            mpi_communicator);
   present_solution.reinit(evaluation_point);
   solution_update.reinit(evaluation_point);
 
   system_rhs.reinit(locally_owned_dofs,
-                    locally_relevant_dofs,
-                    mpi_communicator,
-                    true);
+                    mpi_communicator);
 }
 
 
@@ -299,6 +317,7 @@ get_residual_components() const
 
 
 
+
 template <>
 std::vector<double>
 LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
@@ -337,23 +356,6 @@ get_residual_components() const
                                     vector.begin());
     l2_norms[i] = vector.l2_norm();
   }
-
-  return (l2_norms);
-}
-
-
-
-template <>
-std::vector<double>
-LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
-get_residual_components() const
-{
-  const std::size_t n_blocks{dofs_per_block.size()};
-
-  std::vector<double> l2_norms(n_blocks, std::numeric_limits<double>::min());
-
-  for (std::size_t i=0; i<n_blocks; ++i)
-    l2_norms[i] = system_rhs.block(i).l2_norm();
 
   return (l2_norms);
 }
@@ -439,19 +441,6 @@ set_block
 
   for (const auto idx: index_set)
     vector[idx] = value;
-}
-
-
-
-template <>
-void
-LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
-set_block
-(BlockVector<double> &vector,
- const unsigned int   block_number,
- const double         value)
-{
-  vector.block(block_number) = value;
 }
 
 
