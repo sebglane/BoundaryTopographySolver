@@ -119,6 +119,18 @@ void EvaluationStabilization<dim>::operator()
 
 
 template <int dim>
+void EvaluationStabilization<dim>::operator()
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const TrilinosWrappers::MPI::Vector  &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
 template <typename VectorType>
 void EvaluationStabilization<dim>::evaluate
 (const Mapping<dim>        &mapping,

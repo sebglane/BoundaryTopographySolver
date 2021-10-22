@@ -55,6 +55,11 @@ public:
                           const DoFHandler<dim>     &dof_handler,
                           const BlockVector<double> &solution);
 
+  virtual void operator()(const Mapping<dim>        &mapping,
+                          const FiniteElement<dim>  &fe,
+                          const DoFHandler<dim>     &dof_handler,
+                          const TrilinosWrappers::MPI::Vector  &solution);
+
 protected:
 
   template<typename VectorType>

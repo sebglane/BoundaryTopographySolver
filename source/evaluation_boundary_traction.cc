@@ -113,6 +113,18 @@ void EvaluationBoundaryTraction<dim>::operator()
 
 
 template <int dim>
+void EvaluationBoundaryTraction<dim>::operator()
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const TrilinosWrappers::MPI::Vector  &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
 template <typename VectorType>
 void EvaluationBoundaryTraction<dim>::evaluate
 (const Mapping<dim>        &mapping,

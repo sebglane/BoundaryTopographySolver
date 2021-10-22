@@ -15,6 +15,7 @@
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/block_vector.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 namespace SolverBase {
 
@@ -37,6 +38,12 @@ public:
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
                           const BlockVector<double> &solution) = 0;
+
+  virtual void operator()(const Mapping<dim>        &mapping,
+                          const FiniteElement<dim>  &fe,
+                          const DoFHandler<dim>     &dof_handler,
+                          const TrilinosWrappers::MPI::Vector &solution) = 0;
+
 protected:
   unsigned int cycle;
 };
