@@ -8,12 +8,24 @@
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/sparse_ilu.h>
 
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_solver.h>
 #include <deal.II/lac/trilinos_precondition.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <solver_base.h>
 
 namespace SolverBase {
+
+using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
+template <int dim>
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
 
 namespace internal
 {
@@ -68,87 +80,41 @@ void solve_trilinos(const MatrixType &system_matrix,
 
 }  // namespace internal
 
-//template <>
-//void Solver<2, Triangulation<2>, LinearAlgebraContainer<TrilinosWrappers::MPI::BlockVector,
-//                                                        TrilinosWrappers::SparseMatrix,
-//                                                        TrilinosWrappers::SparsityPattern>>::
-//solve_linear_system(const bool use_homogeneous_constraints)
-//{
-//
-//  TrilinosWrappers::MPI::Vector system_rhs;
-//  system_rhs.reinit(container.get_locally_owned_dofs(),
-//                    MPI_COMM_WORLD);
-//  system_rhs = container.system_rhs;
-//
-//  TrilinosWrappers::MPI::Vector solution(system_rhs);
-//
-//
-//  internal::solve_trilinos(container.system_matrix,
-//                           system_rhs,
-//                           solution);
-//
-//  const AffineConstraints<double> &constraints_used =
-//      (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
-//
-//  constraints_used.distribute(container.solution_update);
-//}
-//
-//
-//
-//template <>
-//void Solver<3, Triangulation<3>, LinearAlgebraContainer<TrilinosWrappers::MPI::BlockVector,
-//                                                        TrilinosWrappers::SparseMatrix,
-//                                                        TrilinosWrappers::SparsityPattern>>::
-//solve_linear_system(const bool use_homogeneous_constraints)
-//{
-//
-//  internal::solve_trilinos(container.system_matrix,
-//                           container.system_rhs,
-//                           container.solution_update);
-//
-//  const AffineConstraints<double> &constraints_used =
-//      (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
-//
-//  constraints_used.distribute(container.solution_update);
-//}
-//
-//
-//
-//template <>
-//void Solver<2, Triangulation<2>, LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-//                                                        TrilinosWrappers::SparseMatrix,
-//                                                        TrilinosWrappers::SparsityPattern>>::
-//solve_linear_system(const bool use_homogeneous_constraints)
-//{
-//
-//  internal::solve_trilinos(container.system_matrix,
-//                           container.system_rhs,
-//                           container.solution_update);
-//
-//  const AffineConstraints<double> &constraints_used =
-//      (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
-//
-//  constraints_used.distribute(container.solution_update);
-//}
-//
-//
-//
-//template <>
-//void Solver<3, Triangulation<3>, LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-//                                                        TrilinosWrappers::SparseMatrix,
-//                                                        TrilinosWrappers::SparsityPattern>>::
-//solve_linear_system(const bool use_homogeneous_constraints)
-//{
-//
-//  internal::solve_trilinos(container.system_matrix,
-//                           container.system_rhs,
-//                           container.solution_update);
-//
-//  const AffineConstraints<double> &constraints_used =
-//      (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
-//
-//  constraints_used.distribute(container.solution_update);
-//}
+
+
+template <>
+void Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+solve_linear_system(const bool use_homogeneous_constraints)
+{
+  TrilinosWrappers::MPI::Vector solution(container.system_rhs);
+
+  internal::solve_trilinos(container.system_matrix,
+                           container.system_rhs,
+                           container.solution_update);
+
+  const AffineConstraints<double> &constraints_used =
+      (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
+
+  constraints_used.distribute(container.solution_update);
+}
+
+
+
+template <>
+void Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+solve_linear_system(const bool use_homogeneous_constraints)
+{
+  TrilinosWrappers::MPI::Vector solution(container.system_rhs);
+
+  internal::solve_trilinos(container.system_matrix,
+                           container.system_rhs,
+                           container.solution_update);
+
+  const AffineConstraints<double> &constraints_used =
+      (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
+
+  constraints_used.distribute(container.solution_update);
+}
 
 
 

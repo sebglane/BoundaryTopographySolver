@@ -7,12 +7,27 @@
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
 
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
+
 #include <solver_base.h>
 
 #include <iostream>
 #include <filesystem>
 
 namespace SolverBase {
+
+using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
+template <int dim>
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
 
 Parameters::Parameters()
 :
@@ -162,6 +177,138 @@ Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
 (TriangulationType   &tria,
  Mapping<dim>        &mapping,
  const Parameters    &parameters)
+:
+pcout(std::cout,
+      (Utilities::MPI::this_mpi_process(tria.get_communicator()) == 0)),
+triangulation(tria),
+mapping(mapping),
+fe_system(),
+dof_handler(triangulation),
+container(triangulation.get_communicator()),
+computing_timer(triangulation.get_communicator(),
+                pcout,
+                TimerOutput::summary,
+                TimerOutput::wall_times),
+refinement_parameters(parameters.refinement_parameters),
+n_maximum_iterations(parameters.n_iterations),
+n_picard_iterations(parameters.n_picard_iterations),
+absolute_tolerance(parameters.absolute_tolerance),
+relative_tolerance(parameters.relative_tolerance),
+print_timings(parameters.print_timings),
+apply_picard_iteration(parameters.apply_picard_iteration),
+graphical_output_directory(parameters.graphical_output_directory),
+verbose(parameters.verbose)
+{
+  if (print_timings == false)
+    computing_timer.disable_output();
+
+  if (!std::filesystem::exists(graphical_output_directory))
+  {
+    try
+    {
+      std::filesystem::create_directories(graphical_output_directory);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output directory: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output directory!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
+}
+
+
+
+template <>
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::Solver
+(ParallelTriangulation<2> &tria,
+ Mapping<2>               &mapping,
+ const Parameters         &parameters)
+:
+pcout(std::cout,
+      (Utilities::MPI::this_mpi_process(tria.get_communicator()) == 0)),
+triangulation(tria),
+mapping(mapping),
+fe_system(),
+dof_handler(triangulation),
+container(triangulation.get_communicator()),
+computing_timer(triangulation.get_communicator(),
+                pcout,
+                TimerOutput::summary,
+                TimerOutput::wall_times),
+refinement_parameters(parameters.refinement_parameters),
+n_maximum_iterations(parameters.n_iterations),
+n_picard_iterations(parameters.n_picard_iterations),
+absolute_tolerance(parameters.absolute_tolerance),
+relative_tolerance(parameters.relative_tolerance),
+print_timings(parameters.print_timings),
+apply_picard_iteration(parameters.apply_picard_iteration),
+graphical_output_directory(parameters.graphical_output_directory),
+verbose(parameters.verbose)
+{
+  if (print_timings == false)
+    computing_timer.disable_output();
+
+  if (!std::filesystem::exists(graphical_output_directory))
+  {
+    try
+    {
+      std::filesystem::create_directories(graphical_output_directory);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output directory: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output directory!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
+}
+
+
+
+template <>
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::Solver
+(ParallelTriangulation<3> &tria,
+ Mapping<3>               &mapping,
+ const Parameters         &parameters)
 :
 pcout(std::cout,
       (Utilities::MPI::this_mpi_process(tria.get_communicator()) == 0)),
@@ -496,13 +643,50 @@ template Solver<3>::Solver
 template void Solver<2>::postprocess_solution(const unsigned int) const;
 template void Solver<3>::postprocess_solution(const unsigned int) const;
 
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+postprocess_solution(const unsigned int) const;
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+postprocess_solution(const unsigned int) const;
+
 template void Solver<2>::newton_iteration(const bool);
 template void Solver<3>::newton_iteration(const bool);
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+newton_iteration(const bool);
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+newton_iteration(const bool);
+
 
 template void Solver<2>::picard_iteration();
 template void Solver<3>::picard_iteration();
 
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+picard_iteration();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+picard_iteration();
+
 template void Solver<2>::solve();
 template void Solver<3>::solve();
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+solve();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+solve();
 
 }  // namespace SolverBase

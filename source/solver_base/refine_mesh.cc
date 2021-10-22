@@ -8,6 +8,10 @@
 
 #include <deal.II/grid/grid_refinement.h>
 
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
+
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/solution_transfer.h>
 
@@ -16,6 +20,17 @@
 #include <vector>
 
 namespace SolverBase {
+
+using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
+template <int dim>
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
@@ -97,8 +112,23 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
 }
 
 // explicit instantiations
-template void Solver<2>::refine_mesh();
-template void Solver<3>::refine_mesh();
+template
+void
+Solver<2>::
+refine_mesh();
+template
+void
+Solver<3>::
+refine_mesh();
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+refine_mesh();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+refine_mesh();
 
 }  // namespace SolverBase
 

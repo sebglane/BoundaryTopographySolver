@@ -4,14 +4,28 @@
  *  Created on: Aug 30, 2021
  *      Author: sg
  */
-
 #include <deal.II/dofs/dof_renumbering.h>
 
 #include <deal.II/fe/mapping_q_cache.h>
 
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
+
 #include <solver_base.h>
 
 namespace SolverBase {
+
+using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
+template <int dim>
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
@@ -59,5 +73,14 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
 // explicit instantiations
 template void Solver<2>::setup_dofs();
 template void Solver<3>::setup_dofs();
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+setup_dofs();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+setup_dofs();
 
 }  // namespace SolverBase
