@@ -9,6 +9,7 @@
 #include <deal.II/lac/sparse_matrix.h>
 
 #include <deal.II/lac/sparsity_tools.h>
+
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
 #include <deal.II/lac/trilinos_vector.h>
@@ -256,21 +257,41 @@ get_residual_components() const
 {
   const std::size_t n_blocks{dofs_per_block.size()};
 
+  types::global_dof_index n_dofs{0};
+  for (const auto n: dofs_per_block)
+    n_dofs += n;
+  AssertDimension(system_rhs.size(), n_dofs);
+
+  std::vector<types::global_dof_index> dof_index_shifts(n_blocks, 0);
+  {
+    types::global_dof_index sum{0};
+    for (std::size_t i=1; i<n_blocks; ++i)
+    {
+      sum += dofs_per_block[i-1];
+      dof_index_shifts[i] = sum;
+    }
+  }
+
   std::vector<double> l2_norms(n_blocks, std::numeric_limits<double>::min());
+  IndexSet  index_set(n_dofs);
+  Vector<double>  vector;
 
   for (std::size_t i=0; i<n_blocks; ++i)
   {
-    double l2_norm{0.0};
-    for (const auto idx: locally_owned_dofs_per_block[i])
-      l2_norm += system_rhs[idx] * system_rhs[idx];
-    l2_norm = Utilities::MPI::sum(l2_norm, mpi_communicator);
-    l2_norms[i] = l2_norm;
-  }
+    index_set.clear();
+    index_set.add_indices(locally_owned_dofs_per_block[i], dof_index_shifts[i]);
 
-  for (auto x: l2_norms)
-  {
-    AssertThrow(x >= 0.0, ExcLowerRangeType<double>(x, 0.0));
-    x = std::sqrt(x);
+    double l2_norm{0.0};
+    if (index_set.n_elements() > 0)
+    {
+      vector.reinit(index_set.n_elements());
+      system_rhs.extract_subvector_to(index_set.begin(),
+                                      index_set.end(),
+                                      vector.begin());
+      l2_norm = vector.l2_norm();
+      AssertThrow(l2_norm >= 0.0, ExcLowerRangeType<double>(l2_norm, 0.0));
+    }
+    l2_norms[i] = Utilities::MPI::sum(l2_norm, mpi_communicator);
   }
 
   return (l2_norms);
@@ -519,9 +540,15 @@ set_block
  const unsigned int ,
  const double );
 
-template struct LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>;
-template struct LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>;
-template struct LinearAlgebraContainer<TrilinosWrappers::MPI::Vector, TrilinosWrappers::SparseMatrix, TrilinosWrappers::SparsityPattern>;
+template
+struct
+LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>;
+template
+struct
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>;
+template
+struct
+LinearAlgebraContainer<TrilinosWrappers::MPI::Vector, TrilinosWrappers::SparseMatrix, TrilinosWrappers::SparsityPattern>;
 
 }  // namespace SolverBase
 
