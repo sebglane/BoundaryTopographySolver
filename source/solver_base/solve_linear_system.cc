@@ -14,6 +14,8 @@
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include <utility>
+
 #include <solver_base.h>
 
 namespace SolverBase {
@@ -31,15 +33,17 @@ namespace internal
 {
 
 template<typename VectorType, typename MatrixType>
-void solve_trilinos(const MatrixType &system_matrix,
-                    const VectorType &system_rhs,
-                    VectorType        solution)
+std::pair<unsigned int, double>
+solve_trilinos
+(const MatrixType &system_matrix,
+ const VectorType &system_rhs,
+ VectorType       &solution)
 {
-  VectorType distributed_solution(system_rhs);
-
   try
   {
-    SolverControl solver_control;
+    VectorType distributed_solution(system_rhs);
+
+    SolverControl solver_control(1000, 1.0e-12);
     TrilinosWrappers::SolverGMRES solver(solver_control);
 
     TrilinosWrappers::PreconditionILU preconditioner;
@@ -50,6 +54,11 @@ void solve_trilinos(const MatrixType &system_matrix,
                  distributed_solution,
                  system_rhs,
                  preconditioner);
+
+    solution = distributed_solution;
+
+    return std::make_pair(solver_control.last_step(), solver_control.last_value());
+
   }
   catch (std::exception &exc)
   {
@@ -75,7 +84,6 @@ void solve_trilinos(const MatrixType &system_matrix,
     std::abort();
   }
 
-  solution = distributed_solution;
 }
 
 }  // namespace internal
@@ -86,9 +94,18 @@ template <>
 void Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
 solve_linear_system(const bool use_homogeneous_constraints)
 {
-  internal::solve_trilinos(container.system_matrix,
-                           container.system_rhs,
-                           container.solution_update);
+  if (verbose)
+    pcout << "    Solving linear system..." << std::endl;
+
+  const auto r = internal::solve_trilinos(container.system_matrix,
+                                          container.system_rhs,
+                                          container.solution_update);
+
+  if (verbose)
+    pcout << "    Number of GMRES iterations: "
+          << r.first
+          << ", Final residual: " << r.second << "."
+          << std::endl;
 
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
@@ -103,9 +120,18 @@ template <>
 void Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
 solve_linear_system(const bool use_homogeneous_constraints)
 {
-  internal::solve_trilinos(container.system_matrix,
-                           container.system_rhs,
-                           container.solution_update);
+  if (verbose)
+    pcout << "    Solving linear system..." << std::endl;
+
+  const auto r = internal::solve_trilinos(container.system_matrix,
+                                          container.system_rhs,
+                                          container.solution_update);
+
+  if (verbose)
+    pcout << "    Number of GMRES iterations: "
+          << r.first
+          << ", Final residual: " << r.second << "."
+          << std::endl;
 
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
