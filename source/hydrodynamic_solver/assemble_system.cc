@@ -7,13 +7,32 @@
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/work_stream.h>
+
 #include <deal.II/fe/fe_values.h>
+
 #include <deal.II/grid/filtered_iterator.h>
+
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
 
 namespace Hydrodynamic {
+
+using TrilinosContainer = typename
+                          SolverBase::
+                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
+template <int dim>
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
@@ -107,6 +126,9 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
            include_boundary_stress_terms,
            !velocity_boundary_conditions.neumann_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
+
+  this->container.system_matrix.compress(VectorOperation::add);
+  this->container.system_rhs.compress(VectorOperation::add);
 }
 
 
@@ -502,24 +524,81 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::copy_local_to_globa
 }
 
 // explicit instantiation
-template void Solver<2>::assemble_local_system
+template
+void
+Solver<2>::
+assemble_local_system
 (const typename DoFHandler<2>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<2> &,
  AssemblyBaseData::Matrix::Copy   &,
  const bool, const bool) const;
-template void Solver<3>::assemble_local_system
+template
+void
+Solver<3>::
+assemble_local_system
 (const typename DoFHandler<3>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<3> &,
  AssemblyBaseData::Matrix::Copy   &,
  const bool, const bool) const;
 
-template void Solver<2>::copy_local_to_global_system
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+assemble_local_system
+(const typename DoFHandler<2>::active_cell_iterator &cell,
+ AssemblyData::Matrix::Scratch<2> &,
+ AssemblyBaseData::Matrix::Copy   &,
+ const bool, const bool) const;
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+assemble_local_system
+(const typename DoFHandler<3>::active_cell_iterator &cell,
+ AssemblyData::Matrix::Scratch<3> &,
+ AssemblyBaseData::Matrix::Copy   &,
+ const bool, const bool) const;
+
+template
+void
+Solver<2>::
+copy_local_to_global_system
 (const AssemblyBaseData::Matrix::Copy &, const bool);
-template void Solver<3>::copy_local_to_global_system
+template
+void
+Solver<3>::
+copy_local_to_global_system
 (const AssemblyBaseData::Matrix::Copy &, const bool);
 
-template void Solver<2>::assemble_system(const bool, const bool);
-template void Solver<3>::assemble_system(const bool, const bool);
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+copy_local_to_global_system
+(const AssemblyBaseData::Matrix::Copy &, const bool);
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+copy_local_to_global_system
+(const AssemblyBaseData::Matrix::Copy &, const bool);
+
+template
+void
+Solver<2>::
+assemble_system
+(const bool, const bool);
+template
+void
+Solver<3>::
+assemble_system(const bool, const bool);
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+assemble_system
+(const bool, const bool);
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+assemble_system(const bool, const bool);
 
 }  // namespace Hydrodynamic
 

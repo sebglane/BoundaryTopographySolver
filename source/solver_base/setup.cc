@@ -36,7 +36,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
   DoFRenumbering::block_wise(dof_handler);
 
   pcout << "    Number of active cells: "
-        << triangulation.n_active_cells()
+        << triangulation.n_global_active_cells()
         << std::endl
         << "    Number of total degrees of freedom: "
         << dof_handler.n_dofs()

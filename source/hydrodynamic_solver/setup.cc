@@ -4,12 +4,28 @@
  *  Created on: Aug 31, 2021
  *      Author: sg
  */
-
 #include <deal.II/fe/fe_q.h>
+
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <hydrodynamic_solver.h>
 
 namespace Hydrodynamic {
+
+using TrilinosContainer = typename
+                          SolverBase::
+                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
+template <int dim>
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_fe_system()
@@ -60,7 +76,26 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
 template void Solver<2>::setup_fe_system();
 template void Solver<3>::setup_fe_system();
 
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+setup_fe_system();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+setup_fe_system();
+
+
 template void Solver<2>::setup_dofs();
 template void Solver<3>::setup_dofs();
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+setup_dofs();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+setup_dofs();
 
 }  // namespace Hydrodynamic

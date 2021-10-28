@@ -204,6 +204,8 @@ private:
 
   virtual void refine_mesh();
 
+  void execute_mesh_refinement();
+
   void solve_linear_system(const bool initial_step);
 
   std::vector<std::shared_ptr<EvaluationBase<dim>>> postprocessor_ptrs;

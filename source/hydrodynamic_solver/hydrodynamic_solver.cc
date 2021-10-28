@@ -4,6 +4,9 @@
  *  Created on: Aug 31, 2021
  *      Author: sg
  */
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <deal.II/numerics/data_out.h>
 
@@ -15,6 +18,19 @@
 #include <string>
 
 namespace Hydrodynamic {
+
+using TrilinosContainer = typename
+                          SolverBase::
+                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
+template <int dim>
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
 
 SolverParameters::SolverParameters()
 :
@@ -218,6 +234,66 @@ include_boundary_stress_terms(parameters.include_boundary_stress_terms)
 
 
 
+template <>
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::Solver
+(ParallelTriangulation<2> &tria,
+ Mapping<2>             &mapping,
+ const SolverParameters &parameters,
+ const double           reynolds,
+ const double           froude,
+ const double           rossby)
+:
+SolverBase::Solver<2, ParallelTriangulation<2>, TrilinosContainer>(tria, mapping, parameters),
+velocity_boundary_conditions(this->triangulation),
+pressure_boundary_conditions(this->triangulation),
+boundary_stress_ids(),
+angular_velocity_ptr(),
+body_force_ptr(),
+background_velocity_ptr(),
+convective_term_weak_form(parameters.convective_term_weak_form),
+viscous_term_weak_form(parameters.viscous_term_weak_form),
+stabilization(parameters.stabilization),
+velocity_fe_degree(2),
+reynolds_number(reynolds),
+froude_number(froude),
+rossby_number(rossby),
+c(1.0),
+mu(1.0),
+include_boundary_stress_terms(parameters.include_boundary_stress_terms)
+{}
+
+
+
+template <>
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::Solver
+(ParallelTriangulation<3> &tria,
+ Mapping<3>             &mapping,
+ const SolverParameters &parameters,
+ const double           reynolds,
+ const double           froude,
+ const double           rossby)
+:
+SolverBase::Solver<3, ParallelTriangulation<3>, TrilinosContainer>(tria, mapping, parameters),
+velocity_boundary_conditions(this->triangulation),
+pressure_boundary_conditions(this->triangulation),
+boundary_stress_ids(),
+angular_velocity_ptr(),
+body_force_ptr(),
+background_velocity_ptr(),
+convective_term_weak_form(parameters.convective_term_weak_form),
+viscous_term_weak_form(parameters.viscous_term_weak_form),
+stabilization(parameters.stabilization),
+velocity_fe_degree(2),
+reynolds_number(reynolds),
+froude_number(froude),
+rossby_number(rossby),
+c(1.0),
+mu(1.0),
+include_boundary_stress_terms(parameters.include_boundary_stress_terms)
+{}
+
+
+
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
 {
@@ -270,7 +346,19 @@ template Solver<3>::Solver
 template void Solver<2>::output_results(const unsigned int ) const;
 template void Solver<3>::output_results(const unsigned int ) const;
 
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+output_results(const unsigned int ) const;
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+output_results(const unsigned int ) const;
+
 template class Solver<2>;
 template class Solver<3>;
+
+template class Solver<2, ParallelTriangulation<2>, TrilinosContainer>;
+template class Solver<3, ParallelTriangulation<3>, TrilinosContainer>;
 
 }  // namespace Hydrodynamic

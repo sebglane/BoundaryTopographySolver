@@ -100,21 +100,23 @@ setup_system_matrix
  const Table<2, DoFTools::Coupling>  &coupling_table)
 {
   system_matrix.clear();
+  sparsity_pattern.clear();
 
-  DynamicSparsityPattern dsp(locally_relevant_dofs);
+  sparsity_pattern.reinit(locally_owned_dofs,
+                          locally_owned_dofs,
+                          locally_relevant_dofs,
+                          mpi_communicator);
 
   DoFTools::make_sparsity_pattern(dof_handler,
                                   coupling_table,
-                                  dsp,
-                                  constraints);
-  SparsityTools::distribute_sparsity_pattern(dsp,
-                                             locally_owned_dofs,
-                                             mpi_communicator,
-                                             locally_relevant_dofs);
-  system_matrix.reinit(locally_owned_dofs,
-                       locally_owned_dofs,
-                       dsp,
-                       mpi_communicator);
+                                  sparsity_pattern,
+                                  constraints,
+                                  false,
+                                  Utilities::MPI::this_mpi_process(mpi_communicator));
+
+  sparsity_pattern.compress();
+
+  system_matrix.reinit(sparsity_pattern);
 }
 
 
@@ -224,9 +226,14 @@ void
 LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 setup_vectors()
 {
+  evaluation_point.clear();
+  present_solution.clear();
+  solution_update.clear();
+  system_rhs.clear();
+
   evaluation_point.reinit(locally_owned_dofs,
-                            locally_relevant_dofs,
-                            mpi_communicator);
+                          locally_relevant_dofs,
+                          mpi_communicator);
   present_solution.reinit(evaluation_point);
   solution_update.reinit(evaluation_point);
 

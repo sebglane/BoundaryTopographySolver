@@ -43,17 +43,22 @@ solve_trilinos
   {
     VectorType distributed_solution(system_rhs);
 
-    SolverControl solver_control(1000, 1.0e-12);
-    TrilinosWrappers::SolverGMRES solver(solver_control);
-
-    TrilinosWrappers::PreconditionILU preconditioner;
-    preconditioner.initialize(system_matrix,
-                              TrilinosWrappers::PreconditionILU::AdditionalData());
-
+    SolverControl solver_control(1000, 1.0e-14);
+    TrilinosWrappers::SolverDirect  solver(solver_control);
     solver.solve(system_matrix,
                  distributed_solution,
-                 system_rhs,
-                 preconditioner);
+                 system_rhs);
+
+//    TrilinosWrappers::SolverGMRES solver(solver_control);
+//
+//    TrilinosWrappers::PreconditionILU preconditioner;
+//    preconditioner.initialize(system_matrix,
+//                              TrilinosWrappers::PreconditionILU::AdditionalData());
+//
+//    solver.solve(system_matrix,
+//                 distributed_solution,
+//                 system_rhs,
+//                 preconditioner);
 
     solution = distributed_solution;
 
