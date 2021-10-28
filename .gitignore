@@ -63,6 +63,7 @@ CTestTestfile.cmake
 _deps
 /build/
 tests/*/*/*.debug/
+tests/*/*.debug/
 
 # pdf files
 *.pdf

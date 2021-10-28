@@ -6,7 +6,14 @@
  */
 #include <deal.II/base/quadrature_lib.h>
 
+#include <deal.II/distributed/grid_refinement.h>
+#include <deal.II/distributed/solution_transfer.h>
+
 #include <deal.II/grid/grid_refinement.h>
+
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/solution_transfer.h>
@@ -17,15 +24,59 @@
 
 namespace SolverBase {
 
+using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
 template <int dim>
-void Solver<dim>::refine_mesh()
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+namespace internal
 {
-  std::cout << "Mesh refinement..." << std::endl;
+
+template <int dim>
+void refine_and_coarsen
+(Triangulation<dim>  &tria,
+ const Vector<float> &criteria,
+ const double         top_fraction,
+ const double         bottom_fraction)
+{
+  GridRefinement::refine_and_coarsen_fixed_fraction(tria,
+                                                    criteria,
+                                                    top_fraction,
+                                                    bottom_fraction);
+}
+
+
+
+template <int dim>
+void refine_and_coarsen
+(parallel::distributed::Triangulation<dim>   &tria,
+ const Vector<float> &criteria,
+ const double         top_fraction,
+ const double         bottom_fraction)
+{
+  parallel::distributed::
+  GridRefinement::refine_and_coarsen_fixed_fraction(tria,
+                                                    criteria,
+                                                    top_fraction,
+                                                    bottom_fraction);
+}
+
+}  // namespace internal
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
+{
+  pcout << "Mesh refinement..." << std::endl;
+
+  using VectorType = typename LinearAlgebraContainer::vector_type;
 
   TimerOutput::Scope timer_section(computing_timer, "Refine mesh");
-
-  using VectorType = BlockVector<double>;
-
 
   if (refinement_parameters.adaptive_mesh_refinement)
   {
@@ -36,13 +87,18 @@ void Solver<dim>::refine_mesh()
                                        dof_handler,
                                        QGauss<dim-1>(fe_system->degree + 1),
                                        std::map<types::boundary_id, const Function<dim> *>(),
-                                       present_solution,
-                                       estimated_error_per_cell);
+                                       container.present_solution,
+                                       estimated_error_per_cell,
+                                       ComponentMask(),
+                                       nullptr,
+                                       0,
+                                       triangulation.locally_owned_subdomain());
     // set refinement flags
-    GridRefinement::refine_and_coarsen_fixed_fraction(triangulation,
-                                                      estimated_error_per_cell,
-                                                      refinement_parameters.cell_fraction_to_refine,
-                                                      refinement_parameters.cell_fraction_to_coarsen);
+    internal::refine_and_coarsen(triangulation,
+                                 estimated_error_per_cell,
+                                 refinement_parameters.cell_fraction_to_refine,
+                                 refinement_parameters.cell_fraction_to_coarsen);
+
 
     // Clear refinement flags if refinement level exceeds maximum
     if (triangulation.n_levels() > refinement_parameters.n_maximum_levels)
@@ -61,16 +117,31 @@ void Solver<dim>::refine_mesh()
         else if (cell->is_locally_owned() && cell->coarsen_flag_set())
           cell_counts[1] += 1;
 
-    std::cout << "    Number of cells set for refinement: " << cell_counts[0] << std::endl
-              << "    Number of cells set for coarsening: " << cell_counts[1] << std::endl;
+    unsigned int global_cell_counts[2];
+    Utilities::MPI::sum(cell_counts,
+                        triangulation.get_communicator(),
+                        global_cell_counts);
+
+    pcout << "    Number of cells set for refinement: " << global_cell_counts[0] << std::endl
+          << "    Number of cells set for coarsening: " << global_cell_counts[1] << std::endl;
 
   }
   else
     triangulation.set_all_refine_flags();
 
+  execute_mesh_refinement();
+
+}
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::execute_mesh_refinement()
+{
   // preparing temperature solution transfer
+  using VectorType = typename LinearAlgebraContainer::vector_type;
   std::vector<VectorType> x_solution(1);
-  x_solution[0] = present_solution;
+  x_solution[0] = container.present_solution;
   SolutionTransfer<dim, VectorType> solution_transfer(dof_handler);
 
   // preparing triangulation refinement
@@ -86,18 +157,131 @@ void Solver<dim>::refine_mesh()
   // transfer of solution
   {
     std::vector<VectorType> tmp_solution(1);
-    tmp_solution[0].reinit(present_solution);
+    tmp_solution[0].reinit(container.present_solution);
     solution_transfer.interpolate(x_solution, tmp_solution);
 
-    present_solution = tmp_solution[0];
-
-    nonzero_constraints.distribute(present_solution);
+    container.distribute_constraints(tmp_solution[0],
+                                     nonzero_constraints);
+    container.present_solution = tmp_solution[0];
   }
 }
 
+
+
+template <>
+void Solver<2, parallel::distributed::Triangulation<2>, TrilinosContainer>::
+execute_mesh_refinement()
+{
+  constexpr int dim{2};
+  // preparing solution transfer
+  using VectorType = TrilinosContainer::vector_type;
+  typename parallel::distributed::SolutionTransfer<dim, VectorType>
+  solution_transfer(dof_handler);
+
+  std::vector<const VectorType *> x_solution(1);
+  x_solution[0] = &container.present_solution;
+
+  // preparing triangulation refinement
+  triangulation.prepare_coarsening_and_refinement();
+  solution_transfer.prepare_for_coarsening_and_refinement(x_solution);
+
+  // refine triangulation
+  triangulation.execute_coarsening_and_refinement();
+
+  // setup dofs and constraints on refined mesh
+  this->setup_dofs();
+
+  // transfer of solution
+  {
+    VectorType tmp_solution;
+    tmp_solution.reinit(container.system_rhs);
+
+    std::vector<VectorType *> tmp(1);
+    tmp[0] = &tmp_solution;
+    solution_transfer.interpolate(tmp_solution);
+
+    container.distribute_constraints(tmp_solution, nonzero_constraints);
+
+    container.present_solution = tmp_solution;
+
+    container.distribute_constraints(container.present_solution,
+                                     nonzero_constraints);
+  }
+}
+
+
+
+template <>
+void Solver<3, parallel::distributed::Triangulation<3>, TrilinosContainer>::
+execute_mesh_refinement()
+{
+  constexpr int dim{3};
+  // preparing solution transfer
+  using VectorType = TrilinosContainer::vector_type;
+  typename parallel::distributed::SolutionTransfer<dim, VectorType>
+  solution_transfer(dof_handler);
+
+  std::vector<const VectorType *> x_solution(1);
+  x_solution[0] = &container.present_solution;
+
+  // preparing triangulation refinement
+  triangulation.prepare_coarsening_and_refinement();
+  solution_transfer.prepare_for_coarsening_and_refinement(x_solution);
+
+  // refine triangulation
+  triangulation.execute_coarsening_and_refinement();
+
+  // setup dofs and constraints on refined mesh
+  this->setup_dofs();
+
+  pcout << container.system_matrix.m() << ", " << container.system_matrix.n() << std::endl;
+
+  // transfer of solution
+  {
+    VectorType tmp_solution;
+    tmp_solution.reinit(container.system_rhs);
+
+    std::vector<VectorType *> tmp(1);
+    tmp[0] = &tmp_solution;
+    solution_transfer.interpolate(tmp_solution);
+
+    container.distribute_constraints(tmp_solution, nonzero_constraints);
+
+    container.present_solution = tmp_solution;
+
+    container.distribute_constraints(container.present_solution,
+                                     nonzero_constraints);
+  }
+}
+
+
 // explicit instantiations
-template void Solver<2>::refine_mesh();
-template void Solver<3>::refine_mesh();
+template
+void
+Solver<2>::
+execute_mesh_refinement();
+template
+void
+Solver<3>::
+execute_mesh_refinement();
+
+template
+void
+Solver<2>::
+refine_mesh();
+template
+void
+Solver<3>::
+refine_mesh();
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+refine_mesh();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+refine_mesh();
 
 }  // namespace SolverBase
 

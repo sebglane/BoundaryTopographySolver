@@ -91,7 +91,9 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
 
-template <int dim>
+template <int dim,
+          typename TriangulationType = Triangulation<dim>,
+          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
 class BuoyantHydrodynamicProblem
 {
 public:
@@ -118,11 +120,11 @@ protected:
 
   virtual void set_postprocessor();
 
-  Triangulation<dim>       triangulation;
+  TriangulationType       triangulation;
 
-  MappingQCache<dim>       mapping;
+  MappingQCache<dim>      mapping;
 
-  Solver<dim>  solver;
+  Solver<dim, TriangulationType, LinearAlgebraContainer>  solver;
 
   const unsigned int      n_initial_refinements;
 
@@ -130,32 +132,32 @@ protected:
 };
 
 // inline functions
-template <int dim>
-inline void BuoyantHydrodynamicProblem<dim>::set_angular_velocity()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_angular_velocity()
 {
   return;
 }
 
 
 
-template <int dim>
-inline void BuoyantHydrodynamicProblem<dim>::set_background_velocity()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_background_velocity()
 {
   return;
 }
 
 
 
-template <int dim>
-void BuoyantHydrodynamicProblem<dim>::set_body_force_term()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_body_force_term()
 {
   return;
 }
 
 
 
-template <int dim>
-void BuoyantHydrodynamicProblem<dim>::set_postprocessor()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_postprocessor()
 {
   return;
 }

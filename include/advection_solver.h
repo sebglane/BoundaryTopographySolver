@@ -71,12 +71,14 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 
-template <int dim>
-class Solver: public SolverBase::Solver<dim>
+template <int dim,
+          typename TriangulationType = Triangulation<dim>,
+          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
+class Solver: public SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>
 {
 
 public:
-  Solver(Triangulation<dim>  &tria,
+  Solver(TriangulationType   &tria,
          Mapping<dim>        &mapping,
          const SolverParameters &parameters);
 
@@ -119,26 +121,26 @@ private:
 };
 
 // inline functions
-template <int dim>
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim>::get_bcs() const
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_bcs() const
 {
   return boundary_conditions;
 }
 
 
 
-template <int dim>
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline ScalarBoundaryConditions<dim> &
-Solver<dim>::get_bcs()
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_bcs()
 {
   return boundary_conditions;
 }
 
 
 
-template <int dim>
-inline void Solver<dim>::set_advection_field
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_advection_field
 (const std::shared_ptr<const TensorFunction<1, dim>> &advection_field)
 {
   advection_field_ptr = advection_field;
@@ -147,8 +149,8 @@ inline void Solver<dim>::set_advection_field
 
 
 
-template <int dim>
-inline void Solver<dim>::set_source_term
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_source_term
 (const std::shared_ptr<const Function<dim>> &source_term)
 {
   source_term_ptr = source_term;

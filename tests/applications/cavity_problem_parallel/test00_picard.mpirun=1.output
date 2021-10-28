@@ -1,0 +1,85 @@
++------------------------------------------+----------------------+
+| Problem parameters                                              |
++------------------------------------------+----------------------+
+| Spatial dimension                        | 2                    |
+| Max. number of Newton iterations         | 15                   |
+| Absolute tolerance                       | 1e-12                |
+| Relative tolerance                       | 1e-09                |
+| Number of Picard iterations              | 5                    |
+| Apply Picard iteration                   | true                 |
+| Verbose                                  | false                |
+| Print timings                            | false                |
+| Graphical output directory               | ./ResultsCavityProblem |
++------------------------------------------+----------------------+
+| Refinement control parameters                                   |
++------------------------------------------+----------------------+
+| Adaptive mesh refinement                 | True                 |
+| Initial refinements                      | 4                    |
+| Initial boundary refinements             | 0                    |
+| Fraction of cells set to coarsen         | 0                    |
+| Fraction of cells set to refine          | 0.8                  |
+| Maximum number of levels                 | 10                   |
+| Minimum number of levels                 | 2                    |
+| Number of refinement cycles              | 3                    |
++------------------------------------------+----------------------+
+| Hydrodynamic solver parameters                                  |
++------------------------------------------+----------------------+
+| Convective term weak form                | standard             |
+| Viscous term weak form                   | Laplacean            |
+| Include_boundary_stress_terms            | false                |
+| Stabilization type                       | apply_supg|          |
+| SUPG/PSPG stab. parameter                | 0.2                  |
+| Grad-Div stab. parameter                 | 1                    |
+| Mapping                                  | MappingQ<dim>(1)     |
+| Reynolds number                          | 1200                 |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+
+Solving cavity problem
+    Make grid...
+    Initialize mapping...
+    Set boundary conditions...
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Cycle 0:
+Initial residual: 6.635085e-03
+Picard  Iteration:   0, Current residual: 1.4651e-02 (Tolerance: 6.6351e-12), Residual components: 1.4651e-02, 1.2122e-09, 
+Picard  Iteration:   1, Current residual: 7.3191e-03 (Tolerance: 6.6351e-12), Residual components: 7.3191e-03, 4.7972e-11, 
+Picard  Iteration:   2, Current residual: 3.7229e-03 (Tolerance: 6.6351e-12), Residual components: 3.7229e-03, 1.2716e-10, 
+Picard  Iteration:   3, Current residual: 2.6541e-03 (Tolerance: 6.6351e-12), Residual components: 2.6541e-03, 8.2642e-13, 
+Picard  Iteration:   4, Current residual: 2.0002e-03 (Tolerance: 6.6351e-12), Residual components: 2.0002e-03, 6.4758e-12, 
+Initial residual: 2.0002e-03
+Iteration:   0, Current residual: 2.0120e-04 (Tolerance: 2.0002e-12), Residual components: 2.0120e-04, 1.1243e-12, 
+Iteration:   1, Current residual: 3.6192e-06 (Tolerance: 2.0002e-12), Residual components: 3.6192e-06, 1.4935e-13, 
+Iteration:   2, Current residual: 2.5110e-09 (Tolerance: 2.0002e-12), Residual components: 2.5110e-09, 2.8833e-15, 
+Iteration:   3, Current residual: 1.1902e-15 (Tolerance: 2.0002e-12), Residual components: 1.1899e-15, 2.5368e-17, 
+End cycle 0
+Mesh refinement...
+    Number of cells set for refinement: 43
+    Number of cells set for coarsening: 0
+    Number of active cells: 385
+    Number of total degrees of freedom: 3816
+Cycle 1:
+Initial residual: 9.8627e-03
+Iteration:   0, Current residual: 1.6075e-03 (Tolerance: 9.8627e-12), Residual components: 1.6075e-03, 5.3883e-10, 
+Iteration:   1, Current residual: 5.5100e-05 (Tolerance: 9.8627e-12), Residual components: 5.5100e-05, 1.9873e-11, 
+Iteration:   2, Current residual: 6.7710e-08 (Tolerance: 9.8627e-12), Residual components: 6.7710e-08, 1.2714e-10, 
+Iteration:   3, Current residual: 4.6716e-13 (Tolerance: 9.8627e-12), Residual components: 4.6715e-13, 2.5015e-15, 
+End cycle 1
+Mesh refinement...
+    Number of cells set for refinement: 119
+    Number of cells set for coarsening: 0
+    Number of active cells: 742
+    Number of total degrees of freedom: 7516
+Cycle 2:
+Initial residual: 4.9667e-03
+Iteration:   0, Current residual: 6.9974e-04 (Tolerance: 4.9667e-12), Residual components: 6.9974e-04, 1.7713e-09, 
+Iteration:   1, Current residual: 1.1997e-05 (Tolerance: 4.9667e-12), Residual components: 1.1997e-05, 5.1098e-11, 
+Iteration:   2, Current residual: 2.1887e-09 (Tolerance: 4.9667e-12), Residual components: 2.1887e-09, 7.8485e-12, 
+Iteration:   3, Current residual: 6.4075e-16 (Tolerance: 4.9667e-12), Residual components: 5.4003e-16, 3.4485e-16, 
+End cycle 2
+Mesh refinement...
+    Number of cells set for refinement: 278
+    Number of cells set for coarsening: 0
+    Number of active cells: 1576
+    Number of total degrees of freedom: 15730

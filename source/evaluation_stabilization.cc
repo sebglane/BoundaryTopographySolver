@@ -4,12 +4,15 @@
  *  Created on: Sep 27, 2021
  *      Author: sg
  */
+#include <deal.II/base/mpi.h>
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/utilities.h>
 
 #include <deal.II/fe/fe_values.h>
 
 #include <assembly_functions.h>
-#include <buoyant_hydrodynamic_solver.h>
+#include <buoyant_hydrodynamic_problem.h>
+#include <hydrodynamic_problem.h>
 #include <evaluation_stabilization.h>
 #include <hydrodynamic_solver.h>
 
@@ -74,28 +77,31 @@ output_directory(output_directory)
 template <int dim>
 EvaluationStabilization<dim>::~EvaluationStabilization()
 {
-  std::cout << std::endl;
+  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  {
+    std::cout << std::endl;
 
-  std::filesystem::path output_file(output_directory);
-  output_file /= "Stabilization.txt";
+    std::filesystem::path output_file(output_directory);
+    output_file /= "Stabilization.txt";
 
-  std::ofstream fstream(output_file.c_str());
-  data_table.write_text(fstream, TableHandler::TextOutputFormat::org_mode_table);
+    std::ofstream fstream(output_file.c_str());
+    data_table.write_text(fstream, TableHandler::TextOutputFormat::org_mode_table);
 
-  if (print_table)
-    data_table.write_text(std::cout);
+    if (print_table)
+      data_table.write_text(std::cout);
+  }
 }
 
 
 
 template <int dim>
 void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &/* mapping */,
- const FiniteElement<dim>  &/* fe */,
- const DoFHandler<dim>     &/* dof_handler */,
- const Vector<double>      &/* solution */)
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const Vector<double>      &solution)
 {
-  AssertThrow(false, ExcInternalError());
+  evaluate(mapping, fe, dof_handler, solution);
 }
 
 
@@ -107,9 +113,31 @@ void EvaluationStabilization<dim>::operator()
  const DoFHandler<dim>     &dof_handler,
  const BlockVector<double> &solution)
 {
-  if (!(this->stabilization & (apply_supg|apply_pspg|apply_grad_div)))
-    return;
+  evaluate(mapping, fe, dof_handler, solution);
+}
 
+
+
+template <int dim>
+void EvaluationStabilization<dim>::operator()
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const TrilinosWrappers::MPI::Vector  &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
+template <typename VectorType>
+void EvaluationStabilization<dim>::evaluate
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const VectorType          &solution)
+{
   AssertThrow(c > std::numeric_limits<double>::min(), ExcInternalError());
   AssertThrow(mu > std::numeric_limits<double>::min(), ExcInternalError());
 
@@ -164,22 +192,23 @@ void EvaluationStabilization<dim>::operator()
 
   double cell_momentum_residual;
   double mean_momentum_residual{0.0};
-  std::array<double, 2> max_momentum_residual{std::numeric_limits<double>::min(),
-                                              std::numeric_limits<double>::min()};
+  double max_momentum_residual[2]{std::numeric_limits<double>::min(),
+                                  std::numeric_limits<double>::min()};
 
   double cell_mass_residual;
   double mean_mass_residual{0.0};
-  std::array<double, 2> max_mass_residual{std::numeric_limits<double>::min(),
-                                          std::numeric_limits<double>::min()};
+  double max_mass_residual[2]{std::numeric_limits<double>::min(),
+                              std::numeric_limits<double>::min()};
 
   double mean_momentum_viscosity{0.0};
-  std::array<double, 2> max_momentum_viscosity{std::numeric_limits<double>::min(),
-                                               std::numeric_limits<double>::min()};
+  double max_momentum_viscosity[2]{std::numeric_limits<double>::min(),
+                                   std::numeric_limits<double>::min()};
 
   double cell_volume;
   double volume{0};
 
   for (const auto cell: dof_handler.active_cell_iterators())
+  if (cell->is_locally_owned())
   {
     scratch.fe_values.reinit(cell);
 
@@ -294,6 +323,15 @@ void EvaluationStabilization<dim>::operator()
 
   // compute mean value
   Assert(volume > 0.0, ExcLowerRangeType<double>(0.0, volume));
+
+  Utilities::MPI::max(max_momentum_residual, MPI_COMM_WORLD, max_momentum_residual);
+  Utilities::MPI::max(max_momentum_viscosity, MPI_COMM_WORLD, max_momentum_viscosity);
+  Utilities::MPI::max(max_mass_residual, MPI_COMM_WORLD, max_mass_residual);
+
+  volume = Utilities::MPI::sum(volume, MPI_COMM_WORLD);
+  mean_momentum_residual = Utilities::MPI::sum(mean_momentum_residual, MPI_COMM_WORLD);
+  mean_mass_residual = Utilities::MPI::sum(mean_mass_residual, MPI_COMM_WORLD);
+
   mean_momentum_residual /= volume;
   mean_mass_residual /= volume;
   mean_momentum_viscosity /= volume;
@@ -373,12 +411,12 @@ c_density(std::numeric_limits<double>::min())
 
 template <int dim>
 void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &/* mapping */,
- const FiniteElement<dim>  &/* fe */,
- const DoFHandler<dim>     &/* dof_handler */,
- const Vector<double>      &/* solution */)
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const Vector<double>      &solution)
 {
-  AssertThrow(false, ExcInternalError());
+  evaluate(mapping, fe, dof_handler, solution);
 }
 
 
@@ -389,6 +427,31 @@ void EvaluationStabilization<dim>::operator()
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,
  const BlockVector<double> &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
+void EvaluationStabilization<dim>::operator()
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const TrilinosWrappers::MPI::Vector  &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
+template <typename VectorType>
+void EvaluationStabilization<dim>::evaluate
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const VectorType          &solution)
 {
   AssertThrow(this->c > std::numeric_limits<double>::min(), ExcInternalError());
   AssertThrow(this->mu > std::numeric_limits<double>::min(), ExcInternalError());
@@ -454,31 +517,32 @@ void EvaluationStabilization<dim>::operator()
 
   double cell_momentum_residual;
   double mean_momentum_residual{0.0};
-  std::array<double, 2> max_momentum_residual{std::numeric_limits<double>::min(),
-                                              std::numeric_limits<double>::min()};
+  double max_momentum_residual[2]{std::numeric_limits<double>::min(),
+                                  std::numeric_limits<double>::min()};
 
   double cell_mass_residual;
   double mean_mass_residual{0.0};
-  std::array<double, 2> max_mass_residual{std::numeric_limits<double>::min(),
-                                          std::numeric_limits<double>::min()};
+  double max_mass_residual[2]{std::numeric_limits<double>::min(),
+                              std::numeric_limits<double>::min()};
 
   double cell_density_residual;
   double mean_density_residual{0.0};
-  std::array<double, 2> max_density_residual{std::numeric_limits<double>::min(),
-                                             std::numeric_limits<double>::min()};
+  double max_density_residual[2]{std::numeric_limits<double>::min(),
+                                 std::numeric_limits<double>::min()};
 
   double mean_momentum_viscosity{0.0};
-  std::array<double, 2> max_momentum_viscosity{std::numeric_limits<double>::min(),
-                                               std::numeric_limits<double>::min()};
+  double max_momentum_viscosity[2]{std::numeric_limits<double>::min(),
+                                   std::numeric_limits<double>::min()};
 
   double mean_density_viscosity{0.0};
-  std::array<double, 2> max_density_viscosity{std::numeric_limits<double>::min(),
-                                              std::numeric_limits<double>::min()};
+  double max_density_viscosity[2]{std::numeric_limits<double>::min(),
+                                  std::numeric_limits<double>::min()};
 
   double cell_volume;
   double volume{0};
 
   for (const auto cell: dof_handler.active_cell_iterators())
+  if (cell->is_locally_owned())
   {
     scratch.fe_values.reinit(cell);
 
@@ -641,9 +705,21 @@ void EvaluationStabilization<dim>::operator()
 
   // compute mean value
   Assert(volume > 0.0, ExcLowerRangeType<double>(0.0, volume));
+
+  Utilities::MPI::max(max_momentum_residual, MPI_COMM_WORLD, max_momentum_residual);
+  Utilities::MPI::max(max_mass_residual, MPI_COMM_WORLD, max_mass_residual);
+  Utilities::MPI::max(max_density_viscosity, MPI_COMM_WORLD, max_density_viscosity);
+  Utilities::MPI::max(max_momentum_viscosity, MPI_COMM_WORLD, max_momentum_viscosity);
+
+  volume = Utilities::MPI::sum(volume, MPI_COMM_WORLD);
+  mean_momentum_residual = Utilities::MPI::sum(mean_momentum_residual, MPI_COMM_WORLD);
+  mean_mass_residual = Utilities::MPI::sum(mean_mass_residual, MPI_COMM_WORLD);
+  mean_density_viscosity = Utilities::MPI::sum(mean_density_viscosity, MPI_COMM_WORLD);
+
   mean_momentum_residual /= volume;
   mean_mass_residual /= volume;
   mean_momentum_viscosity /= volume;
+  mean_density_viscosity /= volume;
 
   this->data_table.add_value("cycle", this->cycle);
 

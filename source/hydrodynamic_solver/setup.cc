@@ -4,18 +4,34 @@
  *  Created on: Aug 31, 2021
  *      Author: sg
  */
-
 #include <deal.II/fe/fe_q.h>
+
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <hydrodynamic_solver.h>
 
 namespace Hydrodynamic {
 
+using TrilinosContainer = typename
+                          SolverBase::
+                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
 template <int dim>
-void Solver<dim>::setup_fe_system()
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_fe_system()
 {
   if (this->verbose)
-    std::cout << "    Setup FE system..." << std::endl;
+    this->pcout << "    Setup FE system..." << std::endl;
 
   this->fe_system = std::make_shared<FESystem<dim>>(FESystem<dim>(FE_Q<dim>(velocity_fe_degree), dim), 1,
                                                     FE_Q<dim>(velocity_fe_degree - 1), 1);
@@ -23,18 +39,15 @@ void Solver<dim>::setup_fe_system()
 
 
 
-template <int dim>
-void Solver<dim>::setup_dofs()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
 {
   TimerOutput::Scope timer_section(this->computing_timer, "Setup dofs");
 
   if (this->verbose)
-    std::cout << "    Setup dofs..." << std::endl;
+    this->pcout << "    Setup dofs..." << std::endl;
 
-  SolverBase:: Solver<dim>::setup_dofs();
-
-  std::vector<types::global_dof_index> dofs_per_block =
-      DoFTools::count_dofs_per_fe_block(this->dof_handler);
+  SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs();
 
   Table<2, DoFTools::Coupling>  coupling_table;
   coupling_table.reinit(this->fe_system->n_components(),
@@ -53,16 +66,36 @@ void Solver<dim>::setup_dofs()
   if (stabilization & apply_pspg)
     coupling_table[dim][dim] = DoFTools::always;
 
-  this->setup_system_matrix(dofs_per_block, coupling_table);
-  this->setup_vectors(dofs_per_block);
-
+  this->container.setup(this->dof_handler,
+                        this->zero_constraints,
+                        coupling_table,
+                        this->fe_system->n_blocks());
 }
 
 // explicit instantiation
 template void Solver<2>::setup_fe_system();
 template void Solver<3>::setup_fe_system();
 
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+setup_fe_system();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+setup_fe_system();
+
+
 template void Solver<2>::setup_dofs();
 template void Solver<3>::setup_dofs();
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+setup_dofs();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+setup_dofs();
 
 }  // namespace Hydrodynamic

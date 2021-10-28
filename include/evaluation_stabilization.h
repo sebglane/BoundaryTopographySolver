@@ -53,9 +53,21 @@ public:
   virtual void operator()(const Mapping<dim>        &mapping,
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
-                          const BlockVector<double> &solution) override;
+                          const BlockVector<double> &solution);
+
+  virtual void operator()(const Mapping<dim>        &mapping,
+                          const FiniteElement<dim>  &fe,
+                          const DoFHandler<dim>     &dof_handler,
+                          const TrilinosWrappers::MPI::Vector  &solution);
 
 protected:
+
+  template<typename VectorType>
+  void evaluate(const Mapping<dim>        &mapping,
+                const FiniteElement<dim>  &fe,
+                const DoFHandler<dim>     &dof_handler,
+                const VectorType          &solution);
+
   TableHandler  data_table;
 
   std::shared_ptr<const Utility::AngularVelocity<dim>> angular_velocity_ptr;
@@ -160,12 +172,25 @@ public:
   virtual void operator()(const Mapping<dim>        &mapping,
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
-                          const Vector<double>      &solution) override;
+                          const Vector<double>      &solution);
 
   virtual void operator()(const Mapping<dim>        &mapping,
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
-                          const BlockVector<double> &solution) override;
+                          const BlockVector<double> &solution);
+
+  virtual void operator()(const Mapping<dim>        &mapping,
+                          const FiniteElement<dim>  &fe,
+                          const DoFHandler<dim>     &dof_handler,
+                          const TrilinosWrappers::MPI::Vector  &solution);
+
+protected:
+
+  template<typename VectorType>
+  void evaluate(const Mapping<dim>        &mapping,
+                const FiniteElement<dim>  &fe,
+                const DoFHandler<dim>     &dof_handler,
+                const VectorType          &solution);
 
 private:
   std::shared_ptr<const Function<dim>>           reference_density_ptr;

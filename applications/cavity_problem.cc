@@ -6,7 +6,7 @@
  */
 
 #include <deal.II/base/function_lib.h>
-
+#include <deal.II/base/mpi.h>
 #include <deal.II/grid/grid_generator.h>
 
 #include <hydrodynamic_problem.h>
@@ -100,6 +100,8 @@ int main(int argc, char *argv[])
 {
   try
   {
+    dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
+
     std::string parameter_filename;
     if (argc >= 2)
       parameter_filename = argv[1];

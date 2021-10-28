@@ -8,17 +8,18 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/work_stream.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/grid/filtered_iterator.h>
 
 #include <assembly_functions.h>
 #include <buoyant_hydrodynamic_solver.h>
 
 namespace BuoyantHydrodynamic {
 
-template <int dim>
-void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
-    std::cout << "    Assemble rhs..." << std::endl;
+    this->pcout << "    Assemble rhs..." << std::endl;
 
   if (this->angular_velocity_ptr != nullptr)
     AssertThrow(this->rossby_number > 0.0,
@@ -37,7 +38,7 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
   const bool use_stress_form{this->viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress};
 
-  this->system_rhs = 0;
+  this->container.system_rhs = 0;
 
   // Initiate the quadrature formula
   const QGauss<dim>   quadrature_formula(this->velocity_fe_degree + 1);
@@ -80,9 +81,13 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
   if (!density_boundary_conditions.dirichlet_bcs.empty())
     face_update_flags |= update_normal_vectors;
 
+  using CellFilter = FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
   WorkStream::run
-  (this->dof_handler.begin_active(),
-   this->dof_handler.end(),
+  (CellFilter(IteratorFilters::LocallyOwnedCell(),
+              this->dof_handler.begin_active()),
+   CellFilter(IteratorFilters::LocallyOwnedCell(),
+              this->dof_handler.end()),
    worker,
    copier,
    Scratch(this->mapping,
@@ -105,8 +110,8 @@ void Solver<dim>::assemble_rhs(const bool use_homogeneous_constraints)
 
 
 
-template <int dim>
-void Solver<dim>::assemble_local_rhs
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
  AssemblyData::RightHandSide::Scratch<dim> &scratch,
  AssemblyBaseData::RightHandSide::Copy     &data,
@@ -134,37 +139,37 @@ void Solver<dim>::assemble_local_rhs
   BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim>   &buoyancy_weak_form_options = scratch.weak_form_options;
   BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_strong_form_options = scratch.strong_form_options;
 
-  scratch.fe_values[velocity].get_function_values(this->evaluation_point,
+  scratch.fe_values[velocity].get_function_values(this->container.evaluation_point,
                                                   scratch.present_velocity_values);
-  scratch.fe_values[velocity].get_function_gradients(this->evaluation_point,
+  scratch.fe_values[velocity].get_function_gradients(this->container.evaluation_point,
                                                      scratch.present_velocity_gradients);
 
-  scratch.fe_values[pressure].get_function_values(this->evaluation_point,
+  scratch.fe_values[pressure].get_function_values(this->container.evaluation_point,
                                                   scratch.present_pressure_values);
 
   // stress form
   if (use_stress_form)
-    scratch.fe_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
+    scratch.fe_values[velocity].get_function_symmetric_gradients(this->container.evaluation_point,
                                                                  scratch.present_sym_velocity_gradients);
 
-  scratch.fe_values[density].get_function_values(this->evaluation_point,
+  scratch.fe_values[density].get_function_values(this->container.evaluation_point,
                                                  scratch.present_density_values);
-  scratch.fe_values[density].get_function_gradients(this->evaluation_point,
+  scratch.fe_values[density].get_function_gradients(this->container.evaluation_point,
                                                     scratch.present_density_gradients);
 
   // stabilization related solution values
   if (this->stabilization & (apply_supg|apply_pspg))
   {
-    scratch.fe_values[velocity].get_function_laplacians(this->evaluation_point,
+    scratch.fe_values[velocity].get_function_laplacians(this->container.evaluation_point,
                                                         scratch.present_velocity_laplaceans);
-    scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
+    scratch.fe_values[pressure].get_function_gradients(this->container.evaluation_point,
                                                        scratch.present_pressure_gradients);
 
     // stress form
     if (use_stress_form)
     {
       std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
-      scratch.fe_values[velocity].get_function_hessians(this->evaluation_point,
+      scratch.fe_values[velocity].get_function_hessians(this->container.evaluation_point,
                                                         present_hessians);
 
       std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
@@ -407,9 +412,9 @@ void Solver<dim>::assemble_local_rhs
             dirichlet_bcs.at(boundary_id)->value_list(scratch.fe_face_values.get_quadrature_points(),
                                                       scratch.density_boundary_values);
             // evaluate solution
-            scratch.fe_face_values[density].get_function_values(this->evaluation_point,
+            scratch.fe_face_values[density].get_function_values(this->container.evaluation_point,
                                                                 scratch.present_density_face_values);
-            scratch.fe_face_values[velocity].get_function_values(this->evaluation_point,
+            scratch.fe_face_values[velocity].get_function_values(this->container.evaluation_point,
                                                                  scratch.present_velocity_face_values);
             // normal vectors
             scratch.face_normal_vectors = scratch.fe_face_values.get_normal_vectors();
@@ -445,7 +450,7 @@ void Solver<dim>::assemble_local_rhs
         // unconstrained boundary condition
         scratch.fe_face_values.reinit(cell, face);
 
-        scratch.fe_face_values[pressure].get_function_values(this->evaluation_point,
+        scratch.fe_face_values[pressure].get_function_values(this->container.evaluation_point,
                                                              scratch.present_pressure_face_values);
 
         // normal vectors
@@ -454,7 +459,7 @@ void Solver<dim>::assemble_local_rhs
         // compute present boundary traction
         if (use_stress_form)
         {
-          scratch.fe_face_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
+          scratch.fe_face_values[velocity].get_function_symmetric_gradients(this->container.evaluation_point,
                                                                             scratch.present_velocity_sym_face_gradients);
 
           for (const auto q: scratch.fe_face_values.quadrature_point_indices())
@@ -464,7 +469,7 @@ void Solver<dim>::assemble_local_rhs
         }
         else
         {
-          scratch.fe_face_values[velocity].get_function_gradients(this->evaluation_point,
+          scratch.fe_face_values[velocity].get_function_gradients(this->container.evaluation_point,
                                                                   scratch.present_velocity_face_gradients);
 
           for (const auto q: scratch.fe_face_values.quadrature_point_indices())

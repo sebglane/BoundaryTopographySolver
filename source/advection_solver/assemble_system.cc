@@ -13,21 +13,21 @@
 
 namespace Advection {
 
-template <int dim>
-void Solver<dim>::assemble_system
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
 (const bool use_homogeneous_constraints,
  const bool /* use_newton_linearization */)
 {
   if (this->verbose)
-    std::cout << "    Assemble linear system..." << std::endl;
+    this->pcout << "    Assemble linear system..." << std::endl;
 
   AssertThrow(advection_field_ptr != nullptr,
               ExcMessage("The advection field must be specified."));
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 
-  this->system_matrix = 0;
-  this->system_rhs = 0;
+  this->container.system_matrix = 0;
+  this->container.system_rhs = 0;
 
   const AffineConstraints<double> &constraints =
       (use_homogeneous_constraints ? this->zero_constraints: this->nonzero_constraints);
@@ -88,15 +88,16 @@ void Solver<dim>::assemble_system
   }
 
   for (const auto &cell : this->dof_handler.active_cell_iterators())
+  if (cell->is_locally_owned())
   {
     fe_values.reinit(cell);
 
     cell_matrix = 0;
     cell_rhs = 0;
 
-    fe_values[field].get_function_values(this->evaluation_point,
+    fe_values[field].get_function_values(this->container.evaluation_point,
                                          present_values);
-    fe_values[field].get_function_gradients(this->evaluation_point,
+    fe_values[field].get_function_gradients(this->container.evaluation_point,
                                             present_gradients);
 
     // body force
@@ -164,7 +165,7 @@ void Solver<dim>::assemble_system
           {
             fe_face_values.reinit(cell, face);
             // evaluate solution
-            fe_face_values[field].get_function_values(this->evaluation_point,
+            fe_face_values[field].get_function_values(this->container.evaluation_point,
                                                       present_face_values);
             // Dirichlet boundary condition
             const types::boundary_id  boundary_id{face->boundary_id()};
@@ -207,8 +208,8 @@ void Solver<dim>::assemble_system
     constraints.distribute_local_to_global(cell_matrix,
                                            cell_rhs,
                                            local_dof_indices,
-                                           this->system_matrix,
-                                           this->system_rhs);
+                                           this->container.system_matrix,
+                                           this->container.system_rhs);
   } // end loop over cells
 }
 

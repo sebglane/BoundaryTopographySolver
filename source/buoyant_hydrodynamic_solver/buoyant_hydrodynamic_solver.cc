@@ -82,9 +82,9 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 
 
-template <int dim>
-Solver<dim>::Solver
-(Triangulation<dim>     &tria,
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
+(TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters,
  const double           reynolds,
@@ -92,7 +92,7 @@ Solver<dim>::Solver
  const double           stratification,
  const double           rossby)
 :
-Hydrodynamic::Solver<dim>(tria, mapping, parameters, reynolds, froude, rossby),
+Hydrodynamic::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters, reynolds, froude, rossby),
 density_boundary_conditions(this->triangulation),
 reference_density_ptr(),
 gravity_field_ptr(),
@@ -104,11 +104,11 @@ nu_density(parameters.nu_density)
 
 
 
-template<int dim>
-void Solver<dim>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
-    std::cout << "    Output results..." << std::endl;
+    this->pcout << "    Output results..." << std::endl;
 
   Hydrodynamic::Postprocessor<dim>  postprocessor(0, dim);
 
@@ -117,8 +117,10 @@ void Solver<dim>::output_results(const unsigned int cycle) const
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
   data_out.attach_dof_handler(this->dof_handler);
-  data_out.add_data_vector(this->present_solution, postprocessor);
-  data_out.add_data_vector(this->present_solution, density_postprocessor);
+  data_out.add_data_vector(this->container.present_solution,
+                           postprocessor);
+  data_out.add_data_vector(this->container.present_solution,
+                           density_postprocessor);
 
   data_out.build_patches(this->velocity_fe_degree);
 
@@ -135,16 +137,17 @@ void Solver<dim>::output_results(const unsigned int cycle) const
 
 
 
-template <int dim>
-inline void Solver<dim>::preprocess_newton_iteration
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::preprocess_newton_iteration
 (const unsigned int iteration,
  const bool         is_initial_cycle)
 {
   if (iteration < 2 && is_initial_cycle)
   {
-    std::cout << "Reseting density solution..." << std::endl;
-    this->present_solution.block(2) = 0;
-    this->solution_update.block(2) = 0;
+    this->pcout << "Reseting density solution..." << std::endl;
+
+    this->container.set_block(this->container.present_solution, 2, 0.0);
+    this->container.set_block(this->container.solution_update, 2, 0.0);
   }
   return;
 }
@@ -152,6 +155,7 @@ inline void Solver<dim>::preprocess_newton_iteration
 
 // explicit instantiation
 template std::ostream & operator<<(std::ostream &, const SolverParameters &);
+template ConditionalOStream & operator<<(ConditionalOStream &, const SolverParameters &);
 
 template Solver<2>::Solver
 (Triangulation<2>  &,

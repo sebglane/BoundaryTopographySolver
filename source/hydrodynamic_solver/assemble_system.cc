@@ -7,20 +7,40 @@
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/work_stream.h>
+
 #include <deal.II/fe/fe_values.h>
+
+#include <deal.II/grid/filtered_iterator.h>
+
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
 
 namespace Hydrodynamic {
 
+using TrilinosContainer = typename
+                          SolverBase::
+                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
 template <int dim>
-void Solver<dim>::assemble_system
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
 (const bool use_homogeneous_constraints,
  const bool use_newton_linearization)
 {
   if (this->verbose)
-    std::cout << "    Assemble linear system..." << std::endl;
+    this->pcout << "    Assemble linear system..." << std::endl;
 
   if (angular_velocity_ptr != nullptr)
     AssertThrow(rossby_number > 0.0,
@@ -39,8 +59,8 @@ void Solver<dim>::assemble_system
 
   const bool use_stress_form{viscous_term_weak_form == ViscousTermWeakForm::stress};
 
-  this->system_matrix = 0;
-  this->system_rhs = 0;
+  this->container.system_matrix = 0;
+  this->container.system_rhs = 0;
 
   // Initiate the quadrature formula
   const QGauss<dim>   quadrature_formula(velocity_fe_degree + 1);
@@ -83,9 +103,13 @@ void Solver<dim>::assemble_system
     face_update_flags |= update_gradients|
                          update_normal_vectors;
 
+  using CellFilter = FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
   WorkStream::run
-  (this->dof_handler.begin_active(),
-   this->dof_handler.end(),
+  (CellFilter(IteratorFilters::LocallyOwnedCell(),
+              this->dof_handler.begin_active()),
+   CellFilter(IteratorFilters::LocallyOwnedCell(),
+              this->dof_handler.end()),
    worker,
    copier,
    Scratch(this->mapping,
@@ -102,12 +126,15 @@ void Solver<dim>::assemble_system
            include_boundary_stress_terms,
            !velocity_boundary_conditions.neumann_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
+
+  this->container.system_matrix.compress(VectorOperation::add);
+  this->container.system_rhs.compress(VectorOperation::add);
 }
 
 
 
-template<int dim>
-void Solver<dim>::assemble_local_system
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_system
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<dim> &scratch,
  AssemblyBaseData::Matrix::Copy     &data,
@@ -133,32 +160,32 @@ void Solver<dim>::assemble_local_system
   strong_form_options.use_stress_form = use_stress_form;
 
   // solution values
-  scratch.fe_values[velocity].get_function_values(this->evaluation_point,
+  scratch.fe_values[velocity].get_function_values(this->container.evaluation_point,
                                                   scratch.present_velocity_values);
-  scratch.fe_values[velocity].get_function_gradients(this->evaluation_point,
+  scratch.fe_values[velocity].get_function_gradients(this->container.evaluation_point,
                                                      scratch.present_velocity_gradients);
 
-  scratch.fe_values[pressure].get_function_values(this->evaluation_point,
+  scratch.fe_values[pressure].get_function_values(this->container.evaluation_point,
                                                   scratch.present_pressure_values);
 
   // stress form
   if (use_stress_form)
-    scratch.fe_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
+    scratch.fe_values[velocity].get_function_symmetric_gradients(this->container.evaluation_point,
                                                                  scratch.present_sym_velocity_gradients);
 
   // stabilization related solution values
   if (stabilization & (apply_supg|apply_pspg))
   {
-    scratch.fe_values[velocity].get_function_laplacians(this->evaluation_point,
+    scratch.fe_values[velocity].get_function_laplacians(this->container.evaluation_point,
                                                         scratch.present_velocity_laplaceans);
 
-    scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
+    scratch.fe_values[pressure].get_function_gradients(this->container.evaluation_point,
                                                        scratch.present_pressure_gradients);
 
     if (use_stress_form)
     {
       std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
-      scratch.fe_values[velocity].get_function_hessians(this->evaluation_point,
+      scratch.fe_values[velocity].get_function_hessians(this->container.evaluation_point,
                                                         present_hessians);
 
       std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
@@ -408,7 +435,7 @@ void Solver<dim>::assemble_local_system
         // unconstrained boundary condition
         scratch.fe_face_values.reinit(cell, face);
 
-        scratch.fe_face_values[pressure].get_function_values(this->evaluation_point,
+        scratch.fe_face_values[pressure].get_function_values(this->container.evaluation_point,
                                                              scratch.present_pressure_face_values);
 
         // normal vectors
@@ -417,7 +444,7 @@ void Solver<dim>::assemble_local_system
         // compute present boundary traction
         if (use_stress_form)
         {
-          scratch.fe_face_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
+          scratch.fe_face_values[velocity].get_function_symmetric_gradients(this->container.evaluation_point,
                                                                             scratch.present_velocity_sym_face_gradients);
 
           for (const auto q: scratch.fe_face_values.quadrature_point_indices())
@@ -427,7 +454,7 @@ void Solver<dim>::assemble_local_system
         }
         else
         {
-          scratch.fe_face_values[velocity].get_function_gradients(this->evaluation_point,
+          scratch.fe_face_values[velocity].get_function_gradients(this->container.evaluation_point,
                                                                   scratch.present_velocity_face_gradients);
 
           for (const auto q: scratch.fe_face_values.quadrature_point_indices())
@@ -481,8 +508,8 @@ void Solver<dim>::assemble_local_system
 
 
 
-template <int dim>
-void Solver<dim>::copy_local_to_global_system
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::copy_local_to_global_system
 (const AssemblyBaseData::Matrix::Copy     &data,
  const bool use_homogeneous_constraints)
 {
@@ -492,29 +519,86 @@ void Solver<dim>::copy_local_to_global_system
   constraints.distribute_local_to_global(data.local_matrix,
                                          data.local_rhs,
                                          data.local_dof_indices,
-                                         this->system_matrix,
-                                         this->system_rhs);
+                                         this->container.system_matrix,
+                                         this->container.system_rhs);
 }
 
 // explicit instantiation
-template void Solver<2>::assemble_local_system
+template
+void
+Solver<2>::
+assemble_local_system
 (const typename DoFHandler<2>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<2> &,
  AssemblyBaseData::Matrix::Copy   &,
  const bool, const bool) const;
-template void Solver<3>::assemble_local_system
+template
+void
+Solver<3>::
+assemble_local_system
 (const typename DoFHandler<3>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<3> &,
  AssemblyBaseData::Matrix::Copy   &,
  const bool, const bool) const;
 
-template void Solver<2>::copy_local_to_global_system
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+assemble_local_system
+(const typename DoFHandler<2>::active_cell_iterator &cell,
+ AssemblyData::Matrix::Scratch<2> &,
+ AssemblyBaseData::Matrix::Copy   &,
+ const bool, const bool) const;
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+assemble_local_system
+(const typename DoFHandler<3>::active_cell_iterator &cell,
+ AssemblyData::Matrix::Scratch<3> &,
+ AssemblyBaseData::Matrix::Copy   &,
+ const bool, const bool) const;
+
+template
+void
+Solver<2>::
+copy_local_to_global_system
 (const AssemblyBaseData::Matrix::Copy &, const bool);
-template void Solver<3>::copy_local_to_global_system
+template
+void
+Solver<3>::
+copy_local_to_global_system
 (const AssemblyBaseData::Matrix::Copy &, const bool);
 
-template void Solver<2>::assemble_system(const bool, const bool);
-template void Solver<3>::assemble_system(const bool, const bool);
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+copy_local_to_global_system
+(const AssemblyBaseData::Matrix::Copy &, const bool);
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+copy_local_to_global_system
+(const AssemblyBaseData::Matrix::Copy &, const bool);
+
+template
+void
+Solver<2>::
+assemble_system
+(const bool, const bool);
+template
+void
+Solver<3>::
+assemble_system(const bool, const bool);
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+assemble_system
+(const bool, const bool);
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+assemble_system(const bool, const bool);
 
 }  // namespace Hydrodynamic
 

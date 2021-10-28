@@ -3,10 +3,10 @@ SET(TARGET_SRC
     angular_velocity.cc
     assembly_base_data.cc
     boundary_conditions.cc
-    boundary_conditions.cc
     evaluation_boundary_traction.cc
     evaluation_stabilization.cc
     grid_factory.cc
+    linear_algebra_container.cc
     parameters.cc
     postprocessor_base.cc
     # solver base
@@ -41,8 +41,6 @@ SET(TARGET_SRC
     advection_solver/assemble_rhs.cc
     advection_solver/advection_solver.cc
     advection_solver/setup.cc
-    advection_solver/stabilization.cc
-    # postprocessing.cc
 )
 ADD_LIBRARY(boundary_topography SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(boundary_topography)

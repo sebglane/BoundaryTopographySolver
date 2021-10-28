@@ -8,6 +8,7 @@
 #ifndef INCLUDE_SOLVER_H_
 #define INCLUDE_SOLVER_H_
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/timer.h>
 
@@ -19,11 +20,10 @@
 #include <deal.II/fe/fe_system.h>
 
 #include <deal.II/lac/affine_constraints.h>
-#include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/block_sparse_matrix.h>
 
 #include <boundary_conditions.h>
 #include <evaluation_base.h>
+#include <linear_algebra_container.h>
 #include <parameters.h>
 
 #include <memory>
@@ -128,17 +128,21 @@ Stream& operator<<(Stream &stream, const Parameters &prm);
  * @class Solver
  *
  */
-template <int dim>
+template <int dim,
+          typename TriangulationType = Triangulation<dim>,
+          typename LinearAlgebraContainer = LinearAlgebraContainer<>>
 class Solver
 {
 public:
-  Solver(Triangulation<dim> &tria,
+  Solver(TriangulationType  &tria,
          Mapping<dim>       &mapping,
-         const Parameters &parameters);
+         const Parameters   &parameters);
 
   void add_postprocessor(const std::shared_ptr<EvaluationBase<dim>> &postprocessor);
 
   void solve();
+
+  ConditionalOStream& get_conditional_output_stream();
 
 protected:
   virtual void apply_boundary_conditions() = 0;
@@ -165,12 +169,6 @@ protected:
 
   virtual void setup_fe_system() = 0;
 
-  void setup_system_matrix
-  (const std::vector<types::global_dof_index> &dofs_per_block,
-   const Table<2, DoFTools::Coupling>         &coupling_table);
-
-  void setup_vectors(const std::vector<types::global_dof_index> &dofs_per_block);
-
   virtual void preprocess_newton_iteration(const unsigned int iteration,
                                            const bool         is_initial_cycle);
 
@@ -178,7 +176,9 @@ protected:
 
   virtual void output_results(const unsigned int cycle = 0) const = 0;
 
-  Triangulation<dim>         &triangulation;
+  ConditionalOStream          pcout;
+
+  TriangulationType          &triangulation;
   Mapping<dim>               &mapping;
 
   std::shared_ptr<FESystem<dim>> fe_system;
@@ -189,15 +189,8 @@ protected:
   AffineConstraints<double>   nonzero_constraints;
   AffineConstraints<double>   zero_constraints;
 
-  // system matrix
-  BlockSparsityPattern        sparsity_pattern;
-  BlockSparseMatrix<double>   system_matrix;
-
-  // vectors
-  BlockVector<double>         evaluation_point;
-  BlockVector<double>         present_solution;
-  BlockVector<double>         solution_update;
-  BlockVector<double>         system_rhs;
+  // linear algebra
+  LinearAlgebraContainer      container;
 
   // monitor of computing times
   TimerOutput                 computing_timer;
@@ -210,6 +203,8 @@ private:
   void postprocess_solution(const unsigned int cycle = 0) const;
 
   virtual void refine_mesh();
+
+  void execute_mesh_refinement();
 
   void solve_linear_system(const bool initial_step);
 
@@ -236,24 +231,36 @@ protected:
 };
 
 // inline methods
-template <int dim>
-inline void Solver<dim>::add_postprocessor(const std::shared_ptr<EvaluationBase<dim>> &postprocessor)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline ConditionalOStream&
+Solver<dim, TriangulationType, LinearAlgebraContainer>::get_conditional_output_stream()
+{
+  return (pcout);
+}
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::add_postprocessor
+(const std::shared_ptr<EvaluationBase<dim>> &postprocessor)
 {
   postprocessor_ptrs.push_back(postprocessor);
 }
 
 
 
-template <int dim>
-inline void Solver<dim>::preprocess_newton_iteration(const unsigned int, const bool)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+preprocess_newton_iteration(const unsigned int, const bool)
 {
   return;
 }
 
 
 
-template <int dim>
-inline void Solver<dim>::preprocess_picard_iteration(const unsigned int)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+preprocess_picard_iteration(const unsigned int)
 {
   return;
 }
