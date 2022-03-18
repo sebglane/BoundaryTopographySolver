@@ -207,7 +207,7 @@ void EvaluationStabilization<dim>::evaluate
   double cell_volume;
   double volume{0};
 
-  for (const auto cell: dof_handler.active_cell_iterators())
+  for (const auto &cell: dof_handler.active_cell_iterators())
   if (cell->is_locally_owned())
   {
     scratch.fe_values.reinit(cell);
@@ -541,7 +541,7 @@ void EvaluationStabilization<dim>::evaluate
   double cell_volume;
   double volume{0};
 
-  for (const auto cell: dof_handler.active_cell_iterators())
+  for (const auto &cell: dof_handler.active_cell_iterators())
   if (cell->is_locally_owned())
   {
     scratch.fe_values.reinit(cell);
