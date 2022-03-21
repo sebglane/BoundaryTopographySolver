@@ -1,10 +1,3 @@
-PROJECT(applications)
-ENABLE_TESTING()
-INCLUDE_DIRECTORIES(
-    include
-    ${CMAKE_SOURCE_DIR}/include
-    )
-
 SET(SOURCE_FILES
     advection_problem.cc
     buoyant_topography_problem.cc
@@ -27,4 +20,4 @@ FOREACH(sourcefile ${SOURCE_FILES})
     ADD_EXECUTABLE(${executablename} ${sourcefile})
     DEAL_II_SETUP_TARGET(${executablename})
     TARGET_LINK_LIBRARIES(${executablename} boundary_topography)
-ENDFOREACH(sourcefile ${APP_SOURCES})
+ENDFOREACH(sourcefile ${SOURCE_FILES})
