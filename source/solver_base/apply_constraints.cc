@@ -6,15 +6,32 @@
  */
 #include <deal.II/grid/grid_tools.h>
 
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
+
 #include <deal.II/numerics/vector_tools.h>
+
 #include <solver_base.h>
 
 #include <functional>
 
 namespace SolverBase {
 
+using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
 template <int dim>
-void Solver<dim>::apply_hanging_node_constraints()
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+apply_hanging_node_constraints()
 {
   DoFTools::make_hanging_node_constraints(dof_handler,
                                           nonzero_constraints);
@@ -25,8 +42,9 @@ void Solver<dim>::apply_hanging_node_constraints()
 
 
 
-template <int dim>
-void Solver<dim>::apply_periodicity_constraints
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+apply_periodicity_constraints
 (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs)
 {
   std::vector<GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
@@ -39,18 +57,19 @@ void Solver<dim>::apply_periodicity_constraints
                                       periodic_bc.direction,
                                       periodicity_vector);
 
-  DoFTools::make_periodicity_constraints<DoFHandler<dim>>(periodicity_vector,
-                                                          nonzero_constraints);
+  DoFTools::make_periodicity_constraints<dim, dim>(periodicity_vector,
+                                                   nonzero_constraints);
 
-  DoFTools::make_periodicity_constraints<DoFHandler<dim>>(periodicity_vector,
-                                                          zero_constraints);
+  DoFTools::make_periodicity_constraints<dim, dim>(periodicity_vector,
+                                                   zero_constraints);
 
 }
 
 
 
-template <int dim>
-void Solver<dim>::apply_dirichlet_constraints
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<dim>::BCMapping &dirichlet_bcs,
  const ComponentMask                                   &mask)
 {
@@ -153,8 +172,9 @@ void Solver<dim>::apply_dirichlet_constraints
 
 
 
-template <int dim>
-void Solver<dim>::apply_normal_flux_constraints
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+apply_normal_flux_constraints
 (const typename BoundaryConditionsBase<dim>::BCMapping &normal_flux_bcs,
  const ComponentMask                                   &mask)
 {
@@ -186,12 +206,39 @@ void Solver<dim>::apply_normal_flux_constraints
 }
 
 // explicit instantiations
-template void Solver<2>::apply_hanging_node_constraints();
-template void Solver<3>::apply_hanging_node_constraints();
+template
+void
+Solver<2>::
+apply_hanging_node_constraints();
+template
+void
+Solver<3>::
+apply_hanging_node_constraints();
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+apply_hanging_node_constraints();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+apply_hanging_node_constraints();
+
 
 template void Solver<2>::apply_periodicity_constraints
 (std::vector<PeriodicBoundaryData<2>> &);
 template void Solver<3>::apply_periodicity_constraints
+(std::vector<PeriodicBoundaryData<3>> &);
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+apply_periodicity_constraints
+(std::vector<PeriodicBoundaryData<2>> &);
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+apply_periodicity_constraints
 (std::vector<PeriodicBoundaryData<3>> &);
 
 template void Solver<2>::apply_dirichlet_constraints
@@ -199,9 +246,38 @@ template void Solver<2>::apply_dirichlet_constraints
 template void Solver<3>::apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
 
-template void Solver<2>::apply_normal_flux_constraints
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<2>::BCMapping &, const ComponentMask &);
-template void Solver<3>::apply_normal_flux_constraints
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+apply_dirichlet_constraints
+(const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
+
+
+template
+void
+Solver<2>::
+apply_normal_flux_constraints
+(const typename BoundaryConditionsBase<2>::BCMapping &, const ComponentMask &);
+template
+void
+Solver<3>::
+apply_normal_flux_constraints
+(const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+apply_normal_flux_constraints
+(const typename BoundaryConditionsBase<2>::BCMapping &, const ComponentMask &);
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+apply_normal_flux_constraints
 (const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
 
 }  // namespace SolverBase

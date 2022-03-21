@@ -7,17 +7,34 @@
 
 #include <deal.II/base/exceptions.h>
 
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
+
 #include <hydrodynamic_solver.h>
 
 #include <set>
 
 namespace Hydrodynamic {
 
+using TrilinosContainer = typename
+                          SolverBase::
+                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
 template <int dim>
-void Solver<dim>::apply_boundary_conditions()
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_conditions()
 {
   if (this->verbose)
-    std::cout << "    Apply boundary conditions..." << std::endl;
+    this->pcout << "    Apply boundary conditions..." << std::endl;
 
   AssertThrow(velocity_boundary_conditions.closed(),
               ExcMessage("The velocity boundary conditions have not been closed."));
@@ -103,5 +120,14 @@ void Solver<dim>::apply_boundary_conditions()
 // explicit instantiation
 template void Solver<2>::apply_boundary_conditions();
 template void Solver<3>::apply_boundary_conditions();
+
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+apply_boundary_conditions();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+apply_boundary_conditions();
 
 }  // namespace Hydrodynamic

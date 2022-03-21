@@ -4,6 +4,7 @@
  *  Created on: Sep 2, 2021
  *      Author: sg
  */
+#include <deal.II/base/conditional_ostream.h>
 
 #include <parameters.h>
 
@@ -198,22 +199,45 @@ Stream& operator<<(Stream &stream, const RefinementParameters &prm)
 
 // explicit instantiations
 template void add_header(std::ostream &);
+template void add_header(ConditionalOStream &);
 
 template void add_line(std::ostream &, const char[]);
+template void add_line(ConditionalOStream &, const char[]);
+
 template void add_line(std::ostream &, std::string);
+template void add_line(ConditionalOStream &, std::string);
 
 template void add_line(std::ostream &, const char[], const double);
+template void add_line(ConditionalOStream &, const char[], const double);
+
 template void add_line(std::ostream &, const char[], const unsigned int);
+template void add_line(ConditionalOStream &, const char[], const unsigned int);
+
 template void add_line(std::ostream &, const char[], const int);
+template void add_line(ConditionalOStream &, const char[], const int);
+
 template void add_line(std::ostream &, const char[], const std::string);
+template void add_line(ConditionalOStream &, const char[], const std::string);
+
 template void add_line(std::ostream &, const char[], const char[]);
+template void add_line(ConditionalOStream &, const char[], const char[]);
 
 template void add_line(std::ostream &, const std::string, const double);
+template void add_line(ConditionalOStream &, const std::string, const double);
+
 template void add_line(std::ostream &, const std::string, const unsigned int);
+template void add_line(ConditionalOStream &, const std::string, const unsigned int);
+
 template void add_line(std::ostream &, const std::string, const int);
+template void add_line(ConditionalOStream &, const std::string, const int);
+
 template void add_line(std::ostream &, const std::string, const std::string);
+template void add_line(ConditionalOStream &, const std::string, const std::string);
+
 template void add_line(std::ostream &, const std::string, const char[]);
+template void add_line(ConditionalOStream &, const std::string, const char[]);
 
 template std::ostream & operator<<(std::ostream &, const RefinementParameters &);
+template ConditionalOStream & operator<<(ConditionalOStream &, const RefinementParameters &);
 
 }  // namespace Utility

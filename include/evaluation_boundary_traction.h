@@ -37,7 +37,19 @@ public:
                           const DoFHandler<dim>     &dof_handler,
                           const BlockVector<double> &solution) override;
 
+  virtual  void operator()(const Mapping<dim>        &mapping,
+                           const FiniteElement<dim>  &fe,
+                           const DoFHandler<dim>     &dof_handler,
+                           const TrilinosWrappers::MPI::Vector  &solution);
+
 private:
+
+  template<typename VectorType>
+  void evaluate(const Mapping<dim>        &mapping,
+                const FiniteElement<dim>  &fe,
+                const DoFHandler<dim>     &dof_handler,
+                const VectorType          &solution);
+
   TableHandler  traction_table;
   TableHandler  pressure_table;
   TableHandler  viscous_table;

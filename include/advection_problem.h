@@ -70,7 +70,9 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
 
-template <int dim>
+template <int dim,
+          typename TriangulationType = Triangulation<dim>,
+          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
 class AdvectionProblem
 {
 public:
@@ -89,11 +91,11 @@ protected:
 
   virtual void set_advection_field() = 0;
 
-  Triangulation<dim>      triangulation;
+  TriangulationType       triangulation;
 
   MappingQCache<dim>      mapping;
 
-  Solver<dim>             solver;
+  Solver<dim, TriangulationType, LinearAlgebraContainer>  solver;
 
   const unsigned int      n_initial_refinements;
 
@@ -101,8 +103,8 @@ protected:
 };
 
 // inline functions
-template <int dim>
-void AdvectionProblem<dim>::set_source_term()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void AdvectionProblem<dim, TriangulationType, LinearAlgebraContainer>::set_source_term()
 {
   return;
 }

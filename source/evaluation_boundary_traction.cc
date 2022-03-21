@@ -6,6 +6,7 @@
  */
 
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/utilities.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -72,26 +73,29 @@ reynolds_number(reynolds_number)
 template <int dim>
 EvaluationBoundaryTraction<dim>::~EvaluationBoundaryTraction()
 {
-  std::cout << std::endl;
-  traction_table.write_text(std::cout);
+  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  {
+    std::cout << std::endl;
+    traction_table.write_text(std::cout);
 
-  std::cout << std::endl;
-  pressure_table.write_text(std::cout);
+    std::cout << std::endl;
+    pressure_table.write_text(std::cout);
 
-  std::cout << std::endl;
-  viscous_table.write_text(std::cout);
+    std::cout << std::endl;
+    viscous_table.write_text(std::cout);
+  }
 }
 
 
 
 template <int dim>
 void EvaluationBoundaryTraction<dim>::operator()
-(const Mapping<dim>        &/* mapping */,
- const FiniteElement<dim>  &/* fe */,
- const DoFHandler<dim>     &/* dof_handler */,
- const Vector<double>      &/* solution */)
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const Vector<double>      &solution)
 {
-  AssertThrow(false, ExcInternalError());
+  evaluate(mapping, fe, dof_handler, solution);
 }
 
 
@@ -102,6 +106,31 @@ void EvaluationBoundaryTraction<dim>::operator()
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,
  const BlockVector<double> &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
+void EvaluationBoundaryTraction<dim>::operator()
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const TrilinosWrappers::MPI::Vector  &solution)
+{
+  evaluate(mapping, fe, dof_handler, solution);
+}
+
+
+
+template <int dim>
+template <typename VectorType>
+void EvaluationBoundaryTraction<dim>::evaluate
+(const Mapping<dim>        &mapping,
+ const FiniteElement<dim>  &fe,
+ const DoFHandler<dim>     &dof_handler,
+ const VectorType          &solution)
 {
   AssertThrow(boundary_id != numbers::invalid_boundary_id,
               ExcMessage("Boundary id was not specified."));
@@ -132,7 +161,7 @@ void EvaluationBoundaryTraction<dim>::operator()
 
 
   for (const auto cell: dof_handler.active_cell_iterators())
-    if (cell->at_boundary())
+    if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() &&
             face->boundary_id() == boundary_id)
@@ -167,6 +196,11 @@ void EvaluationBoundaryTraction<dim>::operator()
         }
 
   Assert(area > 0.0, ExcLowerRangeType<double>(0.0, area));
+
+  area = Utilities::MPI::sum(area, MPI_COMM_WORLD);
+  traction = Utilities::MPI::sum(traction, MPI_COMM_WORLD);
+  pressure_component = Utilities::MPI::sum(pressure_component, MPI_COMM_WORLD);
+  viscous_component = Utilities::MPI::sum(viscous_component, MPI_COMM_WORLD);
 
   traction /= area;
   pressure_component /= area;

@@ -152,8 +152,9 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
 
 
-template <int dim>
-BuoyantHydrodynamicProblem<dim>::BuoyantHydrodynamicProblem(const ProblemParameters &parameters)
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::
+BuoyantHydrodynamicProblem(const ProblemParameters &parameters)
 :
 mapping(parameters.mapping_degree),
 solver(triangulation, mapping, parameters,
@@ -162,23 +163,23 @@ solver(triangulation, mapping, parameters,
 n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
 n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
 {
-  std::cout << parameters << std::endl;
+  solver.get_conditional_output_stream()  << parameters << std::endl;
 }
 
 
 
-template <int dim>
-void BuoyantHydrodynamicProblem<dim>::initialize_mapping()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::initialize_mapping()
 {
-  std::cout << "    Initialize mapping..." << std::endl;
+  solver.get_conditional_output_stream()  << "    Initialize mapping..." << std::endl;
 
   mapping.initialize(triangulation, MappingQGeneric<dim>(mapping.get_degree()));
 }
 
 
 
-template <int dim>
-void BuoyantHydrodynamicProblem<dim>::run()
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void BuoyantHydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::run()
 {
   this->make_grid();
 
@@ -203,6 +204,7 @@ void BuoyantHydrodynamicProblem<dim>::run()
 
 // explicit instantiations
 template std::ostream & operator<<(std::ostream &, const ProblemParameters &);
+template ConditionalOStream & operator<<(ConditionalOStream &, const ProblemParameters &);
 
 template BuoyantHydrodynamicProblem<2>::BuoyantHydrodynamicProblem(const ProblemParameters &);
 template BuoyantHydrodynamicProblem<3>::BuoyantHydrodynamicProblem(const ProblemParameters &);

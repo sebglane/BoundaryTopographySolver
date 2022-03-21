@@ -78,13 +78,13 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 
 
-template <int dim>
-Solver<dim>::Solver
-(Triangulation<dim>     &tria,
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
+(TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters)
 :
-SolverBase::Solver<dim>(tria, mapping, parameters),
+SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters),
 boundary_conditions(this->triangulation),
 advection_field_ptr(),
 source_term_ptr(),
@@ -96,16 +96,16 @@ global_entropy_variation{0.0}
 
 
 
-template<int dim>
-void Solver<dim>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
-    std::cout << "    Output results..." << std::endl;
+    this->pcout << "    Output results..." << std::endl;
 
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
   data_out.attach_dof_handler(this->dof_handler);
-  data_out.add_data_vector(this->present_solution, "field");
+  data_out.add_data_vector(this->container.present_solution, "field");
 
   data_out.build_patches(fe_degree);
 
@@ -122,6 +122,7 @@ void Solver<dim>::output_results(const unsigned int cycle) const
 
 // explicit instantiation
 template std::ostream & operator<<(std::ostream &, const SolverParameters &);
+template ConditionalOStream & operator<<(ConditionalOStream &, const SolverParameters &);
 
 template Solver<2>::Solver
 (Triangulation<2>  &,

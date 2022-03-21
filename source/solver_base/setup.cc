@@ -4,39 +4,59 @@
  *  Created on: Aug 30, 2021
  *      Author: sg
  */
-
 #include <deal.II/dofs/dof_renumbering.h>
 
 #include <deal.II/fe/mapping_q_cache.h>
+
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 #include <solver_base.h>
 
 namespace SolverBase {
 
+using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
+                                                 TrilinosWrappers::SparseMatrix,
+                                                 TrilinosWrappers::SparsityPattern>;
+
+
+
 template <int dim>
-void Solver<dim>::setup_dofs()
+using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
 {
   // distribute and renumber block-wise
   dof_handler.distribute_dofs(*fe_system);
 
   DoFRenumbering::block_wise(dof_handler);
 
-  std::cout << "    Number of active cells: "
-            << triangulation.n_active_cells()
-            << std::endl
-            << "    Number of total degrees of freedom: "
-            << dof_handler.n_dofs()
-            << std::endl;
+  pcout << "    Number of active cells: "
+        << triangulation.n_global_active_cells()
+        << std::endl
+        << "    Number of total degrees of freedom: "
+        << dof_handler.n_dofs()
+        << std::endl;
+
+  IndexSet locally_relevant_dofs;
+  DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
   nonzero_constraints.clear();
+  nonzero_constraints.reinit(locally_relevant_dofs);
+
   zero_constraints.clear();
+  zero_constraints.reinit(locally_relevant_dofs);
 
   // possibly initialize the mapping
   MappingQCache<dim> *mapping_q_cache_ptr = dynamic_cast<MappingQCache<dim>*>(&mapping);
   if (mapping_q_cache_ptr != nullptr)
   {
     if (verbose)
-      std::cout << "Initialize mapping..." << std::endl;
+      pcout << "Initialize mapping..." << std::endl;
     mapping_q_cache_ptr->initialize(triangulation,
                                     MappingQGeneric<dim>(mapping_q_cache_ptr->get_degree()));
   }
@@ -50,55 +70,17 @@ void Solver<dim>::setup_dofs()
 }
 
 
-
-template<int dim>
-void Solver<dim>::setup_system_matrix
-(const std::vector<types::global_dof_index> &dofs_per_block,
- const Table<2, DoFTools::Coupling> &coupling_table)
-{
-  system_matrix.clear();
-
-  BlockDynamicSparsityPattern dsp(dofs_per_block,
-                                  dofs_per_block);
-
-  DoFTools::make_sparsity_pattern(dof_handler,
-                                  coupling_table,
-                                  dsp,
-                                  zero_constraints);
-  sparsity_pattern.copy_from(dsp);
-
-  system_matrix.reinit(sparsity_pattern);
-}
-
-
-
-template<int dim>
-void Solver<dim>::setup_vectors
-(const std::vector<types::global_dof_index> &dofs_per_block)
-{
-  evaluation_point.reinit(dofs_per_block);
-  present_solution.reinit(dofs_per_block);
-  solution_update.reinit(dofs_per_block);
-  system_rhs.reinit(dofs_per_block);
-}
-
 // explicit instantiations
 template void Solver<2>::setup_dofs();
 template void Solver<3>::setup_dofs();
 
-template void Solver<2>::setup_system_matrix
-(const std::vector<types::global_dof_index> &,
- const Table<2, DoFTools::Coupling> &);
-template void Solver<3>::setup_system_matrix
-(const std::vector<types::global_dof_index> &,
- const Table<2, DoFTools::Coupling> &);
-
-template void Solver<2>::setup_vectors
-(const std::vector<types::global_dof_index> &);
-template void Solver<3>::setup_vectors
-(const std::vector<types::global_dof_index> &);
-
-template class Solver<2>;
-template class Solver<3>;
+template
+void
+Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
+setup_dofs();
+template
+void
+Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
+setup_dofs();
 
 }  // namespace SolverBase
