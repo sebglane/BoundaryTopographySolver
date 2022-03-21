@@ -1,4 +1,6 @@
 # Set the source files to be compiled
+SET(TARGET "boundary_topography")
+
 SET(TARGET_SRC
     angular_velocity.cc
     assembly_base_data.cc
@@ -44,6 +46,5 @@ SET(TARGET_SRC
     advection_solver/stabilization.cc
     # postprocessing.cc
 )
-ADD_LIBRARY(boundary_topography SHARED ${TARGET_SRC})
+ADD_LIBRARY(${TARGET} SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(boundary_topography)
-

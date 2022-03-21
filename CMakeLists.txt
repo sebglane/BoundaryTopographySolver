@@ -10,11 +10,28 @@ MESSAGE("========= topography. ==================================")
 # Is the cmake version sufficient?
 ##
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
+SET(CMAKE_CXX_STANDARD 20)
+
+IF (EXISTS ${CMAKE_SOURCE_DIR}/CMakeCache.txt)
+  MESSAGE(FATAL_ERROR  "Detected the file\n"
+  "${CMAKE_SOURCE_DIR}/CMakeCache.txt\n"
+  "in your source directory, which is a left-over from an in-source build. "
+  "Please delete the file before running cmake from a separate build directory.")
+ENDIF()
+
+IF ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+  MESSAGE(FATAL_ERROR  "In-source builds in ${CMAKE_BINARY_DIR} are not support. "
+  "Please run cmake from a separate build directory."
+  "\n"
+  "Note that CMake created a file called CMakeCache.txt and a folder called "
+  "CMakeFiles in the source directory that you have to remove before you can "
+  "begin a build in a different directory.")
+ENDIF()
 
 ##
 # Is the deal.ii library installed?
 ##
-FIND_PACKAGE(deal.II 9.0.1 REQUIRED QUIET
+FIND_PACKAGE(deal.II 9.3.0 REQUIRED QUIET
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})
@@ -33,7 +50,7 @@ ENDIF()
 # p4est
 IF(NOT DEAL_II_WITH_P4EST)
   MESSAGE(FATAL_ERROR "\n"
-  "RotatingMHD requires a deal.II installation built with support for p4est but it appears to be missing!"
+  "BoundaryTopographySolver requires a deal.II installation built with support for p4est but it appears to be missing!"
   "\n"
     )
 ENDIF()
@@ -67,11 +84,12 @@ IF(NOT DEAL_II_WITH_UMFPACK) # keep in one line
     )
 ENDIF()
 
+# DEBUG vs. RELEASE
 ADD_CUSTOM_TARGET(debug
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
   COMMENT "Switch CMAKE_BUILD_TYPE to Debug"
-  )
+)
 
 ADD_CUSTOM_TARGET(release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
@@ -79,16 +97,15 @@ ADD_CUSTOM_TARGET(release
   COMMENT "Switch CMAKE_BUILD_TYPE to Release"
 )
 
-
 # Set the include directory and the name of the project
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 PROJECT(boundary_topography)
 ENABLE_TESTING()
-INCLUDE_DIRECTORIES(include)
-ADD_SUBDIRECTORY(source)
+INCLUDE_DIRECTORIES(include/
+                    ${CMAKE_SOURCE_DIR}/include/
+                    SYSTEM)
 ADD_SUBDIRECTORY(applications)
-# ADD_SUBDIRECTORY(convergence_tests)
-# ADD_SUBDIRECTORY(tests/boundary_topography)
+ADD_SUBDIRECTORY(source)
 ADD_SUBDIRECTORY(tests/applications/)
 # ADD_SUBDIRECTORY(tests/convergence_tests/)
 
