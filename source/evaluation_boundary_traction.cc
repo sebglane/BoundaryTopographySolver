@@ -160,7 +160,7 @@ void EvaluationBoundaryTraction<dim>::evaluate
   std::vector<double>                   present_pressure_values(n_face_q_points);
 
 
-  for (const auto cell: dof_handler.active_cell_iterators())
+  for (const auto &cell: dof_handler.active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() &&
