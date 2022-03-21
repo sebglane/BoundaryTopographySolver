@@ -107,6 +107,6 @@ INCLUDE_DIRECTORIES(include/
 ADD_SUBDIRECTORY(applications)
 ADD_SUBDIRECTORY(source)
 ADD_SUBDIRECTORY(tests/applications/)
-# ADD_SUBDIRECTORY(tests/convergence_tests/)
+ADD_SUBDIRECTORY(tests/basic_tests/)
 
 MESSAGE("========================================================")
