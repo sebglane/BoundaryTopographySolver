@@ -27,8 +27,12 @@ template <class StreamType>
 inline StreamType &
 operator<<(StreamType &s, const StabilizationFlags u)
 {
-  if (u & apply_none)
+  if (u == apply_none)
+  {
     s << "apply_none|";
+    return s;
+  }
+
   if (u & apply_supg)
     s << "apply_supg|";
   if (u & apply_pspg)

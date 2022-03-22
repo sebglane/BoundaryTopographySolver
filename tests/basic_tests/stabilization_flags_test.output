@@ -1,0 +1,8 @@
+|                       Stabilization type |      apply_grad_div| |
+|                       Stabilization type |          apply_none| |
+|                       Stabilization type |          apply_pspg| |
+|                       Stabilization type |          apply_supg| |
+|                       Stabilization type | apply_pspg|apply_grad_div| |
+|                       Stabilization type | apply_supg|apply_grad_div| |
+|                       Stabilization type | apply_supg|apply_pspg| |
+|                       Stabilization type | apply_supg|apply_pspg|apply_grad_div| |
