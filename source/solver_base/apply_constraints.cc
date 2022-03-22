@@ -83,7 +83,7 @@ apply_dirichlet_constraints
 
   if (n_components==dim)
     for (unsigned d=0; d<dim; ++d)
-      AssertThrow(mask[first_selected_component+ d] == true,
+      AssertThrow(mask[first_selected_component + d] == true,
                   ExcMessage("Expected a sequence of dim selected components in "
                              "component mask"));
 

@@ -112,6 +112,9 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
            reference_density_ptr != nullptr,
            !density_boundary_conditions.dirichlet_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
+
+  this->container.system_matrix.compress(VectorOperation::add);
+  this->container.system_rhs.compress(VectorOperation::add);
 }
 
 

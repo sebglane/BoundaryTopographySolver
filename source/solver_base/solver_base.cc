@@ -434,8 +434,7 @@ newton_iteration(const bool is_initial_cycle)
 
   auto compute_residual = [&, this, is_initial_cycle]
                            (const double alpha = 0.0,
-                            const bool use_homogeneous_constraints = true,
-                            const unsigned int iteration)
+                            const bool use_homogeneous_constraints = true)
       {
         this->container.set_evaluation_point(present_solution);
         if (alpha != 0.0)
@@ -446,24 +445,11 @@ newton_iteration(const bool is_initial_cycle)
 
         std::vector<double> residual_components = this->container.get_residual_components();
 
-        if (!is_initial_cycle || residual_components.size() < 3)
-          return (std::make_tuple(system_rhs.l2_norm(), residual_components));
-        else
-        {
-          if (iteration < 1)
-          {
-            residual_components[2] = 0.0;
-            return (std::make_tuple(std::sqrt(residual_components[0] * residual_components[0] +
-                                              residual_components[1] * residual_components[1]),
-                                    residual_components));
-          }
-          else
-            return (std::make_tuple(system_rhs.l2_norm(), residual_components));
-        }
+        return (std::make_tuple(system_rhs.l2_norm(), residual_components));
       };
 
   this->preprocess_newton_iteration(0, is_initial_cycle);
-  const double initial_residual{std::get<0>(compute_residual(0.0, false, 0))};
+  const double initial_residual{std::get<0>(compute_residual(0.0, false))};
 
   pcout << "Initial residual: "
         << std::scientific << initial_residual
@@ -498,7 +484,7 @@ newton_iteration(const bool is_initial_cycle)
                                        nonzero_constraints);
       first_step = false;
       // compute residual
-      std::tie(current_residual, current_residual_components) = compute_residual(0.0, true, iteration);
+      std::tie(current_residual, current_residual_components) = compute_residual(0.0, true);
     }
     else
     {
@@ -511,7 +497,7 @@ newton_iteration(const bool is_initial_cycle)
         pcout << "   Line search: " << std::endl;
       for (double alpha = 1.0; alpha > 1e-2; alpha *= 0.5)
       {
-        std::tie(current_residual, current_residual_components) = compute_residual(alpha, true, iteration);
+        std::tie(current_residual, current_residual_components) = compute_residual(alpha, true);
         if (verbose)
           pcout << "      alpha = " << std::setw(6)
                     << std::scientific << alpha
