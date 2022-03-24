@@ -191,6 +191,9 @@ protected:
 
   // linear algebra
   LinearAlgebraContainer      container;
+  typename LinearAlgebraContainer::vector_type  present_solution;
+  typename LinearAlgebraContainer::vector_type  evaluation_point;
+  typename LinearAlgebraContainer::vector_type  solution_update;
 
   // monitor of computing times
   TimerOutput                 computing_timer;

@@ -104,7 +104,7 @@ solve_linear_system(const bool use_homogeneous_constraints)
 
   const auto r = internal::solve_trilinos(container.system_matrix,
                                           container.system_rhs,
-                                          container.solution_update);
+                                          this->solution_update);
 
   if (verbose)
     pcout << "    Number of GMRES iterations: "
@@ -115,8 +115,8 @@ solve_linear_system(const bool use_homogeneous_constraints)
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
 
-  container.distribute_constraints(container.solution_update,
-                                   constraints_used);
+  container.distribute_constraints(constraints_used,
+                                   this->solution_update);
 }
 
 
@@ -130,7 +130,7 @@ solve_linear_system(const bool use_homogeneous_constraints)
 
   const auto r = internal::solve_trilinos(container.system_matrix,
                                           container.system_rhs,
-                                          container.solution_update);
+                                          this->solution_update);
 
   if (verbose)
     pcout << "    Number of GMRES iterations: "
@@ -141,8 +141,8 @@ solve_linear_system(const bool use_homogeneous_constraints)
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
 
-  container.distribute_constraints(container.solution_update,
-                                   constraints_used);
+  container.distribute_constraints(constraints_used,
+                                   this->solution_update);
 }
 
 
@@ -158,13 +158,13 @@ void Solver<2>::solve_linear_system(const bool use_homogeneous_constraints)
   SparseDirectUMFPACK     direct_solver;
   direct_solver.solve(container.system_matrix, container.system_rhs);
 
-  container.set_solution_update(container.system_rhs);
+  container.set_vector(container.system_rhs, this->solution_update);
 
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
 
-  container.distribute_constraints(container.solution_update,
-                                   constraints_used);
+  container.distribute_constraints(constraints_used,
+                                   this->solution_update);
 }
 
 
@@ -180,13 +180,13 @@ void Solver<3>::solve_linear_system(const bool use_homogeneous_constraints)
   SparseDirectUMFPACK     direct_solver;
   direct_solver.solve(container.system_matrix, container.system_rhs);
 
-  container.set_solution_update(container.system_rhs);
+  container.set_vector(container.system_rhs, this->solution_update);
 
   const AffineConstraints<double> &constraints_used =
       (use_homogeneous_constraints ? zero_constraints: nonzero_constraints);
 
-  container.distribute_constraints(container.solution_update,
-                                   constraints_used);
+  container.distribute_constraints(constraints_used,
+                                   this->solution_update);
 }
 
 }  // namespace SolverBase

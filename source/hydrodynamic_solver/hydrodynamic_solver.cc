@@ -308,7 +308,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(cons
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
   data_out.attach_dof_handler(this->dof_handler);
-  data_out.add_data_vector(this->container.present_solution,
+  data_out.add_data_vector(this->present_solution,
                            postprocessor);
 
   data_out.build_patches(velocity_fe_degree);

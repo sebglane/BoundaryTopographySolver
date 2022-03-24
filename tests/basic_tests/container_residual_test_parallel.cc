@@ -127,8 +127,9 @@ test_assembly_parallel
                   n_blocks);
 
   // set solution
-  container.set_evaluation_point(container.present_solution);
-  container.distribute_constraints(container.evaluation_point, constraints);
+  typename Container::vector_type  evaluation_point;
+  container.setup_vector(evaluation_point);
+  container.distribute_constraints(constraints, evaluation_point);
 
 
   // assembly right-hand side
@@ -174,12 +175,12 @@ test_assembly_parallel
       strong_form_options.use_stress_form = false;
 
       // solution values
-      scratch.fe_values[velocity].get_function_values(container.evaluation_point,
+      scratch.fe_values[velocity].get_function_values(evaluation_point,
                                                       scratch.present_velocity_values);
-      scratch.fe_values[velocity].get_function_gradients(container.evaluation_point,
+      scratch.fe_values[velocity].get_function_gradients(evaluation_point,
                                                          scratch.present_velocity_gradients);
 
-      scratch.fe_values[pressure].get_function_values(container.evaluation_point,
+      scratch.fe_values[pressure].get_function_values(evaluation_point,
                                                       scratch.present_pressure_values);
 
       for (const auto q: scratch.fe_values.quadrature_point_indices())

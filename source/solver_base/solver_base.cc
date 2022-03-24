@@ -416,7 +416,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::postprocess_solutio
     (*ptr)(mapping,
            *fe_system,
            dof_handler,
-           container.present_solution);
+           present_solution);
   }
 }
 
@@ -427,20 +427,17 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 newton_iteration(const bool is_initial_cycle)
 {
   using VectorType = typename LinearAlgebraContainer::vector_type;
-  VectorType  &evaluation_point = container.evaluation_point;
-  VectorType  &present_solution = container.present_solution;
-  VectorType  &solution_update = container.solution_update;
   VectorType  &system_rhs = container.system_rhs;
 
   auto compute_residual = [&, this, is_initial_cycle]
                            (const double alpha = 0.0,
                             const bool use_homogeneous_constraints = true)
       {
-        this->container.set_evaluation_point(present_solution);
+        this->container.set_vector(present_solution, evaluation_point);
         if (alpha != 0.0)
-          this->container.add_to_evaluation_point(solution_update, alpha);
-        this->container.distribute_constraints(evaluation_point,
-                                               this->nonzero_constraints);
+          this->container.add(alpha, solution_update, evaluation_point);
+        this->container.distribute_constraints(this->nonzero_constraints,
+                                               evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
         std::vector<double> residual_components = this->container.get_residual_components();
@@ -476,20 +473,23 @@ newton_iteration(const bool is_initial_cycle)
     if (first_step)
     {
       // solve problem
-      container.set_evaluation_point(present_solution);
+      container.set_vector(present_solution, evaluation_point);
+
       this->assemble_system(/* use_homogeneous_constraints ? */ false);
+
       solve_linear_system(/* use_homogeneous_constraints ? */ false);
-      container.set_present_solution(solution_update);
-      container.distribute_constraints(present_solution,
-                                       nonzero_constraints);
+      container.set_vector(solution_update, present_solution);
+      container.distribute_constraints(nonzero_constraints,
+                                       present_solution);
       first_step = false;
+
       // compute residual
       std::tie(current_residual, current_residual_components) = compute_residual(0.0, true);
     }
     else
     {
       // solve problem
-      container.set_evaluation_point(present_solution);
+      container.set_vector(present_solution, evaluation_point);
       this->assemble_system(/* use_homogeneous_constraints ? */ true);
       solve_linear_system(/* use_homogeneous_constraints ? */ true);
       // line search
@@ -507,8 +507,9 @@ newton_iteration(const bool is_initial_cycle)
         if (current_residual < last_residual)
           break;
       }
-      container.set_present_solution(evaluation_point);
+      container.set_vector(evaluation_point, present_solution);
     }
+
 
     // output residual
     pcout << "Iteration: " << std::setw(3) << std::right << iteration
@@ -537,16 +538,13 @@ template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
 {
   using VectorType = typename LinearAlgebraContainer::vector_type;
-  VectorType  &evaluation_point = container.evaluation_point;
-  VectorType  &present_solution = container.present_solution;
-  VectorType  &solution_update = container.solution_update;
   VectorType  &system_rhs = container.system_rhs;
 
   auto compute_residual = [&, this](const bool use_homogeneous_constraints = true)
       {
-        container.set_evaluation_point(present_solution);
-        this->container.distribute_constraints(evaluation_point,
-                                               this->nonzero_constraints);
+        container.set_vector(present_solution, evaluation_point);
+        this->container.distribute_constraints(this->nonzero_constraints,
+                                               evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
         const std::vector<double> residual_components = this->container.get_residual_components();
@@ -579,24 +577,24 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
     if (iteration == 0)
     {
       // solve problem
-      container.set_evaluation_point(present_solution);
+      container.set_vector(present_solution, evaluation_point);
       this->assemble_system(/* use_homogeneous_constraints ? */ false,
                             /* use_newton_linearization ? */ false);
       solve_linear_system(/* use_homogeneous_constraints ? */ false);
-      container.set_present_solution(solution_update);
+      container.set_vector(solution_update, present_solution);
     }
     else
     {
       // solve problem
-      container.set_evaluation_point(present_solution);
+      container.set_vector(present_solution, evaluation_point);
       this->assemble_system(/* use_homogeneous_constraints ? */ true,
                             /* use_newton_linearization ? */ false);
       solve_linear_system(/* use_homogeneous_constraints ? */ true);
-      container.add_to_present_solution(solution_update);
+      container.add(solution_update, present_solution);
     }
 
-    container.distribute_constraints(present_solution,
-                                     nonzero_constraints);
+    container.distribute_constraints(nonzero_constraints,
+                                     present_solution);
 
     // compute residual
     std::tie(current_residual, current_residual_components) = compute_residual(true);

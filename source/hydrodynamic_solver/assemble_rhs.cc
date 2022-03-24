@@ -154,32 +154,32 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
   strong_form_options.use_stress_form = use_stress_form;
 
   // solution values
-  scratch.fe_values[velocity].get_function_values(this->container.evaluation_point,
+  scratch.fe_values[velocity].get_function_values(this->evaluation_point,
                                                   scratch.present_velocity_values);
-  scratch.fe_values[velocity].get_function_gradients(this->container.evaluation_point,
+  scratch.fe_values[velocity].get_function_gradients(this->evaluation_point,
                                                      scratch.present_velocity_gradients);
 
-  scratch.fe_values[pressure].get_function_values(this->container.evaluation_point,
+  scratch.fe_values[pressure].get_function_values(this->evaluation_point,
                                                   scratch.present_pressure_values);
 
   // stress form
   if (use_stress_form)
-    scratch.fe_values[velocity].get_function_symmetric_gradients(this->container.evaluation_point,
+    scratch.fe_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
                                                                  scratch.present_sym_velocity_gradients);
 
   // stabilization related solution values
   if (stabilization & (apply_supg|apply_pspg))
   {
-    scratch.fe_values[velocity].get_function_laplacians(this->container.evaluation_point,
+    scratch.fe_values[velocity].get_function_laplacians(this->evaluation_point,
                                                         scratch.present_velocity_laplaceans);
-    scratch.fe_values[pressure].get_function_gradients(this->container.evaluation_point,
+    scratch.fe_values[pressure].get_function_gradients(this->evaluation_point,
                                                        scratch.present_pressure_gradients);
 
     // stress form
     if (use_stress_form)
     {
       std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
-      scratch.fe_values[velocity].get_function_hessians(this->container.evaluation_point,
+      scratch.fe_values[velocity].get_function_hessians(this->evaluation_point,
                                                         present_hessians);
 
       std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
@@ -354,7 +354,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
         // unconstrained boundary condition
         scratch.fe_face_values.reinit(cell, face);
 
-        scratch.fe_face_values[pressure].get_function_values(this->container.evaluation_point,
+        scratch.fe_face_values[pressure].get_function_values(this->evaluation_point,
                                                              scratch.present_pressure_face_values);
 
         // normal vectors
@@ -363,7 +363,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
         // compute present boundary traction
         if (use_stress_form)
         {
-          scratch.fe_face_values[velocity].get_function_symmetric_gradients(this->container.evaluation_point,
+          scratch.fe_face_values[velocity].get_function_symmetric_gradients(this->evaluation_point,
                                                                             scratch.present_velocity_sym_face_gradients);
 
           for (const auto q: scratch.fe_face_values.quadrature_point_indices())
@@ -373,7 +373,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
         }
         else
         {
-          scratch.fe_face_values[velocity].get_function_gradients(this->container.evaluation_point,
+          scratch.fe_face_values[velocity].get_function_gradients(this->evaluation_point,
                                                                   scratch.present_velocity_face_gradients);
 
           for (const auto q: scratch.fe_face_values.quadrature_point_indices())

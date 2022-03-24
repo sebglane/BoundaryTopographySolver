@@ -70,19 +70,27 @@ test_container
                   n_blocks);
 
   const double value{1.0 / std::sqrt(double(dofs_per_block[n_blocks - 1]))};
-  container.set_block(container.system_rhs, n_blocks - 1, value);
+  container.set_block(n_blocks - 1, value, container.system_rhs);
 
   for (const auto residual: container.get_residual_components())
     std::cout << residual << ", ";
   std::cout << std::endl;
 
+  typename Container::vector_type  evaluation_point;
+  container.setup_vector(evaluation_point);
   for (std::size_t i=0; i<n_blocks; ++i)
-    container.set_block(container.evaluation_point, i, std::pow(double(i), 2));
+    container.set_block(i, std::pow(double(i), 2), evaluation_point);
 
-  container.set_present_solution(container.evaluation_point);
-  container.set_solution_update(container.evaluation_point);
-  container.add_to_evaluation_point(container.present_solution, 0.1);
-  container.add_to_present_solution(container.evaluation_point, 0.1);
+  typename Container::vector_type  present_solution;
+  container.setup_vector(present_solution);
+  typename Container::vector_type  solution_update;
+  container.setup_vector(solution_update);
+
+  container.set_vector(evaluation_point, present_solution);
+  container.set_vector(evaluation_point, solution_update);
+  container.add(present_solution, solution_update);
+  container.add(0.1, evaluation_point, present_solution);
+
 }
 
 }  // namespace TestSpace

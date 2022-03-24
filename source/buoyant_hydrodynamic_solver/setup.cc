@@ -66,6 +66,9 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
                         this->zero_constraints,
                         coupling_table,
                         this->fe_system->n_blocks());
+  this->container.setup_vector(this->present_solution);
+  this->container.setup_vector(this->evaluation_point);
+  this->container.setup_vector(this->solution_update);
 }
 
 // explicit instantiation

@@ -42,7 +42,8 @@ test_assembly_serial
   std::cout << "Make grid" << std::endl;
   Triangulation<dim>            tria;
   GridGenerator::hyper_cube(tria, 0.0, 1.0, true);
-  tria.refine_global(n_refinements);
+  if (n_refinements > 0)
+    tria.refine_global(n_refinements);
 
   const types::boundary_id  left_bndry_id{0};
   const types::boundary_id  right_bndry_id{1};
@@ -54,6 +55,7 @@ test_assembly_serial
   // setup finite element
   FESystem<dim> fe_system(FESystem<dim>(FE_Q<dim>(degree + 1), dim), 1,
                           FE_Q<dim>(degree), 1);
+  const unsigned int velocity_fe_degree{degree + 1};
 
   DoFHandler<dim> dof_handler(tria);
   dof_handler.distribute_dofs(fe_system);
@@ -118,9 +120,9 @@ test_assembly_serial
                   n_blocks);
 
   // set solution
-  container.set_evaluation_point(container.present_solution);
-  container.distribute_constraints(container.evaluation_point, constraints);
-
+  typename Container::vector_type  evaluation_point;
+  container.setup_vector(evaluation_point);
+  container.distribute_constraints(constraints, evaluation_point);
 
   // assembly right-hand side
   UpdateFlags update_flags = update_values|
@@ -130,8 +132,8 @@ test_assembly_serial
                                   update_quadrature_points|
                                   update_JxW_values;
   MappingQ1<dim>      mapping;
-  const QGauss<dim>   quadrature_formula(degree + 1);
-  const QGauss<dim-1> face_quadrature_formula(degree + 1);
+  const QGauss<dim>   quadrature_formula(velocity_fe_degree + 1);
+  const QGauss<dim-1> face_quadrature_formula(velocity_fe_degree + 1);
 
   Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
   scratch(mapping,
@@ -164,12 +166,12 @@ test_assembly_serial
     strong_form_options.use_stress_form = false;
 
     // solution values
-    scratch.fe_values[velocity].get_function_values(container.evaluation_point,
+    scratch.fe_values[velocity].get_function_values(evaluation_point,
                                                     scratch.present_velocity_values);
-    scratch.fe_values[velocity].get_function_gradients(container.evaluation_point,
+    scratch.fe_values[velocity].get_function_gradients(evaluation_point,
                                                        scratch.present_velocity_gradients);
 
-    scratch.fe_values[pressure].get_function_values(container.evaluation_point,
+    scratch.fe_values[pressure].get_function_values(evaluation_point,
                                                     scratch.present_pressure_values);
 
     for (const auto q: scratch.fe_values.quadrature_point_indices())

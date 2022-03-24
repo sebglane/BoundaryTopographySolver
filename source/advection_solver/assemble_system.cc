@@ -95,9 +95,9 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
     cell_matrix = 0;
     cell_rhs = 0;
 
-    fe_values[field].get_function_values(this->container.evaluation_point,
+    fe_values[field].get_function_values(this->evaluation_point,
                                          present_values);
-    fe_values[field].get_function_gradients(this->container.evaluation_point,
+    fe_values[field].get_function_gradients(this->evaluation_point,
                                             present_gradients);
 
     // body force
@@ -165,7 +165,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
           {
             fe_face_values.reinit(cell, face);
             // evaluate solution
-            fe_face_values[field].get_function_values(this->container.evaluation_point,
+            fe_face_values[field].get_function_values(this->evaluation_point,
                                                       present_face_values);
             // Dirichlet boundary condition
             const types::boundary_id  boundary_id{face->boundary_id()};

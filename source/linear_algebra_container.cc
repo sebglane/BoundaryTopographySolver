@@ -19,24 +19,6 @@
 namespace SolverBase
 {
 
-using StandardContainer = LinearAlgebraContainer<Vector<double>,
-                                                 SparseMatrix<double>,
-                                                 SparsityPattern>;
-
-
-
-using BlockContainer = LinearAlgebraContainer<BlockVector<double>,
-                                              BlockSparseMatrix<double>,
-                                              BlockSparsityPattern>;
-
-
-
-using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
-
-
-
 template <typename VectorType, typename MatrixType, typename SparsityPatternType>
 LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 LinearAlgebraContainer
@@ -86,7 +68,7 @@ setup
                                                        accumulated_dofs_per_block[i+1]));
 
   setup_system_matrix(dof_handler, constraints, coupling_table);
-  setup_vectors();
+  setup_system_rhs();
 }
 
 
@@ -224,18 +206,9 @@ setup_system_matrix<3, double>
 template <typename VectorType, typename MatrixType, typename SparsityPatternType>
 void
 LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
-setup_vectors()
+setup_system_rhs()
 {
-  evaluation_point.clear();
-  present_solution.clear();
-  solution_update.clear();
   system_rhs.clear();
-
-  evaluation_point.reinit(locally_owned_dofs,
-                          locally_relevant_dofs,
-                          mpi_communicator);
-  present_solution.reinit(evaluation_point);
-  solution_update.reinit(evaluation_point);
 
   system_rhs.reinit(locally_owned_dofs,
                     mpi_communicator);
@@ -243,15 +216,25 @@ setup_vectors()
 
 
 
+template <typename VectorType, typename MatrixType, typename SparsityPatternType>
+void
+LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
+setup_vector(VectorType &dst)
+{
+  dst.clear();
+
+  dst.reinit(locally_owned_dofs,
+             locally_relevant_dofs,
+             mpi_communicator);
+}
+
+
+
 template <>
 void
 LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
-setup_vectors()
+setup_system_rhs()
 {
-  evaluation_point.reinit(dofs_per_block);
-  present_solution.reinit(dofs_per_block);
-  solution_update.reinit(dofs_per_block);
-
   system_rhs.reinit(dofs_per_block);
 }
 
@@ -259,18 +242,38 @@ setup_vectors()
 
 template <>
 void
+LinearAlgebraContainer<BlockVector<double>, BlockSparseMatrix<double>, BlockSparsityPattern>::
+setup_vector(BlockVector<double> &dst)
+{
+  dst.reinit(dofs_per_block);
+}
+
+
+
+template <>
+void
 LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
-setup_vectors()
+setup_system_rhs()
 {
   types::global_dof_index n_dofs{0};
   for (const auto n: dofs_per_block)
     n_dofs += n;
 
-  evaluation_point.reinit(n_dofs);
-  present_solution.reinit(n_dofs);
-  solution_update.reinit(n_dofs);
-
   system_rhs.reinit(n_dofs);
+}
+
+
+
+template <>
+void
+LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
+setup_vector(Vector<double> &dst)
+{
+  types::global_dof_index n_dofs{0};
+  for (const auto n: dofs_per_block)
+    n_dofs += n;
+
+  dst.reinit(n_dofs);
 }
 
 
@@ -373,9 +376,9 @@ template <typename VectorType, typename MatrixType, typename SparsityPatternType
 void
 LinearAlgebraContainer<VectorType, MatrixType, SparsityPatternType>::
 set_block
-(VectorType &vector,
- const unsigned int block_number,
- const double value)
+(const unsigned int block_number,
+ const double value,
+ VectorType &vector)
 {
   const std::size_t n_blocks{dofs_per_block.size()};
   AssertIndexRange(block_number, n_blocks);
@@ -417,9 +420,9 @@ template <>
 void
 LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
 set_block
-(Vector<double>      &vector,
- const unsigned int   block_number,
- const double         value)
+(const unsigned int   block_number,
+ const double         value,
+ Vector<double>      &vector)
 {
   const std::size_t n_blocks{dofs_per_block.size()};
   AssertThrow(block_number < n_blocks, ExcInternalError());
@@ -532,9 +535,9 @@ template
 void
 LinearAlgebraContainer<TrilinosWrappers::MPI::Vector, TrilinosWrappers::SparseMatrix, TrilinosWrappers::SparsityPattern>::
 set_block
-(TrilinosWrappers::MPI::Vector &,
- const unsigned int ,
- const double );
+(const unsigned int ,
+ const double ,
+ TrilinosWrappers::MPI::Vector &);
 
 template
 struct

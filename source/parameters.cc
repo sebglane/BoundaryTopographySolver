@@ -140,6 +140,9 @@ void RefinementParameters::parse_parameters(ParameterHandler &prm)
       AssertThrow(n_minimum_levels <= n_maximum_levels ,
                   ExcMessage("Maximum number of levels must be larger equal "
                              "than the minimum number of levels."));
+      AssertThrow(n_minimum_levels <= n_initial_bndry_refinements + n_initial_refinements,
+                  ExcMessage("Number of initial refinement must be larger equal "
+                             "than the minimum number of levels."));
 
       cell_fraction_to_coarsen = prm.get_double("Fraction of cells set to coarsen");
 

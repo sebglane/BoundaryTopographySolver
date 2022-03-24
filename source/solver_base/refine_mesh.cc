@@ -87,7 +87,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
                                        dof_handler,
                                        QGauss<dim-1>(fe_system->degree + 1),
                                        std::map<types::boundary_id, const Function<dim> *>(),
-                                       container.present_solution,
+                                       this->present_solution,
                                        estimated_error_per_cell,
                                        ComponentMask(),
                                        nullptr,
@@ -141,7 +141,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::execute_mesh_refine
   // preparing temperature solution transfer
   using VectorType = typename LinearAlgebraContainer::vector_type;
   std::vector<VectorType> x_solution(1);
-  x_solution[0] = container.present_solution;
+  x_solution[0] = this->present_solution;
   SolutionTransfer<dim, VectorType> solution_transfer(dof_handler);
 
   // preparing triangulation refinement
@@ -157,12 +157,12 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::execute_mesh_refine
   // transfer of solution
   {
     std::vector<VectorType> tmp_solution(1);
-    tmp_solution[0].reinit(container.present_solution);
+    tmp_solution[0].reinit(this->present_solution);
     solution_transfer.interpolate(x_solution, tmp_solution);
 
-    container.distribute_constraints(tmp_solution[0],
-                                     nonzero_constraints);
-    container.present_solution = tmp_solution[0];
+    container.distribute_constraints(nonzero_constraints,
+                                     tmp_solution[0]);
+    this->present_solution = tmp_solution[0];
   }
 }
 
@@ -179,7 +179,7 @@ execute_mesh_refinement()
   solution_transfer(dof_handler);
 
   std::vector<const VectorType *> x_solution(1);
-  x_solution[0] = &container.present_solution;
+  x_solution[0] = &this->present_solution;
 
   // preparing triangulation refinement
   triangulation.prepare_coarsening_and_refinement();
@@ -200,12 +200,13 @@ execute_mesh_refinement()
     tmp[0] = &tmp_solution;
     solution_transfer.interpolate(tmp_solution);
 
-    container.distribute_constraints(tmp_solution, nonzero_constraints);
+    container.distribute_constraints(nonzero_constraints,
+                                     tmp_solution);
 
-    container.present_solution = tmp_solution;
+    this->present_solution = tmp_solution;
 
-    container.distribute_constraints(container.present_solution,
-                                     nonzero_constraints);
+    container.distribute_constraints(nonzero_constraints,
+                                     this->present_solution);
   }
 }
 
@@ -222,7 +223,7 @@ execute_mesh_refinement()
   solution_transfer(dof_handler);
 
   std::vector<const VectorType *> x_solution(1);
-  x_solution[0] = &container.present_solution;
+  x_solution[0] = &this->present_solution;
 
   // preparing triangulation refinement
   triangulation.prepare_coarsening_and_refinement();
@@ -245,12 +246,13 @@ execute_mesh_refinement()
     tmp[0] = &tmp_solution;
     solution_transfer.interpolate(tmp_solution);
 
-    container.distribute_constraints(tmp_solution, nonzero_constraints);
+    container.distribute_constraints(nonzero_constraints,
+                                     tmp_solution);
 
-    container.present_solution = tmp_solution;
+    this->present_solution = tmp_solution;
 
-    container.distribute_constraints(container.present_solution,
-                                     nonzero_constraints);
+    container.distribute_constraints(nonzero_constraints,
+                                     this->present_solution);
   }
 }
 
