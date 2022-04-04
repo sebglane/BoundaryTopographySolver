@@ -308,7 +308,7 @@ inline void
 LinearAlgebraContainer<Vector<double>, SparseMatrix<double>, SparsityPattern>::
 set_vector
 (const Vector<double>  &src,
-    Vector<double>        &dst)
+ Vector<double>        &dst)
 {
   dst = src;
 }

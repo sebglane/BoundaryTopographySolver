@@ -27,7 +27,7 @@
 | Convective term weak form                | standard             |
 | Viscous term weak form                   | Laplacean            |
 | Include_boundary_stress_terms            | false                |
-| Stabilization type                       | apply_supg|          |
+| Stabilization type                       | SUPG                 |
 | SUPG/PSPG stab. parameter                | 0.2                  |
 | Grad-Div stab. parameter                 | 1                    |
 | Mapping                                  | MappingQ<dim>(1)     |

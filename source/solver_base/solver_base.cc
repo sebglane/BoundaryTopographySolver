@@ -429,7 +429,7 @@ newton_iteration(const bool is_initial_cycle)
   using VectorType = typename LinearAlgebraContainer::vector_type;
   VectorType  &system_rhs = container.system_rhs;
 
-  auto compute_residual = [&, this, is_initial_cycle]
+  auto compute_residual = [&, this]
                            (const double alpha = 0.0,
                             const bool use_homogeneous_constraints = true)
       {
