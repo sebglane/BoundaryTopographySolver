@@ -81,6 +81,9 @@ test_assembly_serial
   DoFTools::make_hanging_node_constraints(dof_handler, inhomogeneous_constraints);
   DoFTools::make_hanging_node_constraints(dof_handler, homogeneous_constraints);
   {
+    // velocity boundary conditions
+    FEValuesExtractors::Vector  velocity(0);
+
     Functions::ZeroFunction<dim>  zero_function(dim + 1);
     std::map<types::boundary_id, const Function<dim>* > function_map;
     function_map[left_bndry_id] = &zero_function;
@@ -92,23 +95,54 @@ test_assembly_serial
       function_map[back_bndry_id] = &zero_function;
     }
 
+    // inhomogeneous boundary conditions
     std::vector<double> nonzero_value(dim + 1, 0.0);
     nonzero_value[0] = 1.0;
     Functions::ConstantFunction<dim>  nonzero_velocity_function(nonzero_value);
     function_map[top_bndry_id] = &nonzero_velocity_function;
 
-    FEValuesExtractors::Vector  velocity(0);
     VectorTools::interpolate_boundary_values(dof_handler,
                                              function_map,
                                              inhomogeneous_constraints,
                                              fe_system.component_mask(velocity));
 
 
+    // homogeneous boundary conditions
     function_map[top_bndry_id] = &zero_function;
+
     VectorTools::interpolate_boundary_values(dof_handler,
                                              function_map,
                                              homogeneous_constraints,
                                              fe_system.component_mask(velocity));
+
+    // pressure boundary conditions
+    FEValuesExtractors::Scalar  pressure(dim);
+    IndexSet    boundary_dofs;
+    DoFTools::extract_boundary_dofs(dof_handler,
+                                    fe_system.component_mask(pressure),
+                                    boundary_dofs);
+
+    // look for an admissible local degree of freedom to constrain
+    types::global_dof_index bndry_idx = numbers::invalid_dof_index;
+    IndexSet::ElementIterator idx = boundary_dofs.begin();
+    IndexSet::ElementIterator endidx = boundary_dofs.end();
+    for(; idx != endidx; ++idx)
+      if ((homogeneous_constraints.can_store_line(*idx) &&
+           !homogeneous_constraints.is_constrained(*idx)) &&
+          (inhomogeneous_constraints.can_store_line(*idx) &&
+           !inhomogeneous_constraints.is_constrained(*idx)))
+      {
+        bndry_idx = *idx;
+        break;
+      }
+
+    // check that an admissable degree of freedom was found
+    AssertThrow(bndry_idx < dof_handler.n_dofs(),
+                ExcMessage("Error, couldn't find a DoF to constrain."));
+
+    // sets the degree of freedom to zero
+    homogeneous_constraints.add_line(bndry_idx);
+    inhomogeneous_constraints.add_line(bndry_idx);
   }
   inhomogeneous_constraints.close();
   homogeneous_constraints.close();
@@ -362,6 +396,21 @@ test_assembly_serial
   container.set_vector(container.system_rhs, present_solution);
   container.distribute_constraints(inhomogeneous_constraints,
                                    present_solution);
+  // correct mean value
+  {
+    FEValuesExtractors::Scalar  pressure(dim);
+    const double mean_value{VectorTools::compute_mean_value(dof_handler,
+                                                            QGauss<dim>(velocity_fe_degree + 1),
+                                                            present_solution,
+                                                            dim)};
+    const IndexSet  pressure_dofs = DoFTools::extract_dofs(dof_handler,
+                                                           fe_system.component_mask(pressure));
+
+    IndexSet::ElementIterator idx = pressure_dofs.begin();
+    IndexSet::ElementIterator endidx = pressure_dofs.end();
+    for(; idx != endidx; ++idx)
+      present_solution[*idx] -= mean_value;
+  }
 
   // compute current residual
   {
