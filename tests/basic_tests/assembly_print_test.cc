@@ -8,7 +8,6 @@
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/logstream.h>
 #include <deal.II/base/table.h>
-#include <deal.II/base/array_view.h>
 
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_q.h>
@@ -29,8 +28,6 @@
 #include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/lac/sparsity_pattern.h>
 #include <deal.II/lac/vector.h>
-
-#include <fstream>
 
 namespace TestSpace
 {
@@ -141,7 +138,7 @@ test_assembly_serial
         break;
       }
 
-    // checks that an admissable degree of freedom was found
+    // check that an admissable degree of freedom was found
     AssertThrow(bndry_idx < dof_handler.n_dofs(),
                 ExcMessage("Error, couldn't find a DoF to constrain."));
 
@@ -412,23 +409,12 @@ test_assembly_serial
   system_rhs.print(std::cout, 3, true, false);
 
   // solve linear system
-  {
-    std::ofstream ofs("system_matrix.txt");
-    system_matrix.print_as_numpy_arrays(ofs, 12);
-    ofs.close();
-  }
-  {
-    std::ofstream ofs("system_rhs.txt");
-    system_rhs.print(ofs, 12, true, false);
-    ofs.close();
-  }
-
-  SparseDirectUMFPACK     direct_solver;
-  direct_solver.factorize(system_matrix);
-  direct_solver.solve(system_rhs);
+  SparseDirectUMFPACK direct_solver;
+  direct_solver.solve(system_matrix, system_rhs);
   present_solution = system_rhs;
   inhomogeneous_constraints.distribute(present_solution);
 
+  // correct mean value
   {
     FEValuesExtractors::Scalar  pressure(dim);
     const double mean_value{VectorTools::compute_mean_value(dof_handler,

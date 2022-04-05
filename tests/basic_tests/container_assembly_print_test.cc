@@ -5,8 +5,9 @@
  *      Author: sg
  */
 #include <deal.II/base/function_lib.h>
-#include <deal.II/base/table.h>
+#include <deal.II/base/index_set.h>
 #include <deal.II/base/logstream.h>
+#include <deal.II/base/table.h>
 
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_q.h>
@@ -43,7 +44,7 @@ test_assembly_serial
 
   // setup triangulation
   std::cout << "Make grid" << std::endl;
-  Triangulation<dim>            tria;
+  Triangulation<dim>  tria;
   GridGenerator::hyper_cube(tria, 0.0, 1.0, true);
   if (n_refinements > 0)
     tria.refine_global(n_refinements);
@@ -61,13 +62,14 @@ test_assembly_serial
                           FE_Q<dim>(degree), 1);
   const unsigned int velocity_fe_degree{degree + 1};
 
+  // setup dofs
   DoFHandler<dim> dof_handler(tria);
   dof_handler.distribute_dofs(fe_system);
   DoFRenumbering::block_wise(dof_handler);
 
   const std::vector<types::global_dof_index> dofs_per_block =
       DoFTools::count_dofs_per_fe_block(dof_handler);
-  const unsigned int n_blocks{2};
+
   std::cout << "    Number of active cells: "
             << tria.n_global_active_cells()
             << std::endl
@@ -81,6 +83,9 @@ test_assembly_serial
   DoFTools::make_hanging_node_constraints(dof_handler, inhomogeneous_constraints);
   DoFTools::make_hanging_node_constraints(dof_handler, homogeneous_constraints);
   {
+    // velocity boundary conditions
+    FEValuesExtractors::Vector  velocity(0);
+
     Functions::ZeroFunction<dim>  zero_function(dim + 1);
     std::map<types::boundary_id, const Function<dim>* > function_map;
     function_map[left_bndry_id] = &zero_function;
@@ -92,23 +97,55 @@ test_assembly_serial
       function_map[back_bndry_id] = &zero_function;
     }
 
+    // inhomogeneous boundary conditions
     std::vector<double> nonzero_value(dim + 1, 0.0);
     nonzero_value[0] = 1.0;
     Functions::ConstantFunction<dim>  nonzero_velocity_function(nonzero_value);
     function_map[top_bndry_id] = &nonzero_velocity_function;
 
-    FEValuesExtractors::Vector  velocity(0);
     VectorTools::interpolate_boundary_values(dof_handler,
                                              function_map,
                                              inhomogeneous_constraints,
                                              fe_system.component_mask(velocity));
 
 
+    // homogeneous boundary conditions
     function_map[top_bndry_id] = &zero_function;
+
     VectorTools::interpolate_boundary_values(dof_handler,
                                              function_map,
                                              homogeneous_constraints,
                                              fe_system.component_mask(velocity));
+
+    // pressure boundary conditions
+    FEValuesExtractors::Scalar  pressure(dim);
+    IndexSet    boundary_dofs;
+    DoFTools::extract_boundary_dofs(dof_handler,
+                                    fe_system.component_mask(pressure),
+                                    boundary_dofs);
+
+    // look for an admissible local degree of freedom to constrain
+    types::global_dof_index bndry_idx = numbers::invalid_dof_index;
+    IndexSet::ElementIterator idx = boundary_dofs.begin();
+    IndexSet::ElementIterator endidx = boundary_dofs.end();
+    for(; idx != endidx; ++idx)
+      if ((homogeneous_constraints.can_store_line(*idx) &&
+           !homogeneous_constraints.is_constrained(*idx)) &&
+          (inhomogeneous_constraints.can_store_line(*idx) &&
+           !inhomogeneous_constraints.is_constrained(*idx)))
+      {
+        bndry_idx = *idx;
+        break;
+      }
+
+    // check that an admissable degree of freedom was found
+    AssertThrow(bndry_idx < dof_handler.n_dofs(),
+                ExcMessage("Error, couldn't find a DoF to constrain."));
+
+    // sets the degree of freedom to zero
+    homogeneous_constraints.add_line(bndry_idx);
+    inhomogeneous_constraints.add_line(bndry_idx);
+
   }
   inhomogeneous_constraints.close();
   homogeneous_constraints.close();
@@ -136,7 +173,7 @@ test_assembly_serial
   container.setup(dof_handler,
                   homogeneous_constraints,
                   coupling_table,
-                  n_blocks);
+                  fe_system.n_blocks());
 
   // set solution
   using VectorType = typename Container::vector_type;
@@ -235,8 +272,8 @@ test_assembly_serial
       } // end loop over cell quadrature points
 
       inhomogeneous_constraints.distribute_local_to_global(local_rhs,
-                                                     local_dof_indices,
-                                                     container.system_rhs);
+                                                           local_dof_indices,
+                                                           container.system_rhs);
     }
   }
 
@@ -348,10 +385,10 @@ test_assembly_serial
       } // end loop over cell quadrature points
 
       inhomogeneous_constraints.distribute_local_to_global(local_matrix,
-                                                     local_rhs,
-                                                     local_dof_indices,
-                                                     container.system_matrix,
-                                                     container.system_rhs);
+                                                           local_rhs,
+                                                           local_dof_indices,
+                                                           container.system_matrix,
+                                                           container.system_rhs);
     }
   }
 
@@ -362,11 +399,27 @@ test_assembly_serial
   container.system_rhs.print(std::cout, 3, true, false);
 
   // solve linear system
-  SparseDirectUMFPACK     direct_solver;
+  SparseDirectUMFPACK direct_solver;
   direct_solver.solve(container.system_matrix, container.system_rhs);
   container.set_vector(container.system_rhs, present_solution);
   container.distribute_constraints(inhomogeneous_constraints,
                                    present_solution);
+
+  // correct mean value
+  {
+    FEValuesExtractors::Scalar  pressure(dim);
+    const double mean_value{VectorTools::compute_mean_value(dof_handler,
+                                                            QGauss<dim>(velocity_fe_degree + 1),
+                                                            present_solution,
+                                                            dim)};
+    const IndexSet  pressure_dofs = DoFTools::extract_dofs(dof_handler,
+                                                           fe_system.component_mask(pressure));
+
+    IndexSet::ElementIterator idx = pressure_dofs.begin();
+    IndexSet::ElementIterator endidx = pressure_dofs.end();
+    for(; idx != endidx; ++idx)
+      present_solution[*idx] -= mean_value;
+  }
 
   std::cout << "present_solution (solve linear system)" << std::endl;
   present_solution.print(std::cout, 3, true, false);
