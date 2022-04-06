@@ -180,7 +180,7 @@ void EvaluationStabilization<dim>::evaluate
 
   const double nu{1.0 / reynolds_number};
 
-  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.optional_arguments_strong_from;
+  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
   strong_form_options.use_stress_form = use_stress_form;
 
   // Coriolis term
@@ -503,7 +503,7 @@ void EvaluationStabilization<dim>::evaluate
 
   const double nu{1.0 / this->reynolds_number};
 
-  Hydrodynamic::OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.optional_arguments_strong_from;
+  Hydrodynamic::OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
   strong_form_options.use_stress_form = this->use_stress_form;
 
   BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_strong_form_options = scratch.strong_form_options;

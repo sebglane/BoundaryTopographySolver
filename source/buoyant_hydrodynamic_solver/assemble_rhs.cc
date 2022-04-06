@@ -133,8 +133,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
   const double delta{this->c * std::pow(cell->diameter(), 2)};
   const double delta_density{c_density * std::pow(cell->diameter(), 2)};
 
-  Hydrodynamic::OptionalArgumentsWeakForm<dim>   &weak_form_options = scratch.optional_arguments_weak_from;
-  Hydrodynamic::OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.optional_arguments_strong_from;
+  Hydrodynamic::OptionalArgumentsWeakForm<dim>   &weak_form_options = scratch.hydrodynamic_weak_form_options;
+  Hydrodynamic::OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
   weak_form_options.use_stress_form = use_stress_form;
   strong_form_options.use_stress_form = use_stress_form;
 

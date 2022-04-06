@@ -474,13 +474,14 @@ newton_iteration(const bool is_initial_cycle)
     {
       // solve problem
       container.set_vector(present_solution, evaluation_point);
-
       this->assemble_system(/* use_homogeneous_constraints ? */ false);
-
       solve_linear_system(/* use_homogeneous_constraints ? */ false);
       container.set_vector(solution_update, present_solution);
       container.distribute_constraints(nonzero_constraints,
                                        present_solution);
+
+      // postprocess result of the Newton iteration
+      this->postprocess_newton_iteration(iteration, is_initial_cycle);
       first_step = false;
 
       // compute residual
@@ -508,6 +509,9 @@ newton_iteration(const bool is_initial_cycle)
           break;
       }
       container.set_vector(evaluation_point, present_solution);
+
+      // postprocess result of the Newton iteration
+      this->postprocess_newton_iteration(iteration, is_initial_cycle);
     }
 
 

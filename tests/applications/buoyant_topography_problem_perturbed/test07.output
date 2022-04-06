@@ -47,15 +47,13 @@ Solving perturbed buoyant topography problem
     Number of active cells: 256
     Number of total degrees of freedom: 2756
 Cycle 0:
-Reseting density solution...
 Initial residual: 1.083045e-01
 Reseting density solution...
-Iteration:   0, Current residual: 1.5101e+03 (Tolerance: 1.0830e-10), Residual components: 6.2533e-03, 7.1461e-17, 1.5101e+03, 
-Reseting density solution...
-Iteration:   1, Current residual: 1.5560e-04 (Tolerance: 1.0830e-10), Residual components: 1.2706e-04, 3.7685e-17, 8.9820e-05, 
-Iteration:   2, Current residual: 7.5951e-06 (Tolerance: 1.0830e-10), Residual components: 1.1009e-07, 3.3645e-17, 7.5943e-06, 
-Iteration:   3, Current residual: 2.8688e-09 (Tolerance: 1.0830e-10), Residual components: 2.6085e-13, 3.5439e-17, 2.8688e-09, 
-Iteration:   4, Current residual: 6.2946e-17 (Tolerance: 1.0830e-10), Residual components: 5.2928e-17, 3.3211e-17, 7.6130e-18, 
+Iteration:   0, Current residual: 1.9723e-02 (Tolerance: 1.0830e-10), Residual components: 1.9723e-02, 7.6266e-17, 1.8844e-05, 
+Iteration:   1, Current residual: 1.5547e-04 (Tolerance: 1.0830e-10), Residual components: 1.2700e-04, 3.8582e-17, 8.9685e-05, 
+Iteration:   2, Current residual: 7.5700e-06 (Tolerance: 1.0830e-10), Residual components: 1.1000e-07, 2.9738e-17, 7.5692e-06, 
+Iteration:   3, Current residual: 2.8444e-09 (Tolerance: 1.0830e-10), Residual components: 2.6049e-13, 3.5109e-17, 2.8444e-09, 
+Iteration:   4, Current residual: 6.1900e-17 (Tolerance: 1.0830e-10), Residual components: 4.9727e-17, 3.6084e-17, 7.5392e-18, 
 End cycle 0
 Mesh refinement...
     Number of cells set for refinement: 75

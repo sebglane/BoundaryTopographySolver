@@ -161,10 +161,6 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
   std::vector<double>         present_density_values;
   std::vector<Tensor<1, dim>> present_density_gradients;
 
-  // source term values
-  std::vector<Tensor<1, dim>> reference_density_gradients;
-  std::vector<Tensor<1, dim>> gravity_field_values;
-
   // stabilization related quantities
   std::vector<double>         present_strong_density_residuals;
 
@@ -233,8 +229,8 @@ private:
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
-  virtual void preprocess_newton_iteration(const unsigned int iteration,
-                                           const bool         is_initial_cycle);
+  virtual void postprocess_newton_iteration(const unsigned int iteration,
+                                            const bool         is_initial_cycle);
 
   ScalarBoundaryConditions<dim> density_boundary_conditions;
 

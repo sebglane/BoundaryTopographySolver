@@ -138,14 +138,16 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(cons
 
 
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::preprocess_newton_iteration
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+postprocess_newton_iteration
 (const unsigned int iteration,
  const bool         is_initial_cycle)
 {
-  if (iteration < 2 && is_initial_cycle)
+  if (iteration < 1 && is_initial_cycle)
   {
     this->pcout << "Reseting density solution..." << std::endl;
 
+    this->container.set_block(2, 0.0, this->evaluation_point);
     this->container.set_block(2, 0.0, this->present_solution);
     this->container.set_block(2, 0.0, this->solution_update);
   }

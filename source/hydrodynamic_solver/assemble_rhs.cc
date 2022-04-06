@@ -148,8 +148,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
   const double nu{1.0 / reynolds_number};
   const double delta{c * std::pow(cell->diameter(), 2)};
 
-  OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.optional_arguments_weak_from;
-  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.optional_arguments_strong_from;
+  OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.hydrodynamic_weak_form_options;
+  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
   weak_form_options.use_stress_form = use_stress_form;
   strong_form_options.use_stress_form = use_stress_form;
 

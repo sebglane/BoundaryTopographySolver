@@ -221,9 +221,9 @@ struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
 
   FEFaceValues<dim>   fe_face_values;
 
-  OptionalArgumentsStrongForm<dim>  optional_arguments_strong_from;
+  OptionalArgumentsStrongForm<dim>  hydrodynamic_strong_form_options;
 
-  OptionalArgumentsWeakForm<dim>    optional_arguments_weak_from;
+  OptionalArgumentsWeakForm<dim>    hydrodynamic_weak_form_options;
 
   const unsigned int  n_face_q_points;
 
@@ -296,9 +296,9 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
 
   FEFaceValues<dim>   fe_face_values;
 
-  OptionalArgumentsStrongForm<dim>  optional_arguments_strong_from;
+  OptionalArgumentsStrongForm<dim>  hydrodynamic_strong_form_options;
 
-  OptionalArgumentsWeakForm<dim>    optional_arguments_weak_from;
+  OptionalArgumentsWeakForm<dim>    hydrodynamic_weak_form_options;
 
   const unsigned int  n_face_q_points;
 

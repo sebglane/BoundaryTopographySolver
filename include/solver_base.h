@@ -172,6 +172,10 @@ protected:
   virtual void preprocess_newton_iteration(const unsigned int iteration,
                                            const bool         is_initial_cycle);
 
+  virtual void postprocess_newton_iteration(const unsigned int iteration,
+                                            const bool         is_initial_cycle);
+
+
   virtual void preprocess_picard_iteration(const unsigned int iteration);
 
   virtual void output_results(const unsigned int cycle = 0) const = 0;
@@ -255,6 +259,15 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::add_postproc
 template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
 inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
 preprocess_newton_iteration(const unsigned int, const bool)
+{
+  return;
+}
+
+
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+postprocess_newton_iteration(const unsigned int, const bool)
 {
   return;
 }

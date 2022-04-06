@@ -169,8 +169,8 @@ test_assembly_parallel
 
       const double nu{1.0 / reynolds_number};
 
-      Hydrodynamic::OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.optional_arguments_weak_from;
-      Hydrodynamic::OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.optional_arguments_strong_from;
+      Hydrodynamic::OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.hydrodynamic_weak_form_options;
+      Hydrodynamic::OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
       weak_form_options.use_stress_form = false;
       strong_form_options.use_stress_form = false;
 
