@@ -11,6 +11,8 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include <deal.II/numerics/vector_tools.h>
+
 #include <solver_base.h>
 
 #include <iostream>
@@ -438,6 +440,7 @@ newton_iteration(const bool is_initial_cycle)
           this->container.add(alpha, solution_update, evaluation_point);
         this->container.distribute_constraints(this->nonzero_constraints,
                                                evaluation_point);
+        this->enforce_mean_value_constraints(evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
         std::vector<double> residual_components = this->container.get_residual_components();
@@ -481,6 +484,8 @@ newton_iteration(const bool is_initial_cycle)
       container.set_vector(solution_update, present_solution);
       container.distribute_constraints(nonzero_constraints,
                                        present_solution);
+      enforce_mean_value_constraints(present_solution);
+
       first_step = false;
 
       // compute residual
@@ -595,6 +600,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
 
     container.distribute_constraints(nonzero_constraints,
                                      present_solution);
+    this->enforce_mean_value_constraints(present_solution);
 
     // compute residual
     std::tie(current_residual, current_residual_components) = compute_residual(true);
@@ -617,6 +623,70 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
   }
 }
 
+
+template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+enforce_mean_value_constraints(typename LinearAlgebraContainer::vector_type &solution)
+{
+  if (component_mean_values.empty())
+    return;
+
+  pcout << "    Enforce mean value constraints..." << std::endl;
+
+  for (const auto [component, value]: component_mean_values)
+  {
+    ComponentMask mask(this->fe_system->n_components(), false);
+    mask.set(component, true);
+
+    const double mean_value{VectorTools::compute_mean_value(dof_handler,
+                                                            QGauss<dim>(this->fe_system->degree + 1),
+                                                            present_solution,
+                                                            component)};
+
+    if (BlockVector<double> *ptr = dynamic_cast<BlockVector<double> *>(&solution);
+        ptr != nullptr)
+    {
+      const unsigned int block_idx{this->fe_system->component_to_block_index(component)};
+
+      ptr->block(block_idx).add(value - mean_value);
+    }
+    else if (Vector<double> *ptr = dynamic_cast<Vector<double> *>(&solution);
+             ptr != nullptr)
+    {
+      const double correction_factor{value - mean_value};
+
+      const IndexSet  component_dofs = DoFTools::extract_dofs(dof_handler,
+                                                              mask);
+      IndexSet::ElementIterator idx = component_dofs.begin();
+      IndexSet::ElementIterator endidx = component_dofs.end();
+      for(; idx != endidx; ++idx)
+        (*ptr)[*idx] += correction_factor;
+    }
+    else if (TrilinosWrappers::MPI::Vector *ptr =
+             dynamic_cast<TrilinosWrappers::MPI::Vector *>(&solution);
+             ptr != nullptr)
+    {
+      TrilinosWrappers::MPI::Vector distributed_vector(ptr->locally_owned_elements(),
+                                                       MPI_COMM_WORLD);
+      distributed_vector = *ptr;
+
+      const double correction_factor{value - mean_value};
+
+      const std::vector<IndexSet>  locally_owned_dofs_per_component =
+          DoFTools::locally_owned_dofs_per_component(dof_handler, mask);
+      const IndexSet &locally_owned_component_dofs{locally_owned_dofs_per_component[component]};
+
+      IndexSet::ElementIterator idx = locally_owned_component_dofs.begin();
+      IndexSet::ElementIterator endidx = locally_owned_component_dofs.end();
+      for(; idx != endidx; ++idx)
+        distributed_vector[*idx] += correction_factor;
+
+      distributed_vector.compress(VectorOperation::add);
+
+      *ptr = distributed_vector;
+    }
+  }
+}
 
 
 // explicit instantiations

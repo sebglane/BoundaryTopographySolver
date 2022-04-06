@@ -26,6 +26,7 @@
 #include <linear_algebra_container.h>
 #include <parameters.h>
 
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -160,6 +161,10 @@ protected:
   void apply_periodicity_constraints
   (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs);
 
+  void apply_mean_value_constraint
+  (const ComponentMask &mask,
+   const double         mean_value = 0);
+
   virtual void assemble_system(const bool use_homogenenous_constraints = false,
                                const bool use_newton_linearization = true) = 0;
 
@@ -188,6 +193,8 @@ protected:
   // constraints
   AffineConstraints<double>   nonzero_constraints;
   AffineConstraints<double>   zero_constraints;
+  std::map<unsigned int, double>  component_mean_values;
+
 
   // linear algebra
   LinearAlgebraContainer      container;
@@ -210,6 +217,8 @@ private:
   void execute_mesh_refinement();
 
   void solve_linear_system(const bool initial_step);
+
+  void enforce_mean_value_constraints(typename LinearAlgebraContainer::vector_type &solution);
 
   std::vector<std::shared_ptr<EvaluationBase<dim>>> postprocessor_ptrs;
 

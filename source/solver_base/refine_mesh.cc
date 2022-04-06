@@ -162,7 +162,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::execute_mesh_refine
 
     container.distribute_constraints(nonzero_constraints,
                                      tmp_solution[0]);
-    this->present_solution = tmp_solution[0];
+    enforce_mean_value_constraints(tmp_solution[0]);
+    container.set_vector(tmp_solution[0], present_solution);
   }
 }
 
@@ -179,7 +180,7 @@ execute_mesh_refinement()
   solution_transfer(dof_handler);
 
   std::vector<const VectorType *> x_solution(1);
-  x_solution[0] = &this->present_solution;
+  x_solution[0] = &present_solution;
 
   // preparing triangulation refinement
   triangulation.prepare_coarsening_and_refinement();
@@ -202,11 +203,8 @@ execute_mesh_refinement()
 
     container.distribute_constraints(nonzero_constraints,
                                      tmp_solution);
-
-    this->present_solution = tmp_solution;
-
-    container.distribute_constraints(nonzero_constraints,
-                                     this->present_solution);
+    enforce_mean_value_constraints(tmp_solution);
+    container.set_vector(tmp_solution, present_solution);
   }
 }
 
@@ -223,7 +221,7 @@ execute_mesh_refinement()
   solution_transfer(dof_handler);
 
   std::vector<const VectorType *> x_solution(1);
-  x_solution[0] = &this->present_solution;
+  x_solution[0] = &present_solution;
 
   // preparing triangulation refinement
   triangulation.prepare_coarsening_and_refinement();
@@ -248,11 +246,8 @@ execute_mesh_refinement()
 
     container.distribute_constraints(nonzero_constraints,
                                      tmp_solution);
-
-    this->present_solution = tmp_solution;
-
-    container.distribute_constraints(nonzero_constraints,
-                                     this->present_solution);
+    enforce_mean_value_constraints(tmp_solution);
+    container.set_vector(tmp_solution, present_solution);
   }
 }
 

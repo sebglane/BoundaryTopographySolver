@@ -90,6 +90,8 @@ void CavityProblem<dim>::set_boundary_conditions()
 
   velocity_bcs.set_dirichlet_bc(top_bndry_id, velocity_top_bndry);
 
+  pressure_bcs.set_datum_at_boundary();
+
   velocity_bcs.close();
   pressure_bcs.close();
 }
