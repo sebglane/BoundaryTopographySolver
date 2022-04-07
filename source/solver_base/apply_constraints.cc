@@ -181,8 +181,7 @@ apply_normal_flux_constraints
   std::map<types::boundary_id, const Function<dim> *> function_map;
   std::set<types::boundary_id>  boundary_id_set;
 
-  const unsigned int n_components{mask.n_selected_components()};
-  AssertDimension(n_components, dim);
+  AssertDimension(mask.n_selected_components(), dim);
 
   const unsigned int first_vector_component{mask.first_selected_component()};
 

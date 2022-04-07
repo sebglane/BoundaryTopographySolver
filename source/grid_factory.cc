@@ -120,7 +120,7 @@ Point<dim-1> SinusoidalManifold<dim>::pull_back(const Point<dim> &space_point) c
     return (chart_point);
   }
   else
-    Assert(false, ExcInternalError());
+    AssertThrow(false, ExcInternalError());
 }
 
 
@@ -168,7 +168,7 @@ Point<dim> SinusoidalManifold<dim>::push_forward(const Point<dim-1> &chart_point
     return space_point;
   }
   else
-    Assert(false, ExcNotImplemented());
+    AssertThrow(false, ExcNotImplemented());
 }
 
 
@@ -227,7 +227,7 @@ DerivativeForm<1, dim-1, dim> SinusoidalManifold<dim>::push_forward_gradient
     return F;
   }
   else
-    Assert(false, ExcNotImplemented());
+    AssertThrow(false, ExcNotImplemented());
 }
 
 
