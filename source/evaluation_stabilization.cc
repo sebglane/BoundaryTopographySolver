@@ -10,6 +10,8 @@
 
 #include <deal.II/fe/fe_values.h>
 
+#include <deal.II/lac/block_vector.h>
+
 #include <assembly_functions.h>
 #include <buoyant_hydrodynamic_problem.h>
 #include <hydrodynamic_problem.h>
@@ -21,8 +23,9 @@ namespace Hydrodynamic {
 
 using namespace dealii;
 
-template <int dim>
-EvaluationStabilization<dim>::EvaluationStabilization
+template <int dim, typename VectorType>
+EvaluationStabilization<dim, VectorType>::
+EvaluationStabilization
 (const std::filesystem::path &output_directory,
  const StabilizationFlags &stabilization_flags,
  const unsigned int velocity_start_index,
@@ -74,8 +77,8 @@ output_directory(output_directory)
 
 
 
-template <int dim>
-EvaluationStabilization<dim>::~EvaluationStabilization()
+template <int dim, typename VectorType>
+EvaluationStabilization<dim, VectorType>::~EvaluationStabilization()
 {
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
@@ -94,45 +97,9 @@ EvaluationStabilization<dim>::~EvaluationStabilization()
 
 
 
-template <int dim>
-void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const Vector<double>      &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const BlockVector<double> &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const TrilinosWrappers::MPI::Vector  &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-template <typename VectorType>
-void EvaluationStabilization<dim>::evaluate
+template <int dim, typename VectorType>
+void EvaluationStabilization<dim, VectorType>::
+operator()
 (const Mapping<dim>        &mapping,
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,
@@ -363,8 +330,9 @@ namespace BuoyantHydrodynamic {
 
 using namespace dealii;
 
-template <int dim>
-EvaluationStabilization<dim>::EvaluationStabilization
+template <int dim, typename VectorType>
+EvaluationStabilization<dim, VectorType>::
+EvaluationStabilization
 (const std::filesystem::path &output_directory,
  const StabilizationFlags &stabilization_flags,
  const unsigned int velocity_start_index,
@@ -377,7 +345,7 @@ EvaluationStabilization<dim>::EvaluationStabilization
  const double rossby_number,
  const bool   print_table)
 :
-Hydrodynamic::EvaluationStabilization<dim>(output_directory,
+Hydrodynamic::EvaluationStabilization<dim, VectorType>(output_directory,
                                            stabilization_flags,
                                            velocity_start_index,
                                            pressure_index,
@@ -409,45 +377,9 @@ c_density(std::numeric_limits<double>::min())
 
 
 
-template <int dim>
-void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const Vector<double>      &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const BlockVector<double> &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-void EvaluationStabilization<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const TrilinosWrappers::MPI::Vector  &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-template <typename VectorType>
-void EvaluationStabilization<dim>::evaluate
+template <int dim, typename VectorType>
+void EvaluationStabilization<dim, VectorType>::
+operator()
 (const Mapping<dim>        &mapping,
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,

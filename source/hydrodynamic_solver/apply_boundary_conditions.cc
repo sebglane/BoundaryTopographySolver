@@ -7,31 +7,14 @@
 
 #include <deal.II/base/exceptions.h>
 
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_vector.h>
-
 #include <hydrodynamic_solver.h>
 
 #include <set>
 
 namespace Hydrodynamic {
 
-using TrilinosContainer = typename
-                          SolverBase::
-                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
-
-
-
-template <int dim>
-using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
-
-
-
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_conditions()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::apply_boundary_conditions()
 {
   if (this->verbose)
     this->pcout << "    Apply boundary conditions..." << std::endl;
@@ -121,13 +104,5 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_cond
 template void Solver<2>::apply_boundary_conditions();
 template void Solver<3>::apply_boundary_conditions();
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-apply_boundary_conditions();
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-apply_boundary_conditions();
 
 }  // namespace Hydrodynamic

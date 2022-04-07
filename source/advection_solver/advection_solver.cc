@@ -18,7 +18,7 @@ namespace Advection {
 
 SolverParameters::SolverParameters()
 :
-SolverBase::Parameters(),
+Base::Parameters(),
 c_max(0.1),
 c_entropy(0.1)
 {}
@@ -27,7 +27,7 @@ c_entropy(0.1)
 
 void SolverParameters::declare_parameters(ParameterHandler &prm)
 {
-  SolverBase::Parameters::declare_parameters(prm);
+  Base::Parameters::declare_parameters(prm);
 
   prm.enter_subsection("Buoyant hydrodynamic solver parameters");
   {
@@ -46,7 +46,7 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
 
 void SolverParameters::parse_parameters(ParameterHandler &prm)
 {
-  SolverBase::Parameters::parse_parameters(prm);
+  Base::Parameters::parse_parameters(prm);
 
   prm.enter_subsection("Buoyant hydrodynamic solver parameters");
   {
@@ -64,7 +64,7 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const SolverParameters &prm)
 {
-  stream << static_cast<const SolverBase::Parameters &>(prm);
+  stream << static_cast<const Base::Parameters &>(prm);
 
   Utility::add_header(stream);
   Utility::add_line(stream, "Advection solver parameters");
@@ -78,13 +78,13 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
+template <int dim, typename TriangulationType>
+Solver<dim, TriangulationType>::Solver
 (TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters)
 :
-SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters),
+Base::Solver<dim, TriangulationType>(tria, mapping, parameters),
 boundary_conditions(this->triangulation),
 advection_field_ptr(),
 source_term_ptr(),
@@ -96,8 +96,8 @@ global_entropy_variation{0.0}
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     this->pcout << "    Output results..." << std::endl;

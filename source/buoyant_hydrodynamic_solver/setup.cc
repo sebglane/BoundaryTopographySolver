@@ -11,8 +11,8 @@
 
 namespace BuoyantHydrodynamic {
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_fe_system()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::setup_fe_system()
 {
   if (this->verbose)
     this->pcout << "    Setup FE system..." << std::endl;
@@ -24,15 +24,15 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_fe_system()
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::setup_dofs()
 {
   TimerOutput::Scope timer_section(this->computing_timer, "Setup dofs");
 
   if (this->verbose)
     this->pcout << "    Setup dofs..." << std::endl;
 
-  SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs();
+  Base::Solver<dim, TriangulationType>::setup_dofs();
 
   Table<2, DoFTools::Coupling>  coupling_table;
   coupling_table.reinit(this->fe_system->n_components(),
@@ -62,13 +62,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
   // density-density coupling
   coupling_table[dim+1][dim+1] = DoFTools::always;
 
-  this->container.setup(this->dof_handler,
-                        this->zero_constraints,
-                        coupling_table,
-                        this->fe_system->n_blocks());
-  this->container.setup_vector(this->present_solution);
-  this->container.setup_vector(this->evaluation_point);
-  this->container.setup_vector(this->solution_update);
+  this->setup_system_matrix(coupling_table);
+  this->setup_vectors();
 }
 
 // explicit instantiation

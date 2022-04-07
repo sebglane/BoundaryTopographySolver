@@ -22,8 +22,8 @@ namespace Hydrodynamic {
 
 using namespace dealii;
 
-template <int dim>
-class EvaluationStabilization : public SolverBase::EvaluationBase<dim>
+template <int dim, typename VectorType = BlockVector<double> >
+class EvaluationStabilization : public Base::EvaluationBase<dim, VectorType>
 {
 public:
   EvaluationStabilization(const std::filesystem::path &output_directory,
@@ -45,29 +45,12 @@ public:
 
   void set_stabilization_parameters(const double c, const double mu);
 
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const Vector<double>      &solution);
-
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const BlockVector<double> &solution);
-
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const TrilinosWrappers::MPI::Vector  &solution);
+  void operator()(const Mapping<dim>        &mapping,
+                  const FiniteElement<dim>  &fe,
+                  const DoFHandler<dim>     &dof_handler,
+                  const VectorType          &solution);
 
 protected:
-
-  template<typename VectorType>
-  void evaluate(const Mapping<dim>        &mapping,
-                const FiniteElement<dim>  &fe,
-                const DoFHandler<dim>     &dof_handler,
-                const VectorType          &solution);
-
   TableHandler  data_table;
 
   std::shared_ptr<const Utility::AngularVelocity<dim>> angular_velocity_ptr;
@@ -101,8 +84,8 @@ private:
 };
 
 // inline functions
-template <int dim>
-inline void EvaluationStabilization<dim>::set_angular_velocity
+template <int dim, typename VectorType>
+inline void EvaluationStabilization<dim, VectorType>::set_angular_velocity
 (const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity)
 {
   angular_velocity_ptr = angular_velocity;
@@ -110,8 +93,8 @@ inline void EvaluationStabilization<dim>::set_angular_velocity
 
 
 
-template <int dim>
-inline void EvaluationStabilization<dim>::set_body_force
+template <int dim, typename VectorType>
+inline void EvaluationStabilization<dim, VectorType>::set_body_force
 (const std::shared_ptr<const TensorFunction<1, dim>> &body_force)
 {
   body_force_ptr = body_force;
@@ -119,8 +102,8 @@ inline void EvaluationStabilization<dim>::set_body_force
 
 
 
-template <int dim>
-inline void EvaluationStabilization<dim>::set_background_velocity
+template <int dim, typename VectorType>
+inline void EvaluationStabilization<dim, VectorType>::set_background_velocity
 (const std::shared_ptr<const TensorFunction<1, dim>> &velocity)
 {
   background_velocity_ptr = velocity;
@@ -128,8 +111,8 @@ inline void EvaluationStabilization<dim>::set_background_velocity
 
 
 
-template <int dim>
-inline void EvaluationStabilization<dim>::set_stabilization_parameters
+template <int dim, typename VectorType>
+inline void EvaluationStabilization<dim, VectorType>::set_stabilization_parameters
 (const double c_in, const double mu_in)
 {
   AssertThrow(c_in > 0.0, ExcLowerRangeType<double>(0.0, c_in));
@@ -147,8 +130,8 @@ namespace BuoyantHydrodynamic {
 
 using namespace dealii;
 
-template <int dim>
-class EvaluationStabilization : public Hydrodynamic::EvaluationStabilization<dim>
+template <int dim, typename VectorType = BlockVector<double> >
+class EvaluationStabilization : public Hydrodynamic::EvaluationStabilization<dim, VectorType>
 {
 public:
   EvaluationStabilization(const std::filesystem::path &output_directory,
@@ -169,28 +152,10 @@ public:
 
   void set_stabilization_parameters(const double c, const double mu, const double c_density);
 
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const Vector<double>      &solution);
-
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const BlockVector<double> &solution);
-
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const TrilinosWrappers::MPI::Vector  &solution);
-
-protected:
-
-  template<typename VectorType>
-  void evaluate(const Mapping<dim>        &mapping,
-                const FiniteElement<dim>  &fe,
-                const DoFHandler<dim>     &dof_handler,
-                const VectorType          &solution);
+  virtual void operator()(const Mapping<dim>       &mapping,
+                          const FiniteElement<dim> &fe,
+                          const DoFHandler<dim>    &dof_handler,
+                          const VectorType         &solution);
 
 private:
   std::shared_ptr<const Function<dim>>           reference_density_ptr;
@@ -206,11 +171,11 @@ private:
 };
 
 // inline functions
-template <int dim>
-inline void EvaluationStabilization<dim>::set_stabilization_parameters
+template <int dim, typename VectorType>
+inline void EvaluationStabilization<dim, VectorType>::set_stabilization_parameters
 (const double c_in, const double mu_in, const double c_density_in)
 {
-  Hydrodynamic::EvaluationStabilization<dim>::set_stabilization_parameters(c_in, mu_in);
+  Hydrodynamic::EvaluationStabilization<dim, VectorType>::set_stabilization_parameters(c_in, mu_in);
 
   AssertThrow(c_density_in > 0.0, ExcLowerRangeType<double>(0.0, c_density_in));
   AssertIsFinite(c_density_in);
@@ -219,8 +184,8 @@ inline void EvaluationStabilization<dim>::set_stabilization_parameters
 
 
 
-template <int dim>
-inline void EvaluationStabilization<dim>::set_reference_density
+template <int dim, typename VectorType>
+inline void EvaluationStabilization<dim, VectorType>::set_reference_density
 (const std::shared_ptr<const Function<dim>> &reference_density)
 {
   reference_density_ptr = reference_density;
@@ -229,8 +194,8 @@ inline void EvaluationStabilization<dim>::set_reference_density
 
 
 
-template <int dim>
-inline void EvaluationStabilization<dim>::set_gravity_field
+template <int dim, typename VectorType>
+inline void EvaluationStabilization<dim, VectorType>::set_gravity_field
 (const std::shared_ptr<const TensorFunction<1, dim>> &gravity_field)
 {
   gravity_field_ptr = gravity_field;

@@ -16,8 +16,9 @@ namespace Hydrodynamic {
 
 using namespace dealii;
 
-template <int dim>
-EvaluationBoundaryTraction<dim>::EvaluationBoundaryTraction
+template <int dim, typename VectorType>
+EvaluationBoundaryTraction<dim, VectorType>::
+EvaluationBoundaryTraction
 (const unsigned int velocity_start_index,
  const unsigned int pressure_index,
  const double reynolds_number)
@@ -70,8 +71,8 @@ reynolds_number(reynolds_number)
 
 
 
-template <int dim>
-EvaluationBoundaryTraction<dim>::~EvaluationBoundaryTraction()
+template <int dim, typename VectorType>
+EvaluationBoundaryTraction<dim, VectorType>::~EvaluationBoundaryTraction()
 {
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
@@ -88,45 +89,8 @@ EvaluationBoundaryTraction<dim>::~EvaluationBoundaryTraction()
 
 
 
-template <int dim>
-void EvaluationBoundaryTraction<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const Vector<double>      &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-void EvaluationBoundaryTraction<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const BlockVector<double> &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-void EvaluationBoundaryTraction<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const TrilinosWrappers::MPI::Vector  &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-template <typename VectorType>
-void EvaluationBoundaryTraction<dim>::evaluate
+template <int dim, typename VectorType>
+void EvaluationBoundaryTraction<dim, VectorType>::operator()
 (const Mapping<dim>        &mapping,
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,

@@ -87,8 +87,7 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
 template <int dim,
-          typename TriangulationType = Triangulation<dim>,
-          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
+          typename TriangulationType = Triangulation<dim>>
 class HydrodynamicProblem
 {
 public:
@@ -115,7 +114,7 @@ protected:
 
   MappingQCache<dim>      mapping;
 
-  Solver<dim, TriangulationType, LinearAlgebraContainer>  solver;
+  Solver<dim, TriangulationType>  solver;
 
   const unsigned int      n_initial_refinements;
 
@@ -123,8 +122,8 @@ protected:
 };
 
 // inline functions
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_angular_velocity()
+template <int dim, typename TriangulationType>
+inline void HydrodynamicProblem<dim, TriangulationType>::set_angular_velocity()
 {
   return;
 }
@@ -132,24 +131,24 @@ inline void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>:
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_background_velocity()
+template <int dim, typename TriangulationType>
+inline void HydrodynamicProblem<dim, TriangulationType>::set_background_velocity()
 {
   return;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_body_force()
+template <int dim, typename TriangulationType>
+inline void HydrodynamicProblem<dim, TriangulationType>::set_body_force()
 {
   return;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::set_postprocessor()
+template <int dim, typename TriangulationType>
+inline void HydrodynamicProblem<dim, TriangulationType>::set_postprocessor()
 {
   return;
 }
