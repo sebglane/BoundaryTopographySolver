@@ -10,9 +10,9 @@
 
 #include <angular_velocity.h>
 #include <assembly_base_data.h>
+#include <base.h>
 #include <boundary_conditions.h>
 #include <hydrodynamic_options.h>
-#include <solver_base.h>
 #include <stabilization_flags.h>
 
 #include <memory>
@@ -121,7 +121,7 @@ enum ViscousTermWeakForm
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.
  */
-struct SolverParameters: SolverBase::Parameters
+struct SolverParameters: Base::Parameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
@@ -347,9 +347,8 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
 
 
 template <int dim,
-          typename TriangulationType = Triangulation<dim>,
-          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
-class Solver: public SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>
+          typename TriangulationType = Triangulation<dim>>
+class Solver: public Base::Solver<dim, TriangulationType>
 {
 public:
   Solver(TriangulationType   &tria,
@@ -446,8 +445,8 @@ protected:
 
 
 // inline functions
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_angular_velocity
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_angular_velocity
 (const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity)
 {
   angular_velocity_ptr = angular_velocity;
@@ -455,8 +454,8 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_angular_
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_body_force
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_body_force
 (const std::shared_ptr<const TensorFunction<1, dim>> &body_force)
 {
   body_force_ptr = body_force;
@@ -464,8 +463,8 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_body_for
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_background_velocity
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_background_velocity
 (const std::shared_ptr<const TensorFunction<1, dim>> &velocity)
 {
   background_velocity_ptr = velocity;
@@ -473,51 +472,51 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_backgrou
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline VectorBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_velocity_bcs()
+Solver<dim, TriangulationType>::get_velocity_bcs()
 {
   return velocity_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline const VectorBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_velocity_bcs() const
+Solver<dim, TriangulationType>::get_velocity_bcs() const
 {
   return velocity_boundary_conditions;
 }
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_pressure_bcs()
+Solver<dim, TriangulationType>::get_pressure_bcs()
 {
   return pressure_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_pressure_bcs() const
+Solver<dim, TriangulationType>::get_pressure_bcs() const
 {
   return pressure_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline double Solver<dim, TriangulationType, LinearAlgebraContainer>::get_reynolds_number() const
+template <int dim, typename TriangulationType>
+inline double Solver<dim, TriangulationType>::get_reynolds_number() const
 {
   return reynolds_number;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline double Solver<dim, TriangulationType, LinearAlgebraContainer>::get_froude_number() const
+template <int dim, typename TriangulationType>
+inline double Solver<dim, TriangulationType>::get_froude_number() const
 {
   return froude_number;
 }

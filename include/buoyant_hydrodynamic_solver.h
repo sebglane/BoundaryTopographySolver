@@ -178,9 +178,8 @@ struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
 } // namespace AssemblyData
 
 template <int dim,
-          typename TriangulationType = Triangulation<dim>,
-          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
-class Solver: public Hydrodynamic::Solver<dim, TriangulationType, LinearAlgebraContainer>
+          typename TriangulationType = Triangulation<dim>>
+class Solver: public Hydrodynamic::Solver<dim, TriangulationType>
 {
 
 public:
@@ -249,26 +248,26 @@ private:
 };
 
 // inline functions
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_density_bcs() const
+Solver<dim, TriangulationType>::get_density_bcs() const
 {
   return density_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_density_bcs()
+Solver<dim, TriangulationType>::get_density_bcs()
 {
   return density_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_reference_density
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_reference_density
 (const std::shared_ptr<const Function<dim>> &reference_density)
 {
   reference_density_ptr = reference_density;
@@ -277,8 +276,8 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_referenc
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_gravity_field
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_gravity_field
 (const std::shared_ptr<const TensorFunction<1, dim>> &gravity_field)
 {
   gravity_field_ptr = gravity_field;
@@ -287,8 +286,8 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_gravity_
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline double Solver<dim, TriangulationType, LinearAlgebraContainer>::get_stratification_number() const
+template <int dim, typename TriangulationType>
+inline double Solver<dim, TriangulationType>::get_stratification_number() const
 {
   return (stratification_number);
 }

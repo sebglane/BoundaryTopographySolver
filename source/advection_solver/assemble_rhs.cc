@@ -13,8 +13,8 @@
 
 namespace Advection {
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const bool use_homogeneous_constraints)
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
     this->pcout << "    Assemble rhs..." << std::endl;
@@ -24,7 +24,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const 
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble rhs");
 
-  this->container.system_rhs = 0;
+  this->system_rhs = 0;
 
   const AffineConstraints<double> &constraints =
       (use_homogeneous_constraints? this->zero_constraints: this->nonzero_constraints);
@@ -187,7 +187,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const 
 
     constraints.distribute_local_to_global(cell_rhs,
                                            local_dof_indices,
-                                           this->container.system_rhs);
+                                           this->system_rhs);
 
   } // end loop over cells
 }

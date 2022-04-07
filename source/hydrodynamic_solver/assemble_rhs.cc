@@ -12,10 +12,6 @@
 
 #include <deal.II/grid/filtered_iterator.h>
 
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_vector.h>
-
 #include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
 
@@ -23,21 +19,8 @@
 
 namespace Hydrodynamic {
 
-using TrilinosContainer = typename
-                          SolverBase::
-                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
-
-
-
-template <int dim>
-using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
-
-
-
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const bool use_homogeneous_constraints)
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_constraints)
 {
   if (this->verbose)
     this->pcout << "    Assemble rhs..." << std::endl;
@@ -58,7 +41,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const 
 
   const bool use_stress_form{viscous_term_weak_form == ViscousTermWeakForm::stress};
 
-  this->container.system_rhs = 0;
+  this->system_rhs = 0;
 
   // Initiate the quadrature formula
   const QGauss<dim>   quadrature_formula(velocity_fe_degree + 1);
@@ -124,13 +107,13 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_rhs(const 
            !velocity_boundary_conditions.neumann_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
 
-  this->container.system_rhs.compress(VectorOperation::add);
+  this->system_rhs.compress(VectorOperation::add);
 
 }
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::assemble_local_rhs
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
  AssemblyData::RightHandSide::Scratch<dim> &scratch,
  AssemblyBaseData::RightHandSide::Copy     &data,
@@ -401,8 +384,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_rhs
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::copy_local_to_global_rhs
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::copy_local_to_global_rhs
 (const AssemblyBaseData::RightHandSide::Copy  &data,
  const bool use_homogeneous_constraints)
 {
@@ -411,7 +394,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::copy_local_to_globa
 
   constraints.distribute_local_to_global(data.local_rhs,
                                          data.local_dof_indices,
-                                         this->container.system_rhs);
+                                         this->system_rhs);
 }
 
 // explicit instantiation
@@ -432,36 +415,8 @@ assemble_local_rhs
  AssemblyBaseData::RightHandSide::Copy   &,
  const bool) const;
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-assemble_local_rhs
-(const typename DoFHandler<2>::active_cell_iterator &cell,
- AssemblyData::RightHandSide::Scratch<2> &,
- AssemblyBaseData::RightHandSide::Copy   &,
- const bool) const;
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-assemble_local_rhs
-(const typename DoFHandler<3>::active_cell_iterator &cell,
- AssemblyData::RightHandSide::Scratch<3> &,
- AssemblyBaseData::RightHandSide::Copy   &,
- const bool) const;
-
 template void Solver<2>::assemble_rhs(const bool);
 template void Solver<3>::assemble_rhs(const bool);
-
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-assemble_rhs
-(const bool);
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-assemble_rhs
-(const bool);
 
 template
 void
@@ -472,19 +427,6 @@ copy_local_to_global_rhs
 template
 void
 Solver<3>::
-copy_local_to_global_rhs
-(const AssemblyBaseData::RightHandSide::Copy  &data,
- const bool use_homogeneous_constraints);
-
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-copy_local_to_global_rhs
-(const AssemblyBaseData::RightHandSide::Copy  &data,
- const bool use_homogeneous_constraints);
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
 copy_local_to_global_rhs
 (const AssemblyBaseData::RightHandSide::Copy  &data,
  const bool use_homogeneous_constraints);

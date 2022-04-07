@@ -8,7 +8,6 @@ SET(TARGET_SRC
     evaluation_boundary_traction.cc
     evaluation_stabilization.cc
     grid_factory.cc
-    linear_algebra_container.cc
     parameters.cc
     postprocessor_base.cc
     # solver base

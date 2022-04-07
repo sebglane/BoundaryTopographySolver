@@ -4,6 +4,7 @@
  *  Created on: Aug 30, 2021
  *      Author: sg
  */
+#include <base.h>
 #include <deal.II/base/quadrature_lib.h>
 
 #include <deal.II/distributed/grid_refinement.h>
@@ -11,27 +12,12 @@
 
 #include <deal.II/grid/grid_refinement.h>
 
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_vector.h>
-
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/solution_transfer.h>
 
-#include <solver_base.h>
-
 #include <vector>
 
-namespace SolverBase {
-
-using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
-
-
-
-template <int dim>
-using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+namespace Base {
 
 namespace internal
 {
@@ -69,12 +55,10 @@ void refine_and_coarsen
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::refine_mesh()
 {
   pcout << "Mesh refinement..." << std::endl;
-
-  using VectorType = typename LinearAlgebraContainer::vector_type;
 
   TimerOutput::Scope timer_section(computing_timer, "Refine mesh");
 
@@ -135,11 +119,10 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::refine_mesh()
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::execute_mesh_refinement()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::execute_mesh_refinement()
 {
   // preparing temperature solution transfer
-  using VectorType = typename LinearAlgebraContainer::vector_type;
   std::vector<VectorType> x_solution(1);
   x_solution[0] = this->present_solution;
   SolutionTransfer<dim, VectorType> solution_transfer(dof_handler);
@@ -160,99 +143,9 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::execute_mesh_refine
     tmp_solution[0].reinit(this->present_solution);
     solution_transfer.interpolate(x_solution, tmp_solution);
 
-    container.distribute_constraints(nonzero_constraints,
-                                     tmp_solution[0]);
+    nonzero_constraints.distribute(tmp_solution[0]);
+
     this->present_solution = tmp_solution[0];
-  }
-}
-
-
-
-template <>
-void Solver<2, parallel::distributed::Triangulation<2>, TrilinosContainer>::
-execute_mesh_refinement()
-{
-  constexpr int dim{2};
-  // preparing solution transfer
-  using VectorType = TrilinosContainer::vector_type;
-  typename parallel::distributed::SolutionTransfer<dim, VectorType>
-  solution_transfer(dof_handler);
-
-  std::vector<const VectorType *> x_solution(1);
-  x_solution[0] = &this->present_solution;
-
-  // preparing triangulation refinement
-  triangulation.prepare_coarsening_and_refinement();
-  solution_transfer.prepare_for_coarsening_and_refinement(x_solution);
-
-  // refine triangulation
-  triangulation.execute_coarsening_and_refinement();
-
-  // setup dofs and constraints on refined mesh
-  this->setup_dofs();
-
-  // transfer of solution
-  {
-    VectorType tmp_solution;
-    tmp_solution.reinit(container.system_rhs);
-
-    std::vector<VectorType *> tmp(1);
-    tmp[0] = &tmp_solution;
-    solution_transfer.interpolate(tmp_solution);
-
-    container.distribute_constraints(nonzero_constraints,
-                                     tmp_solution);
-
-    this->present_solution = tmp_solution;
-
-    container.distribute_constraints(nonzero_constraints,
-                                     this->present_solution);
-  }
-}
-
-
-
-template <>
-void Solver<3, parallel::distributed::Triangulation<3>, TrilinosContainer>::
-execute_mesh_refinement()
-{
-  constexpr int dim{3};
-  // preparing solution transfer
-  using VectorType = TrilinosContainer::vector_type;
-  typename parallel::distributed::SolutionTransfer<dim, VectorType>
-  solution_transfer(dof_handler);
-
-  std::vector<const VectorType *> x_solution(1);
-  x_solution[0] = &this->present_solution;
-
-  // preparing triangulation refinement
-  triangulation.prepare_coarsening_and_refinement();
-  solution_transfer.prepare_for_coarsening_and_refinement(x_solution);
-
-  // refine triangulation
-  triangulation.execute_coarsening_and_refinement();
-
-  // setup dofs and constraints on refined mesh
-  this->setup_dofs();
-
-  pcout << container.system_matrix.m() << ", " << container.system_matrix.n() << std::endl;
-
-  // transfer of solution
-  {
-    VectorType tmp_solution;
-    tmp_solution.reinit(container.system_rhs);
-
-    std::vector<VectorType *> tmp(1);
-    tmp[0] = &tmp_solution;
-    solution_transfer.interpolate(tmp_solution);
-
-    container.distribute_constraints(nonzero_constraints,
-                                     tmp_solution);
-
-    this->present_solution = tmp_solution;
-
-    container.distribute_constraints(nonzero_constraints,
-                                     this->present_solution);
   }
 }
 
@@ -276,15 +169,7 @@ void
 Solver<3>::
 refine_mesh();
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-refine_mesh();
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-refine_mesh();
 
-}  // namespace SolverBase
+}  // namespace Base
 
 

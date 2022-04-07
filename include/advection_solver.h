@@ -9,7 +9,7 @@
 #define INCLUDE_ADVECTION_SOLVER_H_
 
 
-#include <solver_base.h>
+#include <base.h>
 
 namespace Advection {
 
@@ -21,7 +21,7 @@ using namespace BoundaryConditions;
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.
  */
-struct SolverParameters: SolverBase::Parameters
+struct SolverParameters: Base::Parameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
@@ -72,9 +72,8 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 template <int dim,
-          typename TriangulationType = Triangulation<dim>,
-          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
-class Solver: public SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>
+          typename TriangulationType = Triangulation<dim>>
+class Solver: public Base::Solver<dim, TriangulationType>
 {
 
 public:
@@ -121,26 +120,26 @@ private:
 };
 
 // inline functions
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_bcs() const
+Solver<dim, TriangulationType>::get_bcs() const
 {
   return boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_bcs()
+Solver<dim, TriangulationType>::get_bcs()
 {
   return boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_advection_field
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_advection_field
 (const std::shared_ptr<const TensorFunction<1, dim>> &advection_field)
 {
   advection_field_ptr = advection_field;
@@ -149,8 +148,8 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_advectio
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_source_term
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_source_term
 (const std::shared_ptr<const Function<dim>> &source_term)
 {
   source_term_ptr = source_term;

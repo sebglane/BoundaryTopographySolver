@@ -82,8 +82,8 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
+template <int dim, typename TriangulationType>
+Solver<dim, TriangulationType>::Solver
 (TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters,
@@ -92,7 +92,7 @@ Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
  const double           stratification,
  const double           rossby)
 :
-Hydrodynamic::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters, reynolds, froude, rossby),
+Hydrodynamic::Solver<dim, TriangulationType>(tria, mapping, parameters, reynolds, froude, rossby),
 density_boundary_conditions(this->triangulation),
 reference_density_ptr(),
 gravity_field_ptr(),
@@ -104,8 +104,8 @@ nu_density(parameters.nu_density)
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     this->pcout << "    Output results..." << std::endl;
@@ -137,8 +137,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(cons
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::
 postprocess_newton_iteration
 (const unsigned int iteration,
  const bool         is_initial_cycle)
@@ -147,9 +147,9 @@ postprocess_newton_iteration
   {
     this->pcout << "Reseting density solution..." << std::endl;
 
-    this->container.set_block(2, 0.0, this->evaluation_point);
-    this->container.set_block(2, 0.0, this->present_solution);
-    this->container.set_block(2, 0.0, this->solution_update);
+    this->evaluation_point.block(2) = 0.0;
+    this->present_solution.block(2) = 0.0;
+    this->solution_update.block(2) = 0.0;
   }
   return;
 }

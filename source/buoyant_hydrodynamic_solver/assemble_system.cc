@@ -15,8 +15,8 @@
 
 namespace BuoyantHydrodynamic {
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::assemble_system
 (const bool use_homogeneous_constraints,
  const bool use_newton_linearization)
 {
@@ -40,8 +40,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
 
   const bool use_stress_tensor{this->viscous_term_weak_form == Hydrodynamic::ViscousTermWeakForm::stress};
 
-  this->container.system_matrix = 0;
-  this->container.system_rhs = 0;
+  this->system_matrix = 0;
+  this->system_rhs = 0;
 
   // Initiate the quadrature formula
   const QGauss<dim>   quadrature_formula(this->velocity_fe_degree + 1);
@@ -113,14 +113,14 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_system
            !density_boundary_conditions.dirichlet_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
 
-  this->container.system_matrix.compress(VectorOperation::add);
-  this->container.system_rhs.compress(VectorOperation::add);
+  this->system_matrix.compress(VectorOperation::add);
+  this->system_rhs.compress(VectorOperation::add);
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::assemble_local_system
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::assemble_local_system
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
  AssemblyData::Matrix::Scratch<dim> &scratch,
  AssemblyBaseData::Matrix::Copy     &data,
