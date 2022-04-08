@@ -156,9 +156,9 @@ test_assembly_serial
         coupling_table[c][d] = DoFTools::none;
 
   // setup system matrix and system rhs
-  BlockSparsityPattern      sparsity_pattern;
-  SparseMatrix<double>      pressure_mass_matrix;
-  BlockSparseMatrix<double> system_matrix;
+  BlockSparsityPattern  sparsity_pattern;
+  LA::BlockSparseMatrix system_matrix;
+  LA::SparseMatrix      pressure_mass_matrix;
   {
     system_matrix.clear();
     pressure_mass_matrix.clear();
@@ -174,11 +174,11 @@ test_assembly_serial
 
     system_matrix.reinit(sparsity_pattern);
   }
-  BlockVector<double>        system_rhs;
+  LA::BlockVector system_rhs;
   system_rhs.reinit(dofs_per_block);
 
   // setup solution
-  BlockVector<double>  solution;
+  LA::BlockVector solution;
   solution.reinit(dofs_per_block);
 
   // assemble system matrix
@@ -242,7 +242,7 @@ test_assembly_serial
                             phi_pressure[j] * div_phi_velocity[i])};
             matrix += scalar_product(grad_phi_velocity[j],
                                      velocity_test_function_gradient);
-            matrix += phi_pressure[i] * phi_pressure[j];
+            matrix += phi_pressure[j] * phi_pressure[i];
 
             local_matrix(i, j) +=  matrix * JxW;
           }
@@ -310,10 +310,6 @@ test_assembly_serial
   }
   constraints.distribute(solution);
 
-  std::cout << "Solved the linear system for " << std::endl
-            << "\t- pressure mean value constraint: "
-            << std::boolalpha << add_mean_value_constraint << std::noboolalpha << std::endl;
-
   // correct mean value
   {
     FEValuesExtractors::Scalar  pressure(dim);
@@ -329,6 +325,10 @@ test_assembly_serial
     for(; idx != endidx; ++idx)
       solution[*idx] -= mean_value;
   }
+
+  std::cout << "Solved the linear system for " << std::endl
+            << "\t- pressure mean value constraint: "
+            << std::boolalpha << add_mean_value_constraint << std::noboolalpha << std::endl;
 }
 
 }  // namespace TestSpace
