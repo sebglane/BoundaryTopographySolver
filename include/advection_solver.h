@@ -8,7 +8,9 @@
 #ifndef INCLUDE_ADVECTION_SOLVER_H_
 #define INCLUDE_ADVECTION_SOLVER_H_
 
+#include <deal.II/meshworker/copy_data.h>
 
+#include <advection_assembly_data.h>
 #include <base.h>
 
 namespace Advection {
@@ -101,6 +103,28 @@ private:
                                const bool use_newton_linearization);
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints);
+
+  void assemble_system_local_cell
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<1,1,1>                           &data) const;
+
+  void assemble_system_local_boundary
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   const unsigned int                                     face_number,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<1,1,1>                           &data) const;
+
+  void assemble_rhs_local_cell
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
+   MeshWorker::CopyData<0,1,1>                           &data) const;
+
+  void assemble_rhs_local_boundary
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   const unsigned int                                     face_number,
+   AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
+   MeshWorker::CopyData<0,1,1>                           &data) const;
 
   virtual void output_results(const unsigned int cycle = 0) const;
 

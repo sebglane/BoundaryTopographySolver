@@ -38,10 +38,13 @@ SET(TARGET_SRC
 #    buoyant_hydrodynamic_solver/buoyant_hydrodynamic_solver.cc
 #    buoyant_hydrodynamic_solver/setup.cc
     # advection solver
+    advection_assembly_data.cc
     advection_problem.cc
     advection_solver/apply_boundary_conditions.cc
     advection_solver/assemble_system.cc
+    advection_solver/assemble_system_local.cc
     advection_solver/assemble_rhs.cc
+    advection_solver/assemble_rhs_local.cc
     advection_solver/advection_solver.cc
     advection_solver/setup.cc
 )

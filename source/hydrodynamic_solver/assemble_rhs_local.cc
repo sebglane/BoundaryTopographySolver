@@ -301,6 +301,7 @@ assemble_rhs_local_boundary
 }
 
 
+// explicit instantiation
 template
 void
 Solver<2>::
