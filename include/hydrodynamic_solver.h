@@ -9,11 +9,9 @@
 #define INCLUDE_HYDRODYNAMIC_SOLVER_H_
 
 #include <angular_velocity.h>
-#include <assembly_base_data.h>
 #include <base.h>
 #include <boundary_conditions.h>
-#include <hydrodynamic_options.h>
-#include <stabilization_flags.h>
+#include <hydrodynamic_assembly_data.h>
 
 #include <memory>
 #include <optional>
@@ -196,156 +194,6 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 
-namespace AssemblyData {
-
-namespace Matrix {
-
-template <int dim>
-struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
-{
-  Scratch(const Mapping<dim>        &mapping,
-          const Quadrature<dim>     &quadrature_formula,
-          const FiniteElement<dim>  &fe,
-          const UpdateFlags         update_flags,
-          const Quadrature<dim-1>  &face_quadrature_formula,
-          const UpdateFlags         face_update_flags,
-          const StabilizationFlags  stabilization_flags,
-          const bool                use_stress_form = false,
-          const bool                allocate_background_velocity = false,
-          const bool                allocate_body_force = false,
-          const bool                allocate_face_normal = false,
-          const bool                allocate_face_stresses = false,
-          const bool                allocate_traction = false);
-
-  Scratch(const Scratch<dim>  &data);
-
-  FEFaceValues<dim>   fe_face_values;
-
-  OptionalArgumentsStrongForm<dim>  hydrodynamic_strong_form_options;
-
-  OptionalArgumentsWeakForm<dim>    hydrodynamic_weak_form_options;
-
-  const unsigned int  n_face_q_points;
-
-  // shape functions
-  std::vector<Tensor<1, dim>> phi_velocity;
-  std::vector<Tensor<2, dim>> grad_phi_velocity;
-  std::vector<double>         div_phi_velocity;
-  std::vector<double>         phi_pressure;
-
-  // stress tensor related shape functions
-  std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
-
-  // stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_phi_pressure;
-  std::vector<Tensor<1, dim>> laplace_phi_velocity;
-
-  // stress tensor and stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_div_phi_velocity;
-
-  // solution values
-  std::vector<Tensor<1, dim>> present_velocity_values;
-  std::vector<Tensor<2, dim>> present_velocity_gradients;
-  std::vector<double>         present_pressure_values;
-
-  // stress tensor related solution values
-  std::vector<SymmetricTensor<2, dim>>  present_sym_velocity_gradients;
-
-  // stabilization related solution values
-  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
-  std::vector<Tensor<1, dim>> present_pressure_gradients;
-
-  // stabilization related quantities
-  std::vector<Tensor<1, dim>> present_strong_residuals;
-
-  // face normal vectors
-  std::vector<Tensor<1, dim>> face_normal_vectors;
-
-  // solution face values
-  std::vector<double>                   present_pressure_face_values;
-  std::vector<Tensor<2, dim>>           present_velocity_face_gradients;
-  std::vector<SymmetricTensor<2, dim>>  present_velocity_sym_face_gradients;
-
-  // source term face values
-  std::vector<Tensor<1, dim>> boundary_traction_values;
-};
-
-} // namespace Matrix
-
-namespace RightHandSide
-{
-
-template <int dim>
-struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
-{
-  Scratch(const Mapping<dim>        &mapping,
-          const Quadrature<dim>     &quadrature_formula,
-          const FiniteElement<dim>  &fe,
-          const UpdateFlags         update_flags,
-          const Quadrature<dim-1>  &face_quadrature_formula,
-          const UpdateFlags         face_update_flags,
-          const StabilizationFlags  stabilization_flags,
-          const bool                use_stress_form = false,
-          const bool                allocate_background_velocity = false,
-          const bool                allocate_body_force = false,
-          const bool                allocate_face_normal = false,
-          const bool                allocate_face_stresses = false,
-          const bool                allocate_traction = false);
-
-  Scratch(const Scratch<dim>  &data);
-
-  FEFaceValues<dim>   fe_face_values;
-
-  OptionalArgumentsStrongForm<dim>  hydrodynamic_strong_form_options;
-
-  OptionalArgumentsWeakForm<dim>    hydrodynamic_weak_form_options;
-
-  const unsigned int  n_face_q_points;
-
-  // shape functions
-  std::vector<Tensor<1, dim>> phi_velocity;
-  std::vector<Tensor<2, dim>> grad_phi_velocity;
-  std::vector<double>         div_phi_velocity;
-  std::vector<double>         phi_pressure;
-
-  // stress tensor related shape functions
-  std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
-
-  // stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_phi_pressure;
-
-  // solution values
-  std::vector<Tensor<1, dim>> present_velocity_values;
-  std::vector<Tensor<2, dim>> present_velocity_gradients;
-  std::vector<double>         present_pressure_values;
-
-  // stress tensor related solution values
-  std::vector<SymmetricTensor<2, dim>>  present_sym_velocity_gradients;
-
-  // stabilization related solution values
-  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
-  std::vector<Tensor<1, dim>> present_pressure_gradients;
-
-  // stabilization related quantities
-  std::vector<Tensor<1, dim>> present_strong_residuals;
-
-  // face normal vectors
-  std::vector<Tensor<1, dim>> face_normal_vectors;
-
-  // solution face values
-  std::vector<double>                   present_pressure_face_values;
-  std::vector<Tensor<2, dim>>           present_velocity_face_gradients;
-  std::vector<SymmetricTensor<2, dim>>  present_velocity_sym_face_gradients;
-
-  // source term face values
-  std::vector<Tensor<1, dim>> boundary_traction_values;
-};
-
-} // namespace RightHandSide
-
-} // namespace AssemblyData
-
-
 template <int dim,
           typename TriangulationType = Triangulation<dim>>
 class Solver: public Base::Solver<dim, TriangulationType>
@@ -386,30 +234,36 @@ private:
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints);
 
-  void assemble_local_system
-  (const typename DoFHandler<dim>::active_cell_iterator &cell,
-   AssemblyData::Matrix::Scratch<dim> &scratch,
-   AssemblyBaseData::Matrix::Copy     &data,
-   const bool use_newton_linearization,
-   const bool use_stress_form) const;
+  void assemble_system_local_cell
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<1,1,1>                           &data,
+   const bool                                             use_newton_linearization,
+   const bool                                             use_stress_form) const;
 
-  void assemble_local_rhs
-  (const typename DoFHandler<dim>::active_cell_iterator &cell,
-   AssemblyData::RightHandSide::Scratch<dim> &scratch,
-   AssemblyBaseData::RightHandSide::Copy     &data,
-   const bool use_stress_form) const;
+  void assemble_system_local_boundary
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   const unsigned int                                     face_number,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<1,1,1>                           &data,
+   const bool                                             use_stress_form) const;
+
+  void assemble_rhs_local_cell
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
+   MeshWorker::CopyData<0,1,1>                           &data,
+   const bool                                             use_stress_form) const;
+
+  void assemble_rhs_local_boundary
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   const unsigned int                                     face_number,
+   AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
+   MeshWorker::CopyData<0,1,1>                           &data,
+   const bool                                             use_stress_form) const;
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
 protected:
-  void copy_local_to_global_system
-  (const AssemblyBaseData::Matrix::Copy     &data,
-   const bool use_homogeneous_constraints);
-
-  void copy_local_to_global_rhs
-  (const AssemblyBaseData::RightHandSide::Copy     &data,
-   const bool use_homogeneous_constraints);
-
   VectorBoundaryConditions<dim> velocity_boundary_conditions;
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;

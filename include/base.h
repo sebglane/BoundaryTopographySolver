@@ -22,6 +22,8 @@
 #include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/generic_linear_algebra.h>
 
+#include <deal.II/meshworker/copy_data.h>
+
 #include <boundary_conditions.h>
 #include <evaluation_base.h>
 #include <parameters.h>
@@ -169,6 +171,16 @@ protected:
 
   void apply_periodicity_constraints
   (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs);
+
+  virtual void
+  copy_local_to_global_system
+  (const MeshWorker::CopyData<1,1,1> &data,
+   const bool                         use_homogeneous_constraints);
+
+  virtual void
+  copy_local_to_global_rhs
+  (const MeshWorker::CopyData<0,1,1> &data,
+   const bool                         use_homogeneous_constraints);
 
   virtual void assemble_system(const bool use_homogenenous_constraints = false,
                                const bool use_newton_linearization = true) = 0;
