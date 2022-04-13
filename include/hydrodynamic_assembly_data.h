@@ -23,7 +23,7 @@ namespace AssemblyData {
 namespace Matrix {
 
 template <int dim>
-class ScratchData : public MeshWorker::ScratchData<dim>
+class ScratchData : virtual public MeshWorker::ScratchData<dim>
 {
 public:
   ScratchData(
@@ -86,7 +86,7 @@ namespace RightHandSide
 {
 
 template <int dim>
-class ScratchData : public MeshWorker::ScratchData<dim>
+class ScratchData : virtual public MeshWorker::ScratchData<dim>
 {
 public:
 

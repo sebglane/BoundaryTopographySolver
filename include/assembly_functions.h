@@ -330,7 +330,7 @@ inline void compute_strong_hydrodynamic_residual
  std::vector<Tensor<1, dim>>       &strong_residuals,
  const double                       nu,
  const Hydrodynamic::OptionalArgumentsStrongForm<dim>        &options,
- const BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_options)
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options)
 {
   Hydrodynamic::
   compute_strong_residual(present_velocity_values,
@@ -360,7 +360,7 @@ inline void compute_strong_density_residual
  const std::vector<Tensor<1, dim>> &present_velocity_values,
  std::vector<double>               &strong_residuals,
  const Hydrodynamic::OptionalArgumentsStrongForm<dim>        &options,
- const BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_options)
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options)
 {
   for (std::size_t q=0; q<present_density_gradients.size(); ++q)
     strong_residuals[q] = present_velocity_values[q] * present_density_gradients[q];
@@ -398,7 +398,7 @@ inline double compute_density_matrix
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
  const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
- const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options,
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options,
  const bool            apply_newton_linearization = true)
 {
   double linearized_residual =
@@ -431,7 +431,7 @@ inline double compute_density_rhs
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
  const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
- const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options)
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options)
 {
   double residual = -(present_velocity_value * present_density_gradient);
 
@@ -468,7 +468,7 @@ inline double compute_density_residual_linearization_matrix
  const Tensor<1, dim> &present_velocity_value,
  const double          nu,
  const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
- const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options,
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options,
  const bool            apply_newton_linearization = true)
 {
   if (present_velocity_value.norm() > 0.0)
@@ -546,7 +546,7 @@ inline double compute_hydrodynamic_matrix
  const double          pressure_test_function,
  const double          nu,
  const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
- const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options,
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options,
  const bool            apply_newton_linearization = true)
 {
   double matrix = Hydrodynamic::
@@ -587,7 +587,7 @@ inline double compute_hydrodynamic_rhs
  const double          pressure_test_function,
  const double          nu,
  const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
- const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options)
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options)
 {
   double rhs = Hydrodynamic::
                compute_rhs(velocity_test_function_value,
@@ -624,7 +624,7 @@ inline double compute_hydrodynamic_residual_linearization_matrix
  const double          density_trial_function_value,
  const double          nu,
  const Hydrodynamic::OptionalArgumentsWeakForm<dim>        &options,
- const BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim> &buoyancy_options,
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options,
  const bool            apply_newton_linearization = true)
 {
   if (!options.velocity_test_function_gradient &&

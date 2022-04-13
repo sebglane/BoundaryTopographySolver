@@ -138,8 +138,8 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
   weak_form_options.use_stress_form = use_stress_form;
   strong_form_options.use_stress_form = use_stress_form;
 
-  BuoyantHydrodynamic::OptionalArgumentsWeakForm<dim>   &buoyancy_weak_form_options = scratch.weak_form_options;
-  BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_strong_form_options = scratch.strong_form_options;
+  BuoyantHydrodynamic::OptionalScalarArguments<dim>   &buoyancy_weak_form_options = scratch.weak_form_options;
+  BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_strong_form_options = scratch.strong_form_options;
 
   scratch.fe_values[velocity].get_function_values(this->evaluation_point,
                                                   scratch.present_velocity_values);
