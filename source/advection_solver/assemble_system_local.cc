@@ -53,6 +53,7 @@ assemble_system_local_cell
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
   {
+    // source term
     if (scratch.vector_options.source_term_values)
       scratch.scalar_options.source_term_value = scratch.vector_options.source_term_values->at(q);
 
@@ -64,29 +65,25 @@ assemble_system_local_cell
 
     for (const auto i: fe_values.dof_indices())
     {
-      const Tensor<1, dim> &test_function_gradient = scratch.grad_phi[i];
-      const double          test_function_value = scratch.phi[i];
+      const double test_function_value{scratch.phi[i] +
+                                       delta *
+                                       scratch.advection_field_values[q] *
+                                       scratch.grad_phi[i]};
 
       for (const auto j: fe_values.dof_indices())
       {
-        double matrix = compute_matrix(scratch.grad_phi[j],
-                                       test_function_gradient,
-                                       scratch.advection_field_values[q],
-                                       test_function_value,
-                                       delta);
+        const double matrix{compute_matrix(scratch.grad_phi[j],
+                                           scratch.advection_field_values[q],
+                                           test_function_value,
+                                           scratch.scalar_options)};
         data.matrices[0](i, j) += matrix * JxW[q];
       }
 
-      double rhs = compute_rhs(test_function_gradient,
-                               present_gradients[q],
-                               scratch.advection_field_values[q],
-                               test_function_value,
-                               delta);
+      const double rhs{compute_rhs(present_gradients[q],
+                                   scratch.advection_field_values[q],
+                                   test_function_value,
+                                   scratch.scalar_options)};
 
-      if (scratch.scalar_options.source_term_value)
-        rhs += *scratch.scalar_options.source_term_value *
-               (test_function_value +
-                delta * scratch.advection_field_values[q] * test_function_gradient);
       data.vectors[0](i) += rhs * JxW[q];
     }
   } // loop over cell quadrature points

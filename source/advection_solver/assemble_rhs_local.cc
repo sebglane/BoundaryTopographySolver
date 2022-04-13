@@ -54,6 +54,7 @@ assemble_rhs_local_cell
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
   {
+    // source term
     if (scratch.vector_options.source_term_values)
       scratch.scalar_options.source_term_value = scratch.vector_options.source_term_values->at(q);
 
@@ -61,20 +62,19 @@ assemble_rhs_local_cell
     {
       scratch.phi[i] = fe_values.shape_value(i, q);
       scratch.grad_phi[i] = fe_values.shape_grad(i, q);
+
+      // add stabilization related term
+      scratch.phi[i] += delta *
+                        scratch.advection_field_values[q] *
+                        scratch.grad_phi[i];
     }
 
     for (const auto i: fe_values.dof_indices())
     {
-      double rhs = compute_rhs(scratch.grad_phi[i],
-                               present_gradients[q],
-                               scratch.advection_field_values[q],
-                               scratch.phi[i],
-                               delta);
-
-      if (scratch.scalar_options.source_term_value)
-        rhs += *scratch.scalar_options.source_term_value *
-               (scratch.phi[i] +
-                delta * scratch.advection_field_values[q] * scratch.grad_phi[i]);
+      const double rhs{compute_rhs(present_gradients[q],
+                                   scratch.advection_field_values[q],
+                                   scratch.phi[i],
+                                   scratch.scalar_options)};
 
       data.vectors[0](i) += rhs * JxW[q];
     }

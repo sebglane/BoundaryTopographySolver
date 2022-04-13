@@ -674,33 +674,97 @@ namespace Advection {
 
 using namespace dealii;
 
+/*!
+ * @brief Computes the matrix entry of the advection equation.
+ *
+ * @attention The advection field must include contributions due to a possible
+ * background field.
+ *
+ * @attention The test function must include contributions related to
+ * stabilization terms.
+ *
+ */
 template <int dim>
 inline double compute_matrix
-(const Tensor<1, dim> &trial_function_gradient,
- const Tensor<1, dim> &test_function_gradient,
- const Tensor<1, dim> &advection_field_value,
- const double          test_function_value,
- const double          delta)
+(const Tensor<1, dim>                &trial_function_gradient,
+ const Tensor<1, dim>                &advection_field_value,
+ const double                         test_function_value,
+ const OptionalScalarArguments<dim>  &/* options */)
 {
-  return (advection_field_value * trial_function_gradient) *
-         (test_function_value +
-          delta * advection_field_value * test_function_gradient);
+  return ((advection_field_value * trial_function_gradient) * test_function_value);
 }
 
 
 
+/*!
+ * @brief Computes the right-hand side entry of the advection equation.
+ *
+ * @attention The advection field must include contributions due to a possible
+ * background field.
+ *
+ * @attention The test function must include contributions related to
+ * stabilization terms.
+ *
+ */
 template <int dim>
 inline double compute_rhs
-(const Tensor<1, dim> &test_function_gradient,
- const Tensor<1, dim> &present_gradient,
- const Tensor<1, dim> &advection_field_value,
- const double          test_function_value,
- const double          delta)
+(const Tensor<1, dim>                &present_gradient,
+ const Tensor<1, dim>                &advection_field_value,
+ const double                         test_function_value,
+ const OptionalScalarArguments<dim>  &options)
 {
-  return -(advection_field_value * present_gradient) *
-          (test_function_value +
-           delta * advection_field_value * test_function_gradient);
+  double residual{-(advection_field_value * present_gradient)};
+
+  if (options.reference_gradient)
+  {
+    Assert(options.gradient_scaling, ExcInternalError());
+
+    residual -= *options.gradient_scaling *
+                advection_field_value *
+                *options.reference_gradient;
+  }
+
+  if (options.source_term_value)
+    residual += *options.source_term_value;
+
+  return residual * test_function_value;
 }
+
+
+
+/*!
+ * @brief Computes the strong residual of the advection equation.
+ *
+ * @attention The advection field must include contributions due to a possible
+ * background field.
+ *
+ */
+template<int dim>
+inline double compute_strong_residual
+(const std::vector<Tensor<1, dim>>   &present_gradients,
+ const std::vector<Tensor<1, dim>>   &advection_field_values,
+ std::vector<double>                 &strong_residuals,
+ const OptionalVectorArguments<dim>  &options)
+{
+  for (std::size_t q=0; q<strong_residuals.size(); ++q)
+    strong_residuals[q] = advection_field_values[q] * present_gradients[q];
+
+  if (options.reference_gradients)
+  {
+    Assert(options.gradient_scaling, ExcInternalError());
+
+    for (std::size_t q=0; q<strong_residuals.size(); ++q)
+      strong_residuals[q] += *options.gradient_scaling *
+                              advection_field_values[q] *
+                              options.reference_gradients->at(q);
+  }
+
+  if (options.source_term_values)
+    for (std::size_t q=0; q<strong_residuals.size(); ++q)
+      strong_residuals[q] -= *options.source_term_values;
+
+}
+
 
 }  // namespace Advection
 

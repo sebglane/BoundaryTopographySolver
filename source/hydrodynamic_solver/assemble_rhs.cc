@@ -9,7 +9,6 @@
 
 #include <deal.II/meshworker/mesh_loop.h>
 
-#include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
 
 namespace Hydrodynamic {
