@@ -38,9 +38,17 @@ assemble_system_local_cell
                                   scratch.advection_field_values);
 
   // stabilization parameter
-  const double delta{compute_stabilization_parameter(scratch.advection_field_values,
-                                                     cell->diameter())};
-  AssertThrow(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
+  //  const double delta{c * std::pow(cell->diameter(), 2)};
+  double delta;
+  {
+    double max_velocity = 0;
+
+    for (std::size_t q=0; q<scratch.advection_field_values.size(); ++q)
+      max_velocity = std::max(scratch.advection_field_values[q].norm(), max_velocity);
+
+    delta = 0.5 * cell->diameter() / max_velocity;
+  }
+  Assert(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
 
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())

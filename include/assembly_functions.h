@@ -702,23 +702,6 @@ inline double compute_rhs
            delta * advection_field_value * test_function_gradient);
 }
 
-
-
-template<int dim>
-inline double compute_stabilization_parameter
-(const std::vector<Tensor<1, dim>> &advection_field_values,
- const double                       cell_diameter)
-{
-  double max_velocity = 0;
-
-  for (std::size_t q=0; q<advection_field_values.size(); ++q)
-    max_velocity = std::max(advection_field_values[q].norm(), max_velocity);
-
-  const double max_viscosity = 0.5 * cell_diameter / max_velocity;
-
-  return (max_viscosity);
-}
-
 }  // namespace Advection
 
 #endif /* INCLUDE_ASSEMBLY_FUNCTIONS_H_ */
