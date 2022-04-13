@@ -18,8 +18,7 @@
 +------------------------------------------+----------------------+
 | Advection solver parameters                                     |
 +------------------------------------------+----------------------+
-| Entropy stabilization coeff.             | 0.1                  |
-| Standard stabilization coeff.            | 0.1                  |
+| SUPG stabilization coeff.                | 0.1                  |
 | Mapping                                  | MappingQ<dim>(1)     |
 +------------------------------------------+----------------------+
 

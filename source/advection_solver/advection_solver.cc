@@ -19,8 +19,7 @@ namespace Advection {
 SolverParameters::SolverParameters()
 :
 Base::Parameters(),
-c_max(0.1),
-c_entropy(0.1)
+c(0.1)
 {}
 
 
@@ -29,13 +28,9 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
 {
   Base::Parameters::declare_parameters(prm);
 
-  prm.enter_subsection("Buoyant hydrodynamic solver parameters");
+  prm.enter_subsection("Advection solver parameters");
   {
-    prm.declare_entry("Entropy stabilization coefficients",
-                      "0.1",
-                      Patterns::Double(0.0));
-
-    prm.declare_entry("Standard stabilization coefficient",
+    prm.declare_entry("SUPG stabilization coefficient",
                       "0.1",
                       Patterns::Double(0.0));
   }
@@ -48,13 +43,10 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
 {
   Base::Parameters::parse_parameters(prm);
 
-  prm.enter_subsection("Buoyant hydrodynamic solver parameters");
+  prm.enter_subsection("Advection solver parameters");
   {
-    c_entropy = prm.get_double("Entropy stabilization coefficients");
-    Assert(c_entropy > 0.0, ExcLowerRangeType<double>(0.0, c_entropy));
-
-    c_max = prm.get_double("Standard stabilization coefficient");
-    Assert(c_max > 0.0, ExcLowerRangeType<double>(0.0, c_max));
+    c = prm.get_double("SUPG stabilization coefficient");
+    AssertThrow(c > 0.0, ExcLowerRangeType<double>(0.0, c));
   }
   prm.leave_subsection();
 }
@@ -70,8 +62,7 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
   Utility::add_line(stream, "Advection solver parameters");
   Utility::add_header(stream);
 
-  Utility::add_line(stream, "Entropy stabilization coeff.", prm.c_entropy);
-  Utility::add_line(stream, "Standard stabilization coeff.", prm.c_max);
+  Utility::add_line(stream, "SUPG stabilization coeff.", prm.c);
 
   return (stream);
 }
@@ -89,9 +80,7 @@ boundary_conditions(this->triangulation),
 advection_field_ptr(),
 source_term_ptr(),
 fe_degree(1),
-c_max(parameters.c_max),
-c_entropy(parameters.c_entropy),
-global_entropy_variation{0.0}
+c(parameters.c)
 {}
 
 
