@@ -28,10 +28,10 @@ assemble_system_local_cell
   const auto &present_gradients = scratch.get_gradients("evaluation_point",
                                                         FEValuesExtractors::Scalar(0));
 
-  // body force
+  // source term
   if (source_term_ptr != nullptr)
     source_term_ptr->value_list(fe_values.get_quadrature_points(),
-                                scratch.source_term_values);
+                                *scratch.vector_options.source_term_values);
 
   // advection field
   advection_field_ptr->value_list(fe_values.get_quadrature_points(),
@@ -45,6 +45,9 @@ assemble_system_local_cell
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
   {
+    if (scratch.vector_options.source_term_values)
+      scratch.scalar_options.source_term_value = scratch.vector_options.source_term_values->at(q);
+
     for (const auto i: fe_values.dof_indices())
     {
       scratch.phi[i] = fe_values.shape_value(i, q);
@@ -72,8 +75,8 @@ assemble_system_local_cell
                                test_function_value,
                                delta);
 
-      if (source_term_ptr != nullptr)
-        rhs += scratch.source_term_values[q] *
+      if (scratch.scalar_options.source_term_value)
+        rhs += *scratch.scalar_options.source_term_value *
                (test_function_value +
                 delta * scratch.advection_field_values[q] * test_function_gradient);
       data.vectors[0](i) += rhs * JxW[q];
@@ -109,13 +112,13 @@ assemble_system_local_boundary
 
       // boundary values
       dirichlet_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
-                                                scratch.boundary_values);
-      const auto &boundary_values{scratch.boundary_values};
+                                                scratch.vector_options.boundary_values);
+      const auto &boundary_values{scratch.vector_options.boundary_values};
 
       // advection field
       advection_field_ptr->value_list(fe_face_values.get_quadrature_points(),
-                                      scratch.advection_field_face_values);
-      const auto &advection_field_values{scratch.advection_field_face_values};
+                                      scratch.vector_options.advection_field_face_values);
+      const auto &advection_field_values{scratch.vector_options.advection_field_face_values};
 
       // normal vectors
       const auto &normal_vectors = fe_face_values.get_normal_vectors();
