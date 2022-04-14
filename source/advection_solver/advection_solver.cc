@@ -19,7 +19,8 @@ namespace Advection {
 SolverParameters::SolverParameters()
 :
 Base::Parameters(),
-c(0.1)
+c(0.1),
+nu(1.0e-4)
 {}
 
 
@@ -33,6 +34,10 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("SUPG stabilization coefficient",
                       "0.1",
                       Patterns::Double(0.0));
+
+    prm.declare_entry("Minimal viscosity",
+                      "1.0e-4",
+                      Patterns::Double(std::numeric_limits<double>::epsilon()));
   }
   prm.leave_subsection();
 }
@@ -47,6 +52,10 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
   {
     c = prm.get_double("SUPG stabilization coefficient");
     AssertThrow(c > 0.0, ExcLowerRangeType<double>(0.0, c));
+
+    nu = prm.get_double("Minimal viscosity");
+    AssertIsFinite(nu);
+    Assert(nu > 0.0, ExcLowerRangeType<double>(nu, 0.0));
   }
   prm.leave_subsection();
 }
@@ -63,6 +72,7 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
   Utility::add_header(stream);
 
   Utility::add_line(stream, "SUPG stabilization coeff.", prm.c);
+  Utility::add_line(stream, "Minimal viscosity", prm.nu);
 
   return (stream);
 }
@@ -71,16 +81,20 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 template <int dim, typename TriangulationType>
 Solver<dim, TriangulationType>::Solver
-(TriangulationType      &tria,
- Mapping<dim>           &mapping,
- const SolverParameters &parameters)
+(TriangulationType       &tria,
+ Mapping<dim>            &mapping,
+ const SolverParameters  &parameters,
+ const double             gradient_scaling_number)
 :
 Base::Solver<dim, TriangulationType>(tria, mapping, parameters),
 boundary_conditions(this->triangulation),
 advection_field_ptr(),
+reference_field_ptr(),
 source_term_ptr(),
+gradient_scaling_number(gradient_scaling_number),
 fe_degree(1),
 c(parameters.c),
+nu(parameters.nu),
 scalar_fe_index(numbers::invalid_unsigned_int),
 scalar_block_index(numbers::invalid_unsigned_int)
 {}
@@ -116,13 +130,15 @@ template std::ostream & operator<<(std::ostream &, const SolverParameters &);
 template ConditionalOStream & operator<<(ConditionalOStream &, const SolverParameters &);
 
 template Solver<2>::Solver
-(Triangulation<2>  &,
- Mapping<2>        &,
- const SolverParameters &);
+(Triangulation<2>       &,
+ Mapping<2>             &,
+ const SolverParameters &,
+ const double             );
 template Solver<3>::Solver
-(Triangulation<3>  &,
- Mapping<3>        &,
- const SolverParameters &);
+(Triangulation<3>       &,
+ Mapping<3>             &,
+ const SolverParameters &,
+ const double             );
 
 template void Solver<2>::output_results(const unsigned int ) const;
 template void Solver<3>::output_results(const unsigned int ) const;

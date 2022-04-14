@@ -56,6 +56,12 @@ struct SolverParameters: Base::Parameters
    */
   double  c;
 
+  /*!
+   * @brief Minimal viscosity to stabilize the advection equation in case of a
+   * vanishing advection field.
+   */
+  double  nu;
+
 };
 
 
@@ -74,20 +80,24 @@ class Solver: virtual public Base::Solver<dim, TriangulationType>
 {
 
 public:
-  Solver(TriangulationType   &tria,
-         Mapping<dim>        &mapping,
-         const SolverParameters &parameters);
+  Solver(TriangulationType       &tria,
+         Mapping<dim>            &mapping,
+         const SolverParameters  &parameters,
+         const double             gradient_scaling_number = 0.0);
 
   void set_advection_field(const std::shared_ptr<const TensorFunction<1, dim>> &advection_field);
 
+  void set_reference_field(const std::shared_ptr<const Function<dim>> &reference_field);
+
   void set_source_term(const std::shared_ptr<const Function<dim>> &reference_density);
+
+  double get_gradient_scaling_number() const;
 
   ScalarBoundaryConditions<dim>&  get_bcs();
 
   const ScalarBoundaryConditions<dim>&  get_bcs() const;
 
 private:
-
   virtual void setup_fe_system();
 
   virtual void setup_dofs();
@@ -127,11 +137,17 @@ private:
 
   std::shared_ptr<const TensorFunction<1, dim>> advection_field_ptr;
 
-  std::shared_ptr<const Function<dim>> source_term_ptr;
+  std::shared_ptr<const Function<dim>>          reference_field_ptr;
+
+  std::shared_ptr<const Function<dim>>          source_term_ptr;
+
+  const double        gradient_scaling_number;
 
   const unsigned int  fe_degree;
 
   const double        c;
+
+  const double        nu;
 
   unsigned int        scalar_fe_index;
 
@@ -140,6 +156,14 @@ private:
 };
 
 // inline functions
+template <int dim, typename TriangulationType>
+inline double Solver<dim, TriangulationType>::get_gradient_scaling_number() const
+{
+  return (gradient_scaling_number);
+}
+
+
+
 template <int dim, typename TriangulationType>
 inline const ScalarBoundaryConditions<dim> &
 Solver<dim, TriangulationType>::get_bcs() const
@@ -163,6 +187,16 @@ inline void Solver<dim, TriangulationType>::set_advection_field
 (const std::shared_ptr<const TensorFunction<1, dim>> &advection_field)
 {
   advection_field_ptr = advection_field;
+  return;
+}
+
+
+
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_reference_field
+(const std::shared_ptr<const Function<dim>> &reference_field)
+{
+  reference_field_ptr = reference_field;
   return;
 }
 

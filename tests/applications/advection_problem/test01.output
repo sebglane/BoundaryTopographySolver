@@ -19,6 +19,7 @@
 | Advection solver parameters                                     |
 +------------------------------------------+----------------------+
 | SUPG stabilization coeff.                | 0.1                  |
+| Minimal viscosity                        | 0.0001               |
 | Mapping                                  | MappingQ<dim>(1)     |
 +------------------------------------------+----------------------+
 
