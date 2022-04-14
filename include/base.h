@@ -159,6 +159,18 @@ public:
 protected:
   virtual void apply_boundary_conditions() = 0;
 
+  virtual void
+  copy_local_to_global_system
+  (const MeshWorker::CopyData<1,1,1> &data,
+   const bool                         use_homogeneous_constraints);
+
+  virtual void
+  copy_local_to_global_rhs
+  (const MeshWorker::CopyData<0,1,1> &data,
+   const bool                         use_homogeneous_constraints);
+
+  virtual void setup_dofs();
+
   void apply_dirichlet_constraints
   (const typename BoundaryConditionsBase<dim>::BCMapping &dirichlet_bcs,
    const ComponentMask                                   &mask);
@@ -173,28 +185,19 @@ protected:
   (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs,
    const ComponentMask                    &mask);
 
-  virtual void
-  copy_local_to_global_system
-  (const MeshWorker::CopyData<1,1,1> &data,
-   const bool                         use_homogeneous_constraints);
+  void setup_system_matrix(const Table<2, DoFTools::Coupling> &coupling_table);
 
-  virtual void
-  copy_local_to_global_rhs
-  (const MeshWorker::CopyData<0,1,1> &data,
-   const bool                         use_homogeneous_constraints);
+  void setup_vectors();
 
+private:
   virtual void assemble_system(const bool use_homogenenous_constraints = false,
                                const bool use_newton_linearization = true) = 0;
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints = false) = 0;
 
-  virtual void setup_dofs();
-
   virtual void setup_fe_system() = 0;
 
-  void setup_system_matrix(const Table<2, DoFTools::Coupling> &coupling_table);
-
-  void setup_vectors();
+  virtual void output_results(const unsigned int cycle = 0) const = 0;
 
   virtual void preprocess_newton_iteration(const unsigned int iteration,
                                            const bool         is_initial_cycle);
@@ -202,15 +205,31 @@ protected:
   virtual void postprocess_newton_iteration(const unsigned int iteration,
                                             const bool         is_initial_cycle);
 
-
   virtual void preprocess_picard_iteration(const unsigned int iteration);
 
-  virtual void output_results(const unsigned int cycle = 0) const = 0;
+  virtual void refine_mesh();
 
-  ConditionalOStream          pcout;
+  void execute_mesh_refinement();
 
-  TriangulationType          &triangulation;
-  Mapping<dim>               &mapping;
+  std::vector<double> get_residual_components() const;
+
+  void newton_iteration(const bool is_initial_step);
+
+  void picard_iteration();
+
+  void postprocess_solution(const unsigned int cycle = 0) const;
+
+  void solve_linear_system(const bool initial_step);
+
+protected:
+  const std::string   graphical_output_directory;
+
+  const bool          verbose;
+
+  ConditionalOStream  pcout;
+
+  TriangulationType  &triangulation;
+  Mapping<dim>       &mapping;
 
   std::shared_ptr<FESystem<dim>> fe_system;
 
@@ -234,20 +253,6 @@ protected:
   TimerOutput                 computing_timer;
 
 private:
-  void newton_iteration(const bool is_initial_step);
-
-  void picard_iteration();
-
-  void postprocess_solution(const unsigned int cycle = 0) const;
-
-  virtual void refine_mesh();
-
-  void execute_mesh_refinement();
-
-  void solve_linear_system(const bool initial_step);
-
-  std::vector<double> get_residual_components() const;
-
   std::vector<std::shared_ptr<EvaluationBase<dim, VectorType>>> postprocessor_ptrs;
 
   const Utility::RefinementParameters refinement_parameters;
@@ -263,11 +268,6 @@ private:
   const bool          print_timings;
 
   const bool          apply_picard_iteration;
-
-protected:
-  const std::string   graphical_output_directory;
-
-  const bool verbose;
 };
 
 // inline methods
