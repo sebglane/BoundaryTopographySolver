@@ -17,6 +17,8 @@ void Solver<dim, TriangulationType>::setup_fe_system()
   if (this->verbose)
     this->pcout << "    Setup FE system..." << std::endl;
 
+  scalar_fe_index = 0;
+
   this->fe_system = std::make_shared<FESystem<dim>>(FE_Q<dim>(fe_degree), 1);
 
 }

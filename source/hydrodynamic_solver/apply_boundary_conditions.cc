@@ -68,7 +68,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
     this->apply_periodicity_constraints(velocity_boundary_conditions.periodic_bcs);
   }
   {
-    const FEValuesExtractors::Vector  velocity(0);
+    const FEValuesExtractors::Vector  velocity(velocity_fe_index);
 
     if (!velocity_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(velocity_boundary_conditions.dirichlet_bcs,
@@ -79,7 +79,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
                                           this->fe_system->component_mask(velocity));
   }
   {
-    const FEValuesExtractors::Scalar  pressure(dim);
+    const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 
     if (!pressure_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(pressure_boundary_conditions.dirichlet_bcs,

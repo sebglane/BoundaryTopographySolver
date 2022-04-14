@@ -80,7 +80,9 @@ boundary_conditions(this->triangulation),
 advection_field_ptr(),
 source_term_ptr(),
 fe_degree(1),
-c(parameters.c)
+c(parameters.c),
+scalar_fe_index(numbers::invalid_unsigned_int),
+scalar_block_index(numbers::invalid_unsigned_int)
 {}
 
 
