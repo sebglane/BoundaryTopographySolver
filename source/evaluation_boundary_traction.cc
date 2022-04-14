@@ -19,13 +19,13 @@ using namespace dealii;
 template <int dim, typename VectorType>
 EvaluationBoundaryTraction<dim, VectorType>::
 EvaluationBoundaryTraction
-(const unsigned int velocity_start_index,
- const unsigned int pressure_index,
+(const unsigned int velocity_fe_index,
+ const unsigned int pressure_fe_index,
  const double reynolds_number)
 :
 boundary_id(numbers::invalid_boundary_id),
-velocity_start_index(velocity_start_index),
-pressure_index(pressure_index),
+velocity_fe_index(velocity_fe_index),
+pressure_fe_index(pressure_fe_index),
 reynolds_number(reynolds_number)
 {
   traction_table.declare_column("cycle");
@@ -114,8 +114,8 @@ void EvaluationBoundaryTraction<dim, VectorType>::operator()
                                    update_normal_vectors|
                                    update_JxW_values);
 
-  const FEValuesExtractors::Vector  velocity(velocity_start_index);
-  const FEValuesExtractors::Scalar  pressure(pressure_index);
+  const FEValuesExtractors::Vector  velocity(velocity_fe_index);
+  const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 
   const unsigned int n_face_q_points{face_quadrature.size()};
   std::vector<Tensor<1, dim>> face_normal_vectors(n_face_q_points);

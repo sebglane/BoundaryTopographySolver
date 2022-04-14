@@ -112,14 +112,14 @@ private:
 
   void assemble_rhs_local_cell
   (const typename DoFHandler<dim>::active_cell_iterator  &cell,
-   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
    MeshWorker::CopyData<0,1,1>                           &data,
    const bool                                             use_stress_form) const;
 
   void assemble_rhs_local_boundary
   (const typename DoFHandler<dim>::active_cell_iterator  &cell,
    const unsigned int                                     face_number,
-   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
    MeshWorker::CopyData<0,1,1>                           &data,
    const bool                                             use_stress_form) const;
 

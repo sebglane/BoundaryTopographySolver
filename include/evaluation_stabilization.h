@@ -61,9 +61,9 @@ protected:
 
   const StabilizationFlags  stabilization;
 
-  const unsigned int velocity_start_index;
+  const unsigned int velocity_fe_index;
 
-  const unsigned int pressure_index;
+  const unsigned int pressure_fe_index;
 
   const double       reynolds_number;
 
@@ -162,7 +162,7 @@ private:
 
   std::shared_ptr<const TensorFunction<1, dim>> gravity_field_ptr;
 
-  const unsigned int  density_index;
+  const unsigned int  density_fe_index;
 
   const double        stratification_number;
 
