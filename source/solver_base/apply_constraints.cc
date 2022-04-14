@@ -31,7 +31,8 @@ apply_hanging_node_constraints()
 template <int dim, typename TriangulationType>
 void Solver<dim, TriangulationType>::
 apply_periodicity_constraints
-(std::vector<PeriodicBoundaryData<dim>> &periodic_bcs)
+(std::vector<PeriodicBoundaryData<dim>> &periodic_bcs,
+ const ComponentMask                    &mask)
 {
   std::vector<GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
   periodicity_vector;
@@ -44,10 +45,12 @@ apply_periodicity_constraints
                                       periodicity_vector);
 
   DoFTools::make_periodicity_constraints<dim, dim>(periodicity_vector,
-                                                   nonzero_constraints);
+                                                   nonzero_constraints,
+                                                   mask);
 
   DoFTools::make_periodicity_constraints<dim, dim>(periodicity_vector,
-                                                   zero_constraints);
+                                                   zero_constraints,
+                                                   mask);
 
 }
 

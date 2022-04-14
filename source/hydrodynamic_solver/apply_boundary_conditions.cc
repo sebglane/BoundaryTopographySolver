@@ -24,6 +24,10 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
   AssertThrow(pressure_boundary_conditions.closed(),
               ExcMessage("The pressure boundary conditions have not been closed."));
 
+  const FEValuesExtractors::Vector  velocity(velocity_fe_index);
+  const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
+
+  // periodic boundary conditions
   if (!velocity_boundary_conditions.periodic_bcs.empty() ||
       !pressure_boundary_conditions.periodic_bcs.empty())
   {
@@ -65,11 +69,14 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
                   ExcMessage("A matching periodic boundary could not be found."));
     }
 
-    this->apply_periodicity_constraints(velocity_boundary_conditions.periodic_bcs);
+    this->apply_periodicity_constraints(velocity_boundary_conditions.periodic_bcs,
+                                        this->fe_system->component_mask(velocity));
+    this->apply_periodicity_constraints(velocity_boundary_conditions.periodic_bcs,
+                                        this->fe_system->component_mask(pressure));
   }
-  {
-    const FEValuesExtractors::Vector  velocity(velocity_fe_index);
 
+  // Dirichlet velocity boundary conditions
+  {
     if (!velocity_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(velocity_boundary_conditions.dirichlet_bcs,
                                         this->fe_system->component_mask(velocity));

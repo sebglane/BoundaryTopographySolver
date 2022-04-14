@@ -296,7 +296,6 @@ protected:
 
   const bool          include_boundary_stress_terms;
 
-protected:
   unsigned int        velocity_fe_index;
 
   unsigned int        pressure_fe_index;

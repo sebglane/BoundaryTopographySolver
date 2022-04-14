@@ -170,7 +170,8 @@ protected:
    const ComponentMask                                   &mask);
 
   void apply_periodicity_constraints
-  (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs);
+  (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs,
+   const ComponentMask                    &mask);
 
   virtual void
   copy_local_to_global_system
