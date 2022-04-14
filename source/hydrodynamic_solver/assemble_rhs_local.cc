@@ -36,10 +36,10 @@ assemble_rhs_local_cell
   const double delta{c * std::pow(cell->diameter(), 2)};
   Assert(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
 
-  OptionalScalarArguments<dim> &weak_form_options = scratch.hydrodynamic_weak_form_options;
-  OptionalVectorArguments<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
-  weak_form_options.use_stress_form = use_stress_form;
-  strong_form_options.use_stress_form = use_stress_form;
+  OptionalScalarArguments<dim> &scalar_options = scratch.scalar_options;
+  OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
+  scalar_options.use_stress_form = use_stress_form;
+  vector_options.use_stress_form = use_stress_form;
 
   // solution values
   const auto &present_velocity_values = scratch.get_values("evaluation_point",
@@ -70,7 +70,7 @@ assemble_rhs_local_cell
                                                           velocity);
 
       std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
-          strong_form_options.present_velocity_grad_divergences.value();
+          vector_options.present_velocity_grad_divergences.value();
       for (std::size_t q=0; q<present_hessians.size(); ++q)
       {
         present_velocity_grad_divergences[q] = 0;
@@ -84,28 +84,28 @@ assemble_rhs_local_cell
   if (body_force_ptr != nullptr)
   {
     body_force_ptr->value_list(scratch.get_quadrature_points(),
-                               *strong_form_options.body_force_values);
-    strong_form_options.froude_number = froude_number;
-    weak_form_options.froude_number = froude_number;
+                               *vector_options.body_force_values);
+    vector_options.froude_number = froude_number;
+    scalar_options.froude_number = froude_number;
   }
 
   // background field
   if (background_velocity_ptr != nullptr)
   {
     background_velocity_ptr->value_list(scratch.get_quadrature_points(),
-                                        *strong_form_options.background_velocity_values);
+                                        *vector_options.background_velocity_values);
     background_velocity_ptr->gradient_list(scratch.get_quadrature_points(),
-                                           *strong_form_options.background_velocity_gradients);
+                                           *vector_options.background_velocity_gradients);
   }
 
   // Coriolis term
   if (angular_velocity_ptr != nullptr)
   {
-    strong_form_options.angular_velocity = angular_velocity_ptr->value();
-    strong_form_options.rossby_number = rossby_number;
+    vector_options.angular_velocity = angular_velocity_ptr->value();
+    vector_options.rossby_number = rossby_number;
 
-    weak_form_options.angular_velocity = angular_velocity_ptr->value();
-    weak_form_options.rossby_number = rossby_number;
+    scalar_options.angular_velocity = angular_velocity_ptr->value();
+    scalar_options.rossby_number = rossby_number;
   }
 
   // stabilization
@@ -116,7 +116,7 @@ assemble_rhs_local_cell
                             present_pressure_gradients.value(),
                             scratch.present_strong_residuals,
                             nu,
-                            strong_form_options);
+                            vector_options);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
@@ -138,27 +138,27 @@ assemble_rhs_local_cell
 
     // stress form
     if (use_stress_form)
-      weak_form_options.present_symmetric_velocity_gradient =
+      scalar_options.present_symmetric_velocity_gradient =
           present_sym_velocity_gradients->at(q);
 
     // background field
-    if (strong_form_options.background_velocity_values)
-      weak_form_options.background_velocity_value =
-          strong_form_options.background_velocity_values->at(q);
-    if (strong_form_options.background_velocity_gradients)
-      weak_form_options.background_velocity_gradient =
-          strong_form_options.background_velocity_gradients->at(q);
+    if (vector_options.background_velocity_values)
+      scalar_options.background_velocity_value =
+          vector_options.background_velocity_values->at(q);
+    if (vector_options.background_velocity_gradients)
+      scalar_options.background_velocity_gradient =
+          vector_options.background_velocity_gradients->at(q);
 
     // body force
-    if (strong_form_options.body_force_values)
-      weak_form_options.body_force_value =
-          strong_form_options.body_force_values->at(q);
+    if (vector_options.body_force_values)
+      scalar_options.body_force_value =
+          vector_options.body_force_values->at(q);
 
     for (const auto i: fe_values.dof_indices())
     {
       // stress form
       if (use_stress_form)
-        weak_form_options.velocity_test_function_symmetric_gradient =
+        scalar_options.velocity_test_function_symmetric_gradient =
             scratch.sym_grad_phi_velocity[i];
 
       double rhs = compute_rhs(scratch.phi_velocity[i],
@@ -168,7 +168,7 @@ assemble_rhs_local_cell
                                present_pressure_values[q],
                                scratch.phi_pressure[i],
                                nu,
-                               weak_form_options);
+                               scalar_options);
 
       if (stabilization & (apply_supg|apply_pspg))
       {
@@ -180,7 +180,7 @@ assemble_rhs_local_cell
                                          present_velocity_values[q];
           if (background_velocity_ptr != nullptr)
             stabilization_test_function += scratch.grad_phi_velocity[i] *
-                                           *weak_form_options.background_velocity_value;
+                                           *scalar_options.background_velocity_value;
         }
         if (stabilization & apply_pspg)
           stabilization_test_function += scratch.grad_phi_pressure[i];

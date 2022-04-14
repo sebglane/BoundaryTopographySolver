@@ -146,14 +146,14 @@ operator()
 
   const double nu{1.0 / reynolds_number};
 
-  OptionalVectorArguments<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
-  strong_form_options.use_stress_form = use_stress_form;
+  OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
+  vector_options.use_stress_form = use_stress_form;
 
   // Coriolis term
   if (angular_velocity_ptr)
   {
-    strong_form_options.angular_velocity = angular_velocity_ptr->value();
-    strong_form_options.rossby_number = rossby_number;
+    vector_options.angular_velocity = angular_velocity_ptr->value();
+    vector_options.rossby_number = rossby_number;
   }
 
   double cell_momentum_residual;
@@ -210,7 +210,7 @@ operator()
                                                             velocity);
 
         std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
-            strong_form_options.present_velocity_grad_divergences.value();
+            vector_options.present_velocity_grad_divergences.value();
         for (std::size_t q=0; q<present_hessians.size(); ++q)
         {
           present_velocity_grad_divergences[q] = 0;
@@ -224,24 +224,24 @@ operator()
     if (body_force_ptr != nullptr)
     {
       body_force_ptr->value_list(scratch.get_quadrature_points(),
-                                 *strong_form_options.body_force_values);
-      strong_form_options.froude_number = froude_number;
+                                 *vector_options.body_force_values);
+      vector_options.froude_number = froude_number;
     }
 
     // background field
     if (background_velocity_ptr != nullptr)
     {
       background_velocity_ptr->value_list(scratch.get_quadrature_points(),
-                                          *strong_form_options.background_velocity_values);
+                                          *vector_options.background_velocity_values);
       background_velocity_ptr->gradient_list(scratch.get_quadrature_points(),
-                                             *strong_form_options.background_velocity_gradients);
+                                             *vector_options.background_velocity_gradients);
     }
 
     // Coriolis term
     if (angular_velocity_ptr != nullptr)
     {
-      strong_form_options.angular_velocity = angular_velocity_ptr->value();
-      strong_form_options.rossby_number = rossby_number;
+      vector_options.angular_velocity = angular_velocity_ptr->value();
+      vector_options.rossby_number = rossby_number;
     }
 
     // stabilization
@@ -252,7 +252,7 @@ operator()
                               present_pressure_gradients.value(),
                               scratch.present_strong_residuals,
                               nu,
-                              strong_form_options);
+                              vector_options);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;

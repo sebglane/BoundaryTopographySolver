@@ -399,7 +399,7 @@ inline double compute_density_matrix
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
  const Hydrodynamic::OptionalScalarArguments<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
+ const Advection::OptionalScalarArguments<dim> &buoyancy_options,
  const bool            apply_newton_linearization = true)
 {
   double linearized_residual =
@@ -408,13 +408,13 @@ inline double compute_density_matrix
           velocity_trial_function_value * present_density_gradient:
           0.0);
 
-  if (buoyancy_options.reference_density_gradient && apply_newton_linearization)
+  if (buoyancy_options.reference_gradient && apply_newton_linearization)
   {
-    Assert(buoyancy_options.stratification_number, ExcInternalError());
+    Assert(buoyancy_options.gradient_scaling, ExcInternalError());
 
-    linearized_residual += *buoyancy_options.stratification_number *
+    linearized_residual += *buoyancy_options.gradient_scaling *
                            velocity_trial_function_value *
-                           *buoyancy_options.reference_density_gradient;
+                           *buoyancy_options.reference_gradient;
   }
 
   if (options.background_velocity_value)
@@ -432,27 +432,27 @@ inline double compute_density_rhs
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
  const Hydrodynamic::OptionalScalarArguments<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options)
+ const Advection::OptionalScalarArguments<dim> &buoyancy_options)
 {
   double residual = -(present_velocity_value * present_density_gradient);
 
-  if (buoyancy_options.reference_density_gradient)
+  if (buoyancy_options.reference_gradient)
   {
-    Assert(buoyancy_options.stratification_number, ExcInternalError());
+    Assert(buoyancy_options.gradient_scaling, ExcInternalError());
 
-    residual -= *buoyancy_options.stratification_number *
+    residual -= *buoyancy_options.gradient_scaling *
                 present_velocity_value *
-                *buoyancy_options.reference_density_gradient;
+                *buoyancy_options.reference_gradient;
   }
 
   if (options.background_velocity_value)
   {
     residual -= *options.background_velocity_value * present_density_gradient;
 
-    if (buoyancy_options.reference_density_gradient)
-      residual -= *buoyancy_options.stratification_number *
+    if (buoyancy_options.reference_gradient)
+      residual -= *buoyancy_options.gradient_scaling *
                   *options.background_velocity_value *
-                  *buoyancy_options.reference_density_gradient;
+                  *buoyancy_options.reference_gradient;
   }
 
   return (residual * density_test_function_value);
@@ -468,8 +468,8 @@ inline double compute_density_residual_linearization_matrix
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const double          nu,
- const Hydrodynamic::OptionalScalarArguments<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
+ const Hydrodynamic::OptionalScalarArguments<dim>  &options,
+ const Advection::OptionalScalarArguments<dim>     &buoyancy_options,
  const bool            apply_newton_linearization = true)
 {
   if (present_velocity_value.norm() > 0.0)
@@ -481,14 +481,14 @@ inline double compute_density_residual_linearization_matrix
             0.0);
 
 
-    if (buoyancy_options.reference_density_gradient && apply_newton_linearization)
+    if (buoyancy_options.reference_gradient && apply_newton_linearization)
     {
-      Assert(buoyancy_options.stratification_number, ExcInternalError());
+      Assert(buoyancy_options.gradient_scaling, ExcInternalError());
 
 
-      linearized_residual += *buoyancy_options.stratification_number *
+      linearized_residual += *buoyancy_options.gradient_scaling *
                              velocity_trial_function_value *
-                             *buoyancy_options.reference_density_gradient;
+                             *buoyancy_options.reference_gradient;
     }
 
     if (options.background_velocity_value)
@@ -513,13 +513,13 @@ inline double compute_density_residual_linearization_matrix
             velocity_trial_function_value * present_density_gradient:
             0.0);
 
-    if (buoyancy_options.reference_density_gradient && apply_newton_linearization)
+    if (buoyancy_options.reference_gradient && apply_newton_linearization)
     {
-      Assert(buoyancy_options.stratification_number, ExcInternalError());
+      Assert(buoyancy_options.gradient_scaling, ExcInternalError());
 
-      linearized_residual += *buoyancy_options.stratification_number *
+      linearized_residual += *buoyancy_options.gradient_scaling *
                              velocity_trial_function_value *
-                             *buoyancy_options.reference_density_gradient;
+                             *buoyancy_options.reference_gradient;
     }
 
     const double test_function{density_test_function_gradient *
