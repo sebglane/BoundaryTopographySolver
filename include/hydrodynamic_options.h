@@ -42,11 +42,11 @@ struct OptionalArguments
 
 
 template<int dim>
-struct OptionalArgumentsWeakForm : OptionalArguments<dim>
+struct OptionalScalarArguments : OptionalArguments<dim>
 {
-  OptionalArgumentsWeakForm(const bool use_stress_from);
+  OptionalScalarArguments(const bool use_stress_from);
 
-  OptionalArgumentsWeakForm(const OptionalArgumentsWeakForm<dim> &other);
+  OptionalScalarArguments(const OptionalScalarArguments<dim> &other);
 
   // stress-based form
   std::optional<SymmetricTensor<2, dim>> velocity_trial_function_symmetric_gradient;
@@ -71,15 +71,15 @@ struct OptionalArgumentsWeakForm : OptionalArguments<dim>
 
 
 template<int dim>
-struct OptionalArgumentsStrongForm : OptionalArguments<dim>
+struct OptionalVectorArguments : OptionalArguments<dim>
 {
-  OptionalArgumentsStrongForm(const StabilizationFlags  stabilization,
+  OptionalVectorArguments(const StabilizationFlags  stabilization,
                               const bool use_stress_form,
                               const bool allocate_background_velocity,
                               const bool allocate_body_force,
                               const unsigned int n_q_points);
 
-  OptionalArgumentsStrongForm(const OptionalArgumentsStrongForm<dim> &other);
+  OptionalVectorArguments(const OptionalVectorArguments<dim> &other);
 
   // stress-based form
   std::optional<std::vector<Tensor<1, dim>>> present_velocity_grad_divergences;

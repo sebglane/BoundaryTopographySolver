@@ -146,7 +146,7 @@ operator()
 
   const double nu{1.0 / reynolds_number};
 
-  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
+  OptionalVectorArguments<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
   strong_form_options.use_stress_form = use_stress_form;
 
   // Coriolis term
