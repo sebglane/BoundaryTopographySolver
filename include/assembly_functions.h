@@ -740,7 +740,7 @@ inline double compute_rhs
  *
  */
 template<int dim>
-inline double compute_strong_residual
+inline void compute_strong_residual
 (const std::vector<Tensor<1, dim>>   &present_gradients,
  const std::vector<Tensor<1, dim>>   &advection_field_values,
  std::vector<double>                 &strong_residuals,
