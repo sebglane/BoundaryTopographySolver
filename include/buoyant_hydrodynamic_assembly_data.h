@@ -31,6 +31,7 @@ class ScratchData : public Hydrodynamic::AssemblyData::Matrix::ScratchData<dim>,
     const UpdateFlags        &update_flags,
     const Quadrature<dim-1>  &face_quadrature = Quadrature<dim-1>(),
     const UpdateFlags        &face_update_flags = update_default,
+    const StabilizationFlags &stabilization_flags = apply_none,
     const bool                use_stress_form = false,
     const bool                allocate_background_velocity = false,
     const bool                allocate_body_force = false,
@@ -46,6 +47,7 @@ class ScratchData : public Hydrodynamic::AssemblyData::Matrix::ScratchData<dim>,
     const UpdateFlags        &update_flags,
     const Quadrature<dim-1>  &face_quadrature   = Quadrature<dim-1>(),
     const UpdateFlags        &face_update_flags = update_default,
+    const StabilizationFlags &stabilization_flags = apply_none,
     const bool                use_stress_form = false,
     const bool                allocate_background_velocity = false,
     const bool                allocate_body_force = false,
@@ -57,9 +59,9 @@ class ScratchData : public Hydrodynamic::AssemblyData::Matrix::ScratchData<dim>,
 
   ScratchData(const ScratchData<dim>  &data);
 
-  OptionalScalarArguments<dim>  scalar_options;
-
   OptionalVectorArguments<dim>  vector_options;
+
+  OptionalScalarArguments<dim>  scalar_options;
 
 };
 
@@ -80,6 +82,7 @@ class ScratchData : public Hydrodynamic::AssemblyData::RightHandSide::ScratchDat
     const UpdateFlags        &update_flags,
     const Quadrature<dim-1>  &face_quadrature = Quadrature<dim-1>(),
     const UpdateFlags        &face_update_flags = update_default,
+    const StabilizationFlags &stabilization_flags = apply_none,
     const bool                use_stress_form = false,
     const bool                allocate_background_velocity = false,
     const bool                allocate_body_force = false,
@@ -95,6 +98,7 @@ class ScratchData : public Hydrodynamic::AssemblyData::RightHandSide::ScratchDat
     const UpdateFlags        &update_flags,
     const Quadrature<dim-1>  &face_quadrature   = Quadrature<dim-1>(),
     const UpdateFlags        &face_update_flags = update_default,
+    const StabilizationFlags &stabilization_flags = apply_none,
     const bool                use_stress_form = false,
     const bool                allocate_background_velocity = false,
     const bool                allocate_body_force = false,
@@ -106,9 +110,9 @@ class ScratchData : public Hydrodynamic::AssemblyData::RightHandSide::ScratchDat
 
   ScratchData(const ScratchData<dim>  &data);
 
-  OptionalScalarArguments<dim>  scalar_options;
-
   OptionalVectorArguments<dim>  vector_options;
+
+  OptionalScalarArguments<dim>  scalar_options;
 
 };
 

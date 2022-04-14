@@ -19,7 +19,7 @@ void Solver<dim, TriangulationType>::setup_fe_system()
 
   scalar_fe_index = 0;
 
-  this->fe_system = std::make_shared<FESystem<dim>>(FE_Q<dim>(fe_degree), 1);
+  this->fe_system = std::make_shared<FESystem<dim>>(FE_Q<dim>(scalar_fe_degree), 1);
 
 }
 

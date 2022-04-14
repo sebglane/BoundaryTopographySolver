@@ -145,7 +145,7 @@ protected:
 
   const double        gradient_scaling_number;
 
-  const unsigned int  fe_degree;
+  const unsigned int  scalar_fe_degree;
 
   const double        c;
 
