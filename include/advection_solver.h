@@ -133,7 +133,8 @@ private:
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
-  ScalarBoundaryConditions<dim> boundary_conditions;
+protected:
+  ScalarBoundaryConditions<dim>                 scalar_boundary_conditions;
 
   std::shared_ptr<const TensorFunction<1, dim>> advection_field_ptr;
 
@@ -149,7 +150,6 @@ private:
 
   const double        nu;
 
-protected:
   unsigned int        scalar_fe_index;
 
   unsigned int        scalar_block_index;
@@ -169,7 +169,7 @@ template <int dim, typename TriangulationType>
 inline const ScalarBoundaryConditions<dim> &
 Solver<dim, TriangulationType>::get_bcs() const
 {
-  return boundary_conditions;
+  return scalar_boundary_conditions;
 }
 
 
@@ -178,7 +178,7 @@ template <int dim, typename TriangulationType>
 inline ScalarBoundaryConditions<dim> &
 Solver<dim, TriangulationType>::get_bcs()
 {
-  return boundary_conditions;
+  return scalar_boundary_conditions;
 }
 
 

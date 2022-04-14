@@ -87,7 +87,7 @@ Solver<dim, TriangulationType>::Solver
  const double             gradient_scaling_number)
 :
 Base::Solver<dim, TriangulationType>(tria, mapping, parameters),
-boundary_conditions(this->triangulation),
+scalar_boundary_conditions(this->triangulation),
 advection_field_ptr(),
 reference_field_ptr(),
 source_term_ptr(),

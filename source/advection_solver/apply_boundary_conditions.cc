@@ -17,16 +17,16 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
   if (this->verbose)
     this->pcout << "    Apply boundary conditions..." << std::endl;
 
-  AssertThrow(boundary_conditions.closed(),
+  AssertThrow(scalar_boundary_conditions.closed(),
               ExcMessage("The velocity boundary conditions have not been closed."));
 
-  if (!boundary_conditions.periodic_bcs.empty())
-    this->apply_periodicity_constraints(boundary_conditions.periodic_bcs);
+  if (!scalar_boundary_conditions.periodic_bcs.empty())
+    this->apply_periodicity_constraints(scalar_boundary_conditions.periodic_bcs);
 
   FEValuesExtractors::Scalar  scalar_field(scalar_fe_index);
 
-  if (boundary_conditions.dirichlet_bcs.empty())
-    this->apply_dirichlet_constraints(boundary_conditions.dirichlet_bcs,
+  if (scalar_boundary_conditions.dirichlet_bcs.empty())
+    this->apply_dirichlet_constraints(scalar_boundary_conditions.dirichlet_bcs,
                                       this->fe_system->component_mask(scalar_field));
 }
 
