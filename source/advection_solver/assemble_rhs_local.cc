@@ -29,25 +29,16 @@ assemble_rhs_local_cell
   const auto &present_gradients = scratch.get_gradients("evaluation_point",
                                                         FEValuesExtractors::Scalar(scalar_fe_index));
 
-  // source term
-  if (source_term_ptr != nullptr)
-    source_term_ptr->value_list(scratch.get_quadrature_points(),
-                                *scratch.vector_options.source_term_values);
-
-  // reference field
-  if (reference_field_ptr != nullptr)
-  {
-    reference_field_ptr->gradient_list(scratch.get_quadrature_points(),
-                                       *scratch.vector_options.reference_gradients);
-
-    scratch.scalar_options.gradient_scaling = gradient_scaling_number;
-    scratch.vector_options.gradient_scaling = gradient_scaling_number;
-  }
-
-
   // advection field
-  advection_field_ptr->value_list(fe_values.get_quadrature_points(),
+  advection_field_ptr->value_list(scratch.get_quadrature_points(),
                                   scratch.advection_field_values);
+
+  // options
+  scratch.assign_vector_options_local_cell(source_term_ptr,
+                                           nullptr,
+                                           reference_field_ptr,
+                                           gradient_scaling_number);
+  scratch.adjust_advection_field_local_cell();
 
   // stabilization parameter
   const double delta{c * std::pow(cell->diameter(), 2)};
@@ -56,14 +47,7 @@ assemble_rhs_local_cell
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
   {
-    // source term
-    if (scratch.vector_options.source_term_values)
-      scratch.scalar_options.source_term_value = scratch.vector_options.source_term_values->at(q);
-
-    // reference field
-    if (scratch.vector_options.reference_gradients)
-      scratch.scalar_options.reference_gradient = scratch.vector_options.reference_gradients->at(q);
-
+    scratch.assign_scalar_options_local_cell(q);
 
     for (const auto i: fe_values.dof_indices())
     {
@@ -115,15 +99,18 @@ assemble_rhs_local_boundary
       const auto &present_values  = scratch.get_values("evaluation_point",
                                                        FEValuesExtractors::Scalar(scalar_fe_index));
 
-      // boundary values
-      dirichlet_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
-                                                scratch.vector_options.boundary_values);
-      const auto &boundary_values{scratch.vector_options.boundary_values};
-
       // advection field
       advection_field_ptr->value_list(fe_face_values.get_quadrature_points(),
                                       scratch.vector_options.advection_field_face_values);
       const auto &advection_field_values{scratch.vector_options.advection_field_face_values};
+
+      // options
+      scratch.assign_vector_options_local_boundary(dirichlet_bcs.at(boundary_id),
+                                                   nullptr);
+      scratch.adjust_advection_field_local_boundary();
+
+      // boundary values
+      const auto &boundary_values{scratch.vector_options.boundary_values};
 
       // normal vectors
       const auto &normal_vectors = fe_face_values.get_normal_vectors();
