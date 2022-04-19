@@ -126,7 +126,7 @@ assign_vector_options_local_boundary
 
   if (background_advection_ptr != nullptr)
   {
-    const unsigned int n_q_points{vector_options.advection_field_face_values.size()};
+    const unsigned int n_q_points{(unsigned int)vector_options.advection_field_face_values.size()};
 
     if (vector_options.background_advection_values->size() != n_q_points)
       vector_options.background_advection_values->resize(n_q_points);
