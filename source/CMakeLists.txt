@@ -3,6 +3,7 @@ SET(TARGET "boundary_topography")
 
 SET(TARGET_SRC
     angular_velocity.cc
+    assembly_functions.cc
     boundary_conditions.cc
     evaluation_boundary_traction.cc
     evaluation_stabilization.cc
