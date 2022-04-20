@@ -67,7 +67,25 @@ public:
     const double                                                rossby_number = 0.0,
     const double                                                froude_number = 0.0);
 
+  void assign_vector_options_local_boundary
+  (const std::string                                          &name,
+   const FEValuesExtractors::Vector                           &velocity,
+   const FEValuesExtractors::Scalar                           &pressure,
+   const double                                                nu,
+   const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr = nullptr,
+   const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr);
+
   void assign_scalar_options_local_cell(const unsigned int q_point_index);
+
+  void assign_optional_shape_functions_local_cell(
+    const FEValuesExtractors::Vector &velocity,
+    const FEValuesExtractors::Scalar &pressure,
+    const unsigned int                q_point_index);
+
+  void assign_optional_shape_functions_local_boundary(
+    const FEValuesExtractors::Vector &velocity,
+    const unsigned int                q_point_index);
+
 
   const StabilizationFlags  &stabilization_flags;
 
@@ -219,6 +237,178 @@ assign_vector_options_local_cell
 
 
 
+template <int dim>
+inline void ScratchData<dim>::
+assign_optional_shape_functions_local_cell
+(const FEValuesExtractors::Vector  &velocity,
+ const FEValuesExtractors::Scalar  &pressure,
+ const unsigned int                 q)
+{
+  const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+
+  // stress form
+  if (!(stabilization_flags & (apply_supg|apply_pspg)) &&
+      vector_options.use_stress_form)
+  {
+    AssertDimension(sym_grad_phi_velocity.size(), fe_values.dofs_per_cell);
+
+    for (const auto i: fe_values.dof_indices())
+      sym_grad_phi_velocity[i] = fe_values[velocity].symmetric_gradient(i, q);
+  }
+  // stabilization related shape functions including stress form
+  else if ((stabilization_flags & (apply_supg|apply_pspg)) &&
+           vector_options.use_stress_form)
+  {
+    AssertDimension(sym_grad_phi_velocity.size(), fe_values.dofs_per_cell);
+    AssertDimension(grad_phi_pressure.size(), fe_values.dofs_per_cell);
+    AssertDimension(laplace_phi_velocity.size(), fe_values.dofs_per_cell);
+    AssertDimension(grad_div_phi_velocity.size(), fe_values.dofs_per_cell);
+
+    for (const auto i: fe_values.dof_indices())
+    {
+      grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
+
+      const Tensor<3, dim> shape_hessian{fe_values[velocity].hessian(i, q)};
+      for (unsigned int d=0; d<dim; ++d)
+        laplace_phi_velocity[i][d] = trace(shape_hessian[d]);
+
+      // stress form
+      sym_grad_phi_velocity[i] = fe_values[velocity].symmetric_gradient(i, q);
+      grad_div_phi_velocity[i] = 0;
+      for (unsigned int d=0; d<dim; ++d)
+        grad_div_phi_velocity[i] += shape_hessian[d][d];
+    }
+  }
+  // stabilization related shape functions
+  else if (stabilization_flags & (apply_supg|apply_pspg))
+  {
+    AssertDimension(grad_phi_pressure.size(), fe_values.dofs_per_cell);
+    AssertDimension(laplace_phi_velocity.size(), fe_values.dofs_per_cell);
+
+    for (const auto i: fe_values.dof_indices())
+    {
+      grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
+
+      const Tensor<3, dim> shape_hessian{fe_values[velocity].hessian(i, q)};
+      for (unsigned int d=0; d<dim; ++d)
+        laplace_phi_velocity[i][d] = trace(shape_hessian[d]);
+    }
+  }
+}
+
+
+
+template <int dim>
+inline void ScratchData<dim>::
+assign_vector_options_local_boundary
+(const std::string                                          &name,
+ const FEValuesExtractors::Vector                           &velocity,
+ const FEValuesExtractors::Scalar                           &pressure,
+ const double                                                nu,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr)
+{
+  if (boundary_traction_ptr != nullptr)
+  {
+    boundary_traction_ptr->value_list(this->get_quadrature_points(),
+                                      vector_options.boundary_traction_values);
+  }
+  else if (vector_options.use_stress_form)
+  {
+    // evaluate solution
+    const auto &present_pressure_values = this->get_values(name,
+                                                           pressure);
+    auto present_velocity_sym_gradients
+      = this->get_symmetric_gradients(name,
+                                      velocity);
+
+    // background field
+    if (background_velocity_ptr != nullptr)
+    {
+      background_velocity_ptr->gradient_list(this->get_quadrature_points(),
+                                             *vector_options.background_velocity_gradients);
+
+      // adjust velocity gradient
+      const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+      for (const auto q: fe_values.quadrature_point_indices())
+        present_velocity_sym_gradients[q] += symmetrize(vector_options.background_velocity_gradients->at(q));
+    }
+
+    // normal vectors
+    const auto &face_normal_vectors = this->get_normal_vectors();
+
+    // compute present boundary traction
+    const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+
+    for (const auto q: fe_values.quadrature_point_indices())
+      vector_options.boundary_traction_values[q] =
+          - present_pressure_values[q] * face_normal_vectors[q]
+          + 2.0 * nu * present_velocity_sym_gradients[q] * face_normal_vectors[q];
+  }
+  else
+  {
+    // evaluate solution
+    const auto &present_pressure_values = this->get_values(name,
+                                                           pressure);
+    auto present_velocity_gradients = this->get_gradients(name,
+                                                          velocity);
+
+    // background field
+    if (background_velocity_ptr != nullptr)
+    {
+      background_velocity_ptr->gradient_list(this->get_quadrature_points(),
+                                             *vector_options.background_velocity_gradients);
+
+      // adjust velocity gradient
+      const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+      for (const auto q: fe_values.quadrature_point_indices())
+        present_velocity_gradients[q] += vector_options.background_velocity_gradients->at(q);
+
+    }
+    // normal vectors
+    const auto &face_normal_vectors = this->get_normal_vectors();
+
+    // compute present boundary traction
+    const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+
+    for (const auto q: fe_values.quadrature_point_indices())
+      vector_options.boundary_traction_values[q] =
+          - present_pressure_values[q] * face_normal_vectors[q]
+          + nu * present_velocity_gradients[q] * face_normal_vectors[q];
+  }
+}
+
+
+
+template <int dim>
+inline void ScratchData<dim>::
+assign_optional_shape_functions_local_boundary
+(const FEValuesExtractors::Vector  &velocity,
+ const unsigned int                 q)
+{
+  const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+
+  // stress form
+  if (vector_options.use_stress_form)
+  {
+    AssertDimension(sym_grad_phi_velocity.size(),
+                    fe_values.dofs_per_cell);
+
+    for (const auto i: fe_values.dof_indices())
+      sym_grad_phi_velocity[i] = fe_values[velocity].symmetric_gradient(i, q);
+  }
+  else
+  {
+    AssertDimension(grad_phi_velocity.size(),
+                    fe_values.dofs_per_cell);
+
+    for (const auto i: fe_values.dof_indices())
+      grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
+  }
+}
+
+
+
 
 template <int dim>
 inline void ScratchData<dim>::
@@ -289,8 +479,23 @@ public:
       const double                                                rossby_number = 0.0,
       const double                                                froude_number = 0.0);
 
+    void assign_vector_options_local_boundary
+    (const std::string                                          &name,
+     const FEValuesExtractors::Vector                           &velocity,
+     const FEValuesExtractors::Scalar                           &pressure,
+     const double                                                nu,
+     const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr = nullptr,
+     const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr);
 
     void assign_scalar_options_local_cell(const unsigned int q_point_index);
+
+    void assign_optional_shape_functions_local_cell(
+      const FEValuesExtractors::Vector &velocity,
+      const FEValuesExtractors::Scalar &pressure,
+      const unsigned int                q_point_index);
+
+
+    void adjust_velocity_field_local_boundary();
 
   const StabilizationFlags  &stabilization_flags;
 
@@ -431,6 +636,139 @@ assign_vector_options_local_cell
                     n_q_points);
     background_velocity_ptr->gradient_list(this->get_quadrature_points(),
                                            *vector_options.background_velocity_gradients);
+  }
+}
+
+
+
+template <int dim>
+inline void ScratchData<dim>::
+assign_optional_shape_functions_local_cell
+(const FEValuesExtractors::Vector  &velocity,
+ const FEValuesExtractors::Scalar  &pressure,
+ const unsigned int                 q)
+{
+  const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+
+  // stress form
+  if (vector_options.use_stress_form)
+  {
+    AssertDimension(sym_grad_phi_velocity.size(), fe_values.dofs_per_cell);
+
+    for (const auto i: fe_values.dof_indices())
+      sym_grad_phi_velocity[i] = fe_values[velocity].symmetric_gradient(i, q);
+  }
+
+  // stabilization related shape functions
+  if (stabilization_flags & apply_pspg)
+  {
+    AssertDimension(grad_phi_pressure.size(), fe_values.dofs_per_cell);
+
+    for (const auto i: fe_values.dof_indices())
+      grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
+  }
+}
+
+
+
+template <int dim>
+inline void ScratchData<dim>::
+assign_vector_options_local_boundary
+(const std::string                                          &name,
+ const FEValuesExtractors::Vector                           &velocity,
+ const FEValuesExtractors::Scalar                           &pressure,
+ const double                                                nu,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr)
+{
+  const unsigned int n_q_points{this->get_current_fe_values().n_quadrature_points};
+
+  AssertDimension(vector_options.boundary_traction_values.size(),
+                  n_q_points);
+
+  if (boundary_traction_ptr != nullptr)
+    boundary_traction_ptr->value_list(this->get_quadrature_points(),
+                                      vector_options.boundary_traction_values);
+  else if (vector_options.use_stress_form)
+  {
+    // evaluate solution
+    const auto &present_pressure_values = this->get_values(name,
+                                                           pressure);
+    auto present_velocity_sym_gradients
+      = this->get_symmetric_gradients(name,
+                                      velocity);
+    AssertDimension(present_pressure_values.size(),
+                    n_q_points);
+    AssertDimension(present_velocity_sym_gradients.size(),
+                    n_q_points);
+
+    // background field
+    if (background_velocity_ptr != nullptr)
+    {
+      Assert(vector_options.background_velocity_gradients, ExcInternalError());
+      AssertDimension(vector_options.background_velocity_gradients->size(),
+                      n_q_points);
+
+      background_velocity_ptr->gradient_list(this->get_quadrature_points(),
+                                             *vector_options.background_velocity_gradients);
+
+      // adjust velocity gradient
+      const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+      for (const auto q: fe_values.quadrature_point_indices())
+        present_velocity_sym_gradients[q] += symmetrize(vector_options.background_velocity_gradients->at(q));
+    }
+
+    // normal vectors
+    const auto &face_normal_vectors = this->get_normal_vectors();
+    AssertDimension(face_normal_vectors.size(), n_q_points);
+
+    // compute present boundary traction
+    const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+
+    for (const auto q: fe_values.quadrature_point_indices())
+      vector_options.boundary_traction_values[q] =
+          - present_pressure_values[q] * face_normal_vectors[q]
+          + 2.0 * nu * present_velocity_sym_gradients[q] * face_normal_vectors[q];
+  }
+  else
+  {
+    // evaluate solution
+    const auto &present_pressure_values = this->get_values(name,
+                                                           pressure);
+    auto present_velocity_gradients = this->get_gradients(name,
+                                                          velocity);
+    AssertDimension(present_pressure_values.size(),
+                    n_q_points);
+    AssertDimension(present_velocity_gradients.size(),
+                    n_q_points);
+
+    // background field
+    if (background_velocity_ptr != nullptr)
+    {
+      Assert(vector_options.background_velocity_gradients, ExcInternalError());
+      AssertDimension(vector_options.background_velocity_gradients->size(),
+                      n_q_points);
+
+      background_velocity_ptr->gradient_list(this->get_quadrature_points(),
+                                             *vector_options.background_velocity_gradients);
+
+      // adjust velocity gradient
+      const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+      for (const auto q: fe_values.quadrature_point_indices())
+        present_velocity_gradients[q] += vector_options.background_velocity_gradients->at(q);
+    }
+
+    // normal vectors
+    const auto &face_normal_vectors = this->get_normal_vectors();
+    AssertDimension(face_normal_vectors.size(), n_q_points);
+
+    // compute present boundary traction
+    const FEValuesBase<dim> &fe_values{this->get_current_fe_values()};
+
+    for (const auto q: fe_values.quadrature_point_indices())
+      vector_options.boundary_traction_values[q] =
+          - present_pressure_values[q] * face_normal_vectors[q]
+          + nu * present_velocity_gradients[q] * face_normal_vectors[q];
   }
 }
 
