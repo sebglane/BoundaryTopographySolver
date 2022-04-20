@@ -182,7 +182,7 @@ adjust_advection_field_local_boundary()
   }
 }
 
-
+// explicit instantiations
 template class ScratchData<2>;
 template class ScratchData<3>;
 
