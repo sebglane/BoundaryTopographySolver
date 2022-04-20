@@ -8,11 +8,15 @@
 #ifndef INCLUDE_HYDRODYNAMIC_ASSEMBLY_DATA_H_
 #define INCLUDE_HYDRODYNAMIC_ASSEMBLY_DATA_H_
 
-#include <deal.II/meshworker/copy_data.h>
+#include <deal.II/base/function.h>
+#include <deal.II/base/tensor_function.h>
+
 #include <deal.II/meshworker/scratch_data.h>
 
 #include <hydrodynamic_options.h>
 #include <stabilization_flags.h>
+
+#include <memory>
 
 namespace Hydrodynamic {
 
@@ -53,6 +57,18 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
+  void assign_vector_options_local_cell(
+    const std::string                                          &name,
+    const FEValuesExtractors::Vector                           &velocity,
+    const FEValuesExtractors::Scalar                           &pressure,
+    const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr,
+    const double                                                rossby_number = 0.0,
+    const double                                                froude_number = 0.0);
+
+  void assign_scalar_options_local_cell(const unsigned int q_point_index);
+
   const StabilizationFlags  &stabilization_flags;
 
   OptionalVectorArguments<dim>  vector_options;
@@ -83,6 +99,148 @@ public:
   // stabilization related quantities
   std::vector<Tensor<1, dim>> present_strong_residuals;
 };
+
+
+
+template <int dim>
+inline void ScratchData<dim>::
+assign_vector_options_local_cell
+(const std::string                                          &name,
+ const FEValuesExtractors::Vector                           &velocity,
+ const FEValuesExtractors::Scalar                           &pressure,
+ const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr,
+ const double                                                rossby_number,
+ const double                                                froude_number)
+{
+  const unsigned int n_q_points{this->get_current_fe_values().n_quadrature_points};
+
+  // stress form
+  if (vector_options.use_stress_form)
+  {
+    Assert(vector_options.present_sym_velocity_gradients,
+           ExcMessage("Symmetric velocity gradients are not allocated in options."));
+
+    AssertDimension(vector_options.present_sym_velocity_gradients->size(),
+                    n_q_points);
+
+    vector_options.present_sym_velocity_gradients
+      = this->get_symmetric_gradients(name,
+                                      velocity);
+  }
+
+  // stabilization related solution values
+  if (stabilization_flags & (apply_supg|apply_pspg))
+  {
+    Assert(vector_options.present_velocity_laplaceans,
+           ExcMessage("Velocity laplacean are not allocated in options."));
+    AssertDimension(vector_options.present_velocity_laplaceans->size(),
+                    n_q_points);
+    vector_options.present_velocity_laplaceans
+      = this->get_laplacians(name, velocity);
+
+    Assert(vector_options.present_pressure_gradients,
+           ExcMessage("Present pressure gradients are not allocated in options."));
+    AssertDimension(vector_options.present_pressure_gradients->size(),
+                    n_q_points);
+    vector_options.present_pressure_gradients
+      = this->get_gradients(name, pressure);
+
+    if (vector_options.use_stress_form)
+    {
+      Assert(vector_options.present_velocity_grad_divergences,
+             ExcMessage("Gradients of velocity divergence are not allocated in options."));
+      AssertDimension(vector_options.present_velocity_grad_divergences->size(),
+                      n_q_points);
+
+      const auto &present_hessians = this->get_hessians(name,
+                                                        velocity);
+
+      std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
+          vector_options.present_velocity_grad_divergences.value();
+      for (std::size_t q=0; q<present_hessians.size(); ++q)
+      {
+        present_velocity_grad_divergences[q] = 0;
+        for (unsigned int d=0; d<dim; ++d)
+          present_velocity_grad_divergences[q] += present_hessians[q][d][d];
+      }
+    }
+  }
+
+  // Coriolis term
+  if (angular_velocity_ptr != nullptr)
+  {
+    Assert(rossby_number > 0.0,
+           ExcLowerRangeType<double>(rossby_number, 0.0));
+
+    vector_options.angular_velocity = angular_velocity_ptr->value();
+    vector_options.rossby_number = rossby_number;
+
+    scalar_options.angular_velocity = angular_velocity_ptr->value();
+    scalar_options.rossby_number = rossby_number;
+  }
+
+  // body force
+  if (body_force_ptr != nullptr)
+  {
+    Assert(froude_number > 0.0,
+           ExcLowerRangeType<double>(froude_number, 0.0));
+
+    Assert(vector_options.body_force_values,
+           ExcMessage("Body force values are not allocated in options."));
+    AssertDimension(vector_options.body_force_values->size(),
+                    n_q_points);
+
+    body_force_ptr->value_list(this->get_quadrature_points(),
+                               *vector_options.body_force_values);
+    vector_options.froude_number = froude_number;
+    scalar_options.froude_number = froude_number;
+  }
+
+  // background field
+  if (background_velocity_ptr != nullptr)
+  {
+    Assert(vector_options.background_velocity_values,
+           ExcMessage("Background velocity values are not allocated in options."));
+    AssertDimension(vector_options.background_velocity_values->size(),
+                    n_q_points);
+    background_velocity_ptr->value_list(this->get_quadrature_points(),
+                                        *vector_options.background_velocity_values);
+
+    Assert(vector_options.background_velocity_gradients,
+           ExcMessage("Background velocity gradients are not allocated in options."));
+    AssertDimension(vector_options.background_velocity_gradients->size(),
+                    n_q_points);
+    background_velocity_ptr->gradient_list(this->get_quadrature_points(),
+                                           *vector_options.background_velocity_gradients);
+  }
+}
+
+
+
+
+template <int dim>
+inline void ScratchData<dim>::
+assign_scalar_options_local_cell
+(const unsigned int q)
+{
+  // stress form
+  if (vector_options.use_stress_form)
+  {
+    Assert(vector_options.present_sym_velocity_gradients,
+           ExcMessage("Symmetric velocity gradients are not allocated in options."));
+    scalar_options.present_symmetric_velocity_gradient =
+          vector_options.present_sym_velocity_gradients->at(q);
+  }
+  // body force
+  if (vector_options.body_force_values)
+    scalar_options.body_force_value =
+        vector_options.body_force_values->at(q);
+}
+
+
+
 
 }  // namespace Matrix
 
@@ -121,6 +279,19 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
+  void assign_vector_options_local_cell(
+      const std::string                                          &name,
+      const FEValuesExtractors::Vector                           &velocity,
+      const FEValuesExtractors::Scalar                           &pressure,
+      const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr = nullptr,
+      const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr = nullptr,
+      const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr,
+      const double                                                rossby_number = 0.0,
+      const double                                                froude_number = 0.0);
+
+
+    void assign_scalar_options_local_cell(const unsigned int q_point_index);
+
   const StabilizationFlags  &stabilization_flags;
 
   OptionalVectorArguments<dim>  vector_options;
@@ -145,6 +316,148 @@ public:
   // stabilization related quantities
   std::vector<Tensor<1, dim>> present_strong_residuals;
 };
+
+
+
+
+
+template <int dim>
+inline void ScratchData<dim>::
+assign_vector_options_local_cell
+(const std::string                                          &name,
+ const FEValuesExtractors::Vector                           &velocity,
+ const FEValuesExtractors::Scalar                           &pressure,
+ const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr,
+ const double                                                rossby_number,
+ const double                                                froude_number)
+{
+  const unsigned int n_q_points{this->get_current_fe_values().n_quadrature_points};
+
+  // stress form
+  if (vector_options.use_stress_form)
+  {
+    Assert(vector_options.present_sym_velocity_gradients,
+           ExcMessage("Symmetric velocity gradients are not allocated in options."));
+    AssertDimension(vector_options.present_sym_velocity_gradients->size(),
+                    n_q_points);
+    vector_options.present_sym_velocity_gradients
+      = this->get_symmetric_gradients(name,
+                                      velocity);
+  }
+
+  // stabilization related solution values
+  if (stabilization_flags & (apply_supg|apply_pspg))
+  {
+    Assert(vector_options.present_velocity_laplaceans,
+           ExcMessage("Velocity laplaceans are not allocated in options."));
+    AssertDimension(vector_options.present_velocity_laplaceans->size(),
+                    n_q_points);
+    vector_options.present_velocity_laplaceans
+      = this->get_laplacians(name, velocity);
+
+    Assert(vector_options.present_pressure_gradients,
+           ExcMessage("Pressure gradients are not allocated in options."));
+    AssertDimension(vector_options.present_pressure_gradients->size(),
+                        n_q_points);
+    vector_options.present_pressure_gradients
+      = this->get_gradients(name, pressure);
+
+    if (vector_options.use_stress_form)
+    {
+      Assert(vector_options.present_velocity_grad_divergences,
+             ExcMessage("Gradients of velocity divergence are not allocated in options."));
+      AssertDimension(vector_options.present_velocity_grad_divergences->size(),
+                      n_q_points);
+
+      const auto &present_hessians = this->get_hessians(name,
+                                                        velocity);
+
+      std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
+          vector_options.present_velocity_grad_divergences.value();
+      for (std::size_t q=0; q<present_hessians.size(); ++q)
+      {
+        present_velocity_grad_divergences[q] = 0;
+        for (unsigned int d=0; d<dim; ++d)
+          present_velocity_grad_divergences[q] += present_hessians[q][d][d];
+      }
+    }
+  }
+
+  // Coriolis term
+  if (angular_velocity_ptr != nullptr)
+  {
+    Assert(rossby_number > 0.0,
+           ExcLowerRangeType<double>(rossby_number, 0.0));
+
+    vector_options.angular_velocity = angular_velocity_ptr->value();
+    vector_options.rossby_number = rossby_number;
+
+    scalar_options.angular_velocity = angular_velocity_ptr->value();
+    scalar_options.rossby_number = rossby_number;
+  }
+
+  // body force
+  if (body_force_ptr != nullptr)
+  {
+    Assert(froude_number > 0.0,
+           ExcLowerRangeType<double>(froude_number, 0.0));
+
+    Assert(vector_options.body_force_values,
+           ExcMessage("Body force values are not allocated in options."));
+    AssertDimension(vector_options.body_force_values->size(),
+                    n_q_points);
+
+    body_force_ptr->value_list(this->get_quadrature_points(),
+                               *vector_options.body_force_values);
+    vector_options.froude_number = froude_number;
+    scalar_options.froude_number = froude_number;
+  }
+
+  // background field
+  if (background_velocity_ptr != nullptr)
+  {
+    Assert(vector_options.background_velocity_values,
+           ExcMessage("Background velocity values are not allocated in options."));
+    AssertDimension(vector_options.background_velocity_values->size(),
+                    n_q_points);
+    background_velocity_ptr->value_list(this->get_quadrature_points(),
+                                        *vector_options.background_velocity_values);
+
+    Assert(vector_options.background_velocity_gradients,
+           ExcMessage("Background velocity gradients are not allocated in options."));
+    AssertDimension(vector_options.background_velocity_gradients->size(),
+                    n_q_points);
+    background_velocity_ptr->gradient_list(this->get_quadrature_points(),
+                                           *vector_options.background_velocity_gradients);
+  }
+}
+
+
+
+template <int dim>
+inline void ScratchData<dim>::
+assign_scalar_options_local_cell
+(const unsigned int q)
+{
+  // stress form
+  if (vector_options.use_stress_form)
+  {
+    Assert(vector_options.present_sym_velocity_gradients,
+           ExcMessage("Symmetric velocity gradients are not allocated in options."));
+    scalar_options.present_symmetric_velocity_gradient =
+          vector_options.present_sym_velocity_gradients->at(q);
+  }
+  // body force
+  if (vector_options.body_force_values)
+    scalar_options.body_force_value =
+        vector_options.body_force_values->at(q);
+}
+
+
+
+
 
 }  // namespace RightHandSide
 

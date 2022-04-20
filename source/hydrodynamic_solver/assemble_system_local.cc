@@ -50,69 +50,21 @@ assemble_system_local_cell
                                                                  velocity);
   const auto &present_pressure_values = scratch.get_values("evaluation_point",
                                                            pressure);
-  // stress form
-  std::optional<std::vector<SymmetricTensor<2, dim>>> present_sym_velocity_gradients;
-  if (use_stress_form)
-    present_sym_velocity_gradients = scratch.get_symmetric_gradients("evaluation_point",
-                                                                     velocity);
-  // stabilization related solution values
-  std::optional<std::vector<Tensor<1, dim>>> present_velocity_laplaceans;
-  std::optional<std::vector<Tensor<1, dim>>> present_pressure_gradients;
-  if (stabilization & (apply_supg|apply_pspg))
-  {
-    present_velocity_laplaceans = scratch.get_laplacians("evaluation_point",
-                                                         velocity);
-    present_pressure_gradients = scratch.get_gradients("evaluation_point",
-                                                       pressure);
-    if (use_stress_form)
-    {
-      const auto &present_hessians = scratch.get_hessians("evaluation_point",
-                                                          velocity);
 
-      std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
-          vector_options.present_velocity_grad_divergences.value();
-      for (std::size_t q=0; q<present_hessians.size(); ++q)
-      {
-        present_velocity_grad_divergences[q] = 0;
-        for (unsigned int d=0; d<dim; ++d)
-          present_velocity_grad_divergences[q] += present_hessians[q][d][d];
-      }
-    }
-  }
-
-  // body force
-  if (body_force_ptr != nullptr)
-  {
-    body_force_ptr->value_list(scratch.get_quadrature_points(),
-                               *vector_options.body_force_values);
-    vector_options.froude_number = froude_number;
-    scalar_options.froude_number = froude_number;
-  }
-
-  // background field
-  if (background_velocity_ptr != nullptr)
-  {
-    background_velocity_ptr->value_list(scratch.get_quadrature_points(),
-                                        *vector_options.background_velocity_values);
-    background_velocity_ptr->gradient_list(scratch.get_quadrature_points(),
-                                           *vector_options.background_velocity_gradients);
-  }
-
-  // Coriolis term
-  if (angular_velocity_ptr != nullptr)
-  {
-    vector_options.angular_velocity = angular_velocity_ptr->value();
-    vector_options.rossby_number = rossby_number;
-
-    scalar_options.angular_velocity = angular_velocity_ptr->value();
-    scalar_options.rossby_number = rossby_number;
-  }
+  scratch.assign_vector_options_local_cell("evaluation_point",
+                                           velocity,
+                                           pressure,
+                                           angular_velocity_ptr,
+                                           body_force_ptr,
+                                           background_velocity_ptr,
+                                           rossby_number,
+                                           froude_number);
 
   if (stabilization & (apply_supg|apply_pspg))
     compute_strong_residual(present_velocity_values,
                             present_velocity_gradients,
-                            present_velocity_laplaceans.value(),
-                            present_pressure_gradients.value(),
+                            vector_options.present_velocity_laplaceans.value(),
+                            vector_options.present_pressure_gradients.value(),
                             scratch.present_strong_residuals,
                             nu,
                             vector_options);
@@ -149,10 +101,7 @@ assemble_system_local_cell
       }
     }
 
-    // stress form
-    if (use_stress_form)
-      scalar_options.present_symmetric_velocity_gradient =
-          present_sym_velocity_gradients->at(q);
+    scratch.assign_scalar_options_local_cell(q);
 
     // background field
     std::optional<Tensor<1,dim>>  background_velocity_value;
@@ -161,11 +110,6 @@ assemble_system_local_cell
     std::optional<Tensor<2,dim>>  background_velocity_gradient;
     if (vector_options.background_velocity_gradients)
       background_velocity_gradient = vector_options.background_velocity_gradients->at(q);
-
-    // body force
-    if (vector_options.body_force_values)
-      scalar_options.body_force_value =
-          vector_options.body_force_values->at(q);
 
     for (const auto i: fe_values.dof_indices())
     {

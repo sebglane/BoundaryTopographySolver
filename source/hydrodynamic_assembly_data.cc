@@ -46,8 +46,10 @@ phi_velocity(fe.n_dofs_per_cell()),
 grad_phi_velocity(fe.n_dofs_per_cell()),
 div_phi_velocity(fe.n_dofs_per_cell()),
 phi_pressure(fe.n_dofs_per_cell()),
+grad_phi_pressure(fe.n_dofs_per_cell()),
+present_velocity_values(quadrature.size()),
+present_velocity_gradients(quadrature.size()),
 sym_grad_phi_velocity(),
-grad_phi_pressure(),
 laplace_phi_velocity(),
 grad_div_phi_velocity(),
 present_strong_residuals()
@@ -58,8 +60,6 @@ present_strong_residuals()
   // stabilization related objects
   if (stabilization_flags & (apply_supg|apply_pspg))
   {
-    grad_phi_pressure.resize(fe.n_dofs_per_cell());
-
     laplace_phi_velocity.resize(fe.n_dofs_per_cell());
     if (use_stress_form)
       grad_div_phi_velocity.resize(fe.n_dofs_per_cell());
@@ -108,8 +108,10 @@ phi_velocity(other.phi_velocity),
 grad_phi_velocity(other.grad_phi_velocity),
 div_phi_velocity(other.div_phi_velocity),
 phi_pressure(other.phi_pressure),
-sym_grad_phi_velocity(other.sym_grad_phi_velocity),
 grad_phi_pressure(other.grad_phi_pressure),
+present_velocity_values(other.present_velocity_values),
+present_velocity_gradients(other.present_velocity_gradients),
+sym_grad_phi_velocity(other.sym_grad_phi_velocity),
 laplace_phi_velocity(other.laplace_phi_velocity),
 grad_div_phi_velocity(other.grad_div_phi_velocity),
 present_strong_residuals(other.present_strong_residuals)
@@ -156,21 +158,18 @@ phi_velocity(fe.n_dofs_per_cell()),
 grad_phi_velocity(fe.n_dofs_per_cell()),
 div_phi_velocity(fe.n_dofs_per_cell()),
 phi_pressure(fe.n_dofs_per_cell()),
+grad_phi_pressure(fe.n_dofs_per_cell()),
+present_velocity_values(quadrature.size()),
+present_velocity_gradients(quadrature.size()),
 sym_grad_phi_velocity(),
-grad_phi_pressure(),
 present_strong_residuals()
 {
   if (use_stress_form)
     sym_grad_phi_velocity.resize(fe.n_dofs_per_cell());
 
+  // stabilization related quantity
   if (stabilization_flags & (apply_supg|apply_pspg))
-  {
-    // stabilization related shape functions
-    grad_phi_pressure.resize(fe.n_dofs_per_cell());
-
-    // stabilization related quantity
     present_strong_residuals.resize(quadrature.size());
-  }
 }
 
 
@@ -213,8 +212,10 @@ phi_velocity(other.phi_velocity),
 grad_phi_velocity(other.grad_phi_velocity),
 div_phi_velocity(other.div_phi_velocity),
 phi_pressure(other.phi_pressure),
-sym_grad_phi_velocity(other.sym_grad_phi_velocity),
 grad_phi_pressure(other.grad_phi_pressure),
+present_velocity_values(other.present_velocity_values),
+present_velocity_gradients(other.present_velocity_gradients),
+sym_grad_phi_velocity(other.sym_grad_phi_velocity),
 present_strong_residuals(other.present_strong_residuals)
 {}
 
