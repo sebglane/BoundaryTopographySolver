@@ -39,7 +39,6 @@ assemble_system_local_cell
   const double delta{c * std::pow(cell->diameter(), 2)};
 
   OptionalScalarArguments<dim> &scalar_options = scratch.scalar_options;
-  OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
 
   // solution values
   auto &present_velocity_values = scratch.present_velocity_values;
@@ -87,10 +86,10 @@ assemble_system_local_cell
 
     for (const auto i: fe_values.dof_indices())
     {
-      const Tensor<1, dim> &velocity_test_function = scratch.phi_velocity[i];
-      const Tensor<2, dim> &velocity_test_function_gradient = scratch.grad_phi_velocity[i];
-
-      const double          pressure_test_function = scratch.phi_pressure[i];
+      const Tensor<1, dim> &velocity_test_function{scratch.phi_velocity[i]};
+      const Tensor<2, dim> &velocity_test_function_gradient{scratch.grad_phi_velocity[i]};
+      const double          pressure_test_function{scratch.phi_pressure[i]};
+      const Tensor<1, dim> &pressure_test_function_gradient{scratch.grad_phi_pressure[i]};
 
       // stress form
       if (use_stress_form)
@@ -102,9 +101,9 @@ assemble_system_local_cell
       if (stabilization & apply_supg)
         optional_velocity_test_function_gradient =
             velocity_test_function_gradient;
-      std::optional<Tensor<1,dim>> pressure_test_function_gradient;
+      std::optional<Tensor<1,dim>> optional_pressure_test_function_gradient;
       if (stabilization & apply_pspg)
-        pressure_test_function_gradient = scratch.grad_phi_pressure[i];
+        optional_pressure_test_function_gradient = scratch.grad_phi_pressure[i];
 
       for (const auto j: fe_values.dof_indices())
       {
@@ -140,7 +139,7 @@ assemble_system_local_cell
                                                           present_velocity_values[q],
                                                           present_velocity_gradients[q],
                                                           optional_velocity_test_function_gradient,
-                                                          pressure_test_function_gradient,
+                                                          optional_pressure_test_function_gradient,
                                                           nu,
                                                           scalar_options,
                                                           use_newton_linearization);
@@ -156,31 +155,21 @@ assemble_system_local_cell
         data.matrices[0](i, j) +=  matrix * JxW[q];
       }
 
-      double rhs = compute_rhs(velocity_test_function,
-                               velocity_test_function_gradient,
-                               present_velocity_values[q],
-                               present_velocity_gradients[q],
-                               present_pressure_values[q],
-                               pressure_test_function,
-                               nu,
-                               scalar_options);
 
-      if (stabilization & (apply_supg|apply_pspg))
-      {
-        Tensor<1, dim> stabilization_test_function;
+      const double rhs{compute_rhs(scratch.stabilization_flags,
+                                   velocity_test_function,
+                                   velocity_test_function_gradient,
+                                   present_velocity_values[q],
+                                   present_velocity_gradients[q],
+                                   scratch.present_strong_residuals[q],
+                                   present_pressure_values[q],
+                                   pressure_test_function,
+                                   pressure_test_function_gradient,
+                                   nu,
+                                   mu,
+                                   delta,
+                                   scratch.scalar_options)};
 
-        if (stabilization & apply_supg)
-          stabilization_test_function += velocity_test_function_gradient *
-                                         present_velocity_values[q];
-        if (stabilization & apply_pspg)
-          stabilization_test_function += scratch.grad_phi_pressure[i];
-
-        rhs -= delta * scratch.present_strong_residuals[q] * stabilization_test_function;
-      }
-
-      if (stabilization & apply_grad_div)
-        rhs += mu * compute_grad_div_rhs(present_velocity_gradients[q],
-                                         velocity_test_function_gradient);
       data.vectors[0](i) += rhs * JxW[q];
     }
   } // end loop over cell quadrature points

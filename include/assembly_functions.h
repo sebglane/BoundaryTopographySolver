@@ -87,13 +87,18 @@ inline double compute_matrix
 
 template <int dim>
 inline double compute_rhs
-(const Tensor<1, dim> &velocity_test_function_value,
- const Tensor<2, dim> &velocity_test_function_gradient,
- const Tensor<1, dim> &present_velocity_value,
- const Tensor<2, dim> &present_velocity_gradient,
- const double          present_pressure_value,
- const double          pressure_test_function,
- const double          nu,
+(const StabilizationFlags  &stabilization,
+ const Tensor<1, dim>      &velocity_test_function_value,
+ const Tensor<2, dim>      &velocity_test_function_gradient,
+ const Tensor<1, dim>      &present_velocity_value,
+ const Tensor<2, dim>      &present_velocity_gradient,
+ const Tensor<1, dim>      &present_strong_residual,
+ const double               present_pressure_value,
+ const double               pressure_test_function,
+ const Tensor<1, dim>      &pressure_test_function_gradient,
+ const double               nu,
+ const double               mu,
+ const double               delta,
  const OptionalScalarArguments<dim> &options)
 {
   const double present_velocity_divergence{trace(present_velocity_gradient)};
@@ -106,8 +111,12 @@ inline double compute_rhs
 
   if (options.use_stress_form)
   {
-    Assert(options.present_symmetric_velocity_gradient, ExcInternalError());
-    Assert(options.velocity_test_function_symmetric_gradient, ExcInternalError());
+    Assert(options.present_symmetric_velocity_gradient,
+           ExcMessage("Present symmetric velocity gradient was not assigned "
+                      "in options"));
+    Assert(options.velocity_test_function_symmetric_gradient,
+           ExcMessage("Symmetric velocity test function gradient was not assigned "
+                      "in options"));
 
     rhs -= 2.0 * nu * scalar_product(*options.present_symmetric_velocity_gradient,
                                      *options.velocity_test_function_symmetric_gradient);
@@ -118,7 +127,8 @@ inline double compute_rhs
 
   if (options.body_force_value)
   {
-    Assert(options.froude_number, ExcInternalError());
+    Assert(options.froude_number,
+           ExcMessage("Froude number was not assigned in options."));
 
     rhs -= *options.body_force_value * velocity_test_function_value /
            (*options.froude_number * *options.froude_number);
@@ -126,7 +136,8 @@ inline double compute_rhs
 
   if (options.angular_velocity)
   {
-    Assert(options.rossby_number, ExcInternalError());
+    Assert(options.rossby_number,
+           ExcMessage("Rossby number was not assigned in options."));
 
     if constexpr(dim == 2)
       rhs -= 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
@@ -136,6 +147,24 @@ inline double compute_rhs
              cross_product_3d(*options.angular_velocity, present_velocity_value) *
              velocity_test_function_value;
   }
+
+  if (stabilization & (apply_supg|apply_pspg))
+  {
+    Tensor<1, dim> stabilization_test_function;
+
+    if (stabilization & apply_supg)
+      stabilization_test_function += velocity_test_function_gradient *
+                                     present_velocity_value;
+
+    if (stabilization & apply_pspg)
+      stabilization_test_function += pressure_test_function_gradient;
+
+    rhs -= delta * present_strong_residual * stabilization_test_function;
+  }
+
+  if (stabilization & apply_grad_div)
+    rhs -= mu * trace(present_velocity_gradient) *
+                trace(velocity_test_function_gradient);
 
   return (rhs);
 }
