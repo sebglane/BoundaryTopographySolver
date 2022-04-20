@@ -80,6 +80,109 @@ grad_phi(other.grad_phi),
 advection_field_values(other.advection_field_values)
 {}
 
+
+
+template <int dim>
+void ScratchData<dim>::
+assign_vector_options_local_cell
+(const std::shared_ptr<const Function<dim>>          &source_term_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>  &background_advection_ptr,
+ const std::shared_ptr<const Function<dim>>          &reference_field_ptr,
+ const double                                         gradient_scaling)
+{
+  if (source_term_ptr != nullptr)
+    source_term_ptr->value_list(this->get_quadrature_points(),
+                                *vector_options.source_term_values);
+
+  if (background_advection_ptr != nullptr)
+    background_advection_ptr->value_list(this->get_quadrature_points(),
+                                         *vector_options.background_advection_values);
+
+  if (reference_field_ptr != nullptr)
+  {
+    Assert(gradient_scaling > 0.0,
+           ExcLowerRangeType<double>(gradient_scaling, 0.0));
+
+    reference_field_ptr->gradient_list(this->get_quadrature_points(),
+                                       *vector_options.reference_gradients);
+
+    vector_options.gradient_scaling = gradient_scaling;
+    scalar_options.gradient_scaling = gradient_scaling;
+  }
+}
+
+
+
+template <int dim>
+void ScratchData<dim>::
+assign_vector_options_local_boundary
+(const std::shared_ptr<const Function<dim>>         &boundary_function_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>> &background_advection_ptr)
+{
+  Assert(boundary_function_ptr != nullptr, ExcInternalError());
+  if (boundary_function_ptr != nullptr)
+    boundary_function_ptr->value_list(this->get_quadrature_points(),
+                                      vector_options.boundary_values);
+
+  if (background_advection_ptr != nullptr)
+  {
+    const unsigned int n_q_points{(unsigned int)vector_options.advection_field_face_values.size()};
+
+    if (vector_options.background_advection_values->size() != n_q_points)
+      vector_options.background_advection_values->resize(n_q_points);
+
+    background_advection_ptr->value_list(this->get_quadrature_points(),
+                                         *vector_options.background_advection_values);
+  }
+}
+
+
+
+template <int dim>
+void ScratchData<dim>::
+assign_scalar_options_local_cell
+(const unsigned int q)
+{
+  if (vector_options.source_term_values)
+    scalar_options.source_term_value = vector_options.source_term_values->at(q);
+
+  if (vector_options.reference_gradients)
+    scalar_options.reference_gradient = vector_options.reference_gradients->at(q);
+}
+
+
+
+template <int dim>
+void ScratchData<dim>::
+adjust_advection_field_local_cell()
+{
+  if (vector_options.background_advection_values)
+  {
+    AssertDimension(vector_options.background_advection_values->size(),
+                    advection_field_values.size());
+
+    for (unsigned int i=0; i<advection_field_values.size(); ++i)
+      advection_field_values[i] += vector_options.background_advection_values->at(i);
+  }
+}
+
+
+
+template <int dim>
+void ScratchData<dim>::
+adjust_advection_field_local_boundary()
+{
+  if (vector_options.background_advection_values)
+  {
+    AssertDimension(vector_options.background_advection_values->size(),
+                    vector_options.advection_field_face_values.size());
+
+    for (unsigned int i=0; i<advection_field_values.size(); ++i)
+      vector_options.advection_field_face_values[i] += vector_options.background_advection_values->at(i);
+  }
+}
+
+
 template class ScratchData<2>;
 template class ScratchData<3>;
 
