@@ -63,11 +63,9 @@ assemble_rhs_local_cell
   if (stabilization & (apply_supg|apply_pspg))
     compute_strong_residual(present_velocity_values,
                             present_velocity_gradients,
-                            vector_options.present_velocity_laplaceans.value(),
-                            vector_options.present_pressure_gradients.value(),
-                            scratch.present_strong_residuals,
+                            scratch.vector_options,
                             nu,
-                            vector_options);
+                            scratch.present_strong_residuals);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
