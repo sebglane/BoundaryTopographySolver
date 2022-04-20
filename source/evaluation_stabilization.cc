@@ -147,16 +147,6 @@ operator()
 
   const double nu{1.0 / reynolds_number};
 
-  OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
-//  vector_options.use_stress_form = use_stress_form;
-
-  // Coriolis term
-  if (angular_velocity_ptr)
-  {
-    vector_options.angular_velocity = angular_velocity_ptr->value();
-    vector_options.rossby_number = rossby_number;
-  }
-
   double cell_momentum_residual;
   double mean_momentum_residual{0.0};
   double max_momentum_residual[2]{std::numeric_limits<double>::min(),
@@ -185,11 +175,14 @@ operator()
     const double delta{c * std::pow(cell->diameter(), 2)};
 
     // solution values
-    const auto &present_velocity_values = scratch.get_values("evaluation_point",
-                                                             velocity);
-    const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                                   velocity);
+    auto &present_velocity_values = scratch.present_velocity_values;
+    auto &present_velocity_gradients = scratch.present_velocity_gradients;
+    present_velocity_values = scratch.get_values("evaluation_point",
+                                                 velocity);
+    present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                       velocity);
 
+    // assign vector options
     scratch.assign_vector_options_local_cell("evaluation_point",
                                              velocity,
                                              pressure,
@@ -198,15 +191,7 @@ operator()
                                              background_velocity_ptr,
                                              rossby_number,
                                              froude_number);
-
-    // background field
-    if (background_velocity_ptr != nullptr)
-    {
-      background_velocity_ptr->value_list(scratch.get_quadrature_points(),
-                                          *vector_options.background_velocity_values);
-      background_velocity_ptr->gradient_list(scratch.get_quadrature_points(),
-                                             *vector_options.background_velocity_gradients);
-    }
+    scratch.adjust_velocity_field_local_cell();
 
     // stabilization
     if (stabilization & (apply_supg|apply_pspg))

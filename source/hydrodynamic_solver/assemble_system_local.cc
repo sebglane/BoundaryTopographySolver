@@ -21,7 +21,7 @@ assemble_system_local_cell
  AssemblyData::Matrix::ScratchData<dim>                &scratch,
  MeshWorker::CopyData<1,1,1>                           &data,
  const bool                                             use_newton_linearization,
- const bool                                             use_stress_form) const
+ const bool                                             /* use_stress_form */) const
 {
   data.matrices[0] = 0;
   data.vectors[0] = 0;
@@ -37,8 +37,6 @@ assemble_system_local_cell
 
   const double nu{1.0 / reynolds_number};
   const double delta{c * std::pow(cell->diameter(), 2)};
-
-  OptionalScalarArguments<dim> &scalar_options = scratch.scalar_options;
 
   // solution values
   auto &present_velocity_values = scratch.present_velocity_values;
@@ -92,25 +90,21 @@ assemble_system_local_cell
       const Tensor<1, dim> &pressure_test_function_gradient{scratch.grad_phi_pressure[i]};
 
       // stress form
-      if (use_stress_form)
-        scalar_options.velocity_test_function_symmetric_gradient =
+      if (scratch.scalar_options.use_stress_form)
+        scratch.scalar_options.velocity_test_function_symmetric_gradient =
             scratch.sym_grad_phi_velocity[i];
-
-      // stabilization
-      std::optional<Tensor<2,dim>> optional_velocity_test_function_gradient;
-      if (stabilization & apply_supg)
-        optional_velocity_test_function_gradient =
-            velocity_test_function_gradient;
-      std::optional<Tensor<1,dim>> optional_pressure_test_function_gradient;
-      if (stabilization & apply_pspg)
-        optional_pressure_test_function_gradient = scratch.grad_phi_pressure[i];
 
       for (const auto j: fe_values.dof_indices())
       {
         // stress form
-        if (use_stress_form)
-          scalar_options.velocity_trial_function_symmetric_gradient =
-                scratch.sym_grad_phi_velocity[j];
+        if (scratch.scalar_options.use_stress_form)
+        {
+          scratch.scalar_options.velocity_trial_function_symmetric_gradient =
+            scratch.sym_grad_phi_velocity[j];
+          if (stabilization & (apply_supg|apply_pspg))
+            scratch.scalar_options.velocity_trial_function_grad_divergence =
+              scratch.grad_div_phi_velocity[j];
+        }
 
         double matrix = compute_matrix(scratch.phi_velocity[j],
                                        scratch.grad_phi_velocity[j],
@@ -121,36 +115,24 @@ assemble_system_local_cell
                                        scratch.phi_pressure[j],
                                        pressure_test_function,
                                        nu,
-                                       scalar_options,
+                                       scratch.scalar_options,
                                        use_newton_linearization);
 
-        if (stabilization & (apply_supg|apply_pspg))
-        {
-          // stress form
-          if (use_stress_form)
-            scalar_options.velocity_trial_function_grad_divergence =
-                  scratch.grad_div_phi_velocity[j];
-
-          matrix += delta *
-                    compute_residual_linearization_matrix(scratch.phi_velocity[j],
-                                                          scratch.grad_phi_velocity[j],
-                                                          scratch.laplace_phi_velocity[j],
-                                                          scratch.grad_phi_pressure[j],
-                                                          present_velocity_values[q],
-                                                          present_velocity_gradients[q],
-                                                          optional_velocity_test_function_gradient,
-                                                          optional_pressure_test_function_gradient,
-                                                          nu,
-                                                          scalar_options,
-                                                          use_newton_linearization);
-          if (stabilization & apply_supg)
-            matrix += delta * scratch.present_strong_residuals[q] *
-                      (velocity_test_function_gradient * scratch.phi_velocity[j]);
-        }
-
-        if (stabilization & apply_grad_div)
-          matrix += mu * compute_grad_div_matrix(scratch.grad_phi_velocity[j],
-                                                 velocity_test_function_gradient);
+        matrix += compute_residual_linearization_matrix(scratch.stabilization_flags,
+                                                        scratch.phi_velocity[j],
+                                                        scratch.grad_phi_velocity[j],
+                                                        scratch.laplace_phi_velocity[j],
+                                                        scratch.grad_phi_pressure[j],
+                                                        present_velocity_values[q],
+                                                        present_velocity_gradients[q],
+                                                        scratch.present_strong_residuals[q],
+                                                        velocity_test_function_gradient,
+                                                        pressure_test_function_gradient,
+                                                        nu,
+                                                        delta,
+                                                        mu,
+                                                        scratch.scalar_options,
+                                                        use_newton_linearization);
 
         data.matrices[0](i, j) +=  matrix * JxW[q];
       }

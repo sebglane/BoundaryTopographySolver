@@ -247,86 +247,88 @@ inline void compute_strong_residual
 
 template <int dim>
 inline double compute_residual_linearization_matrix
-(const Tensor<1, dim> &velocity_trial_function_value,
- const Tensor<2, dim> &velocity_trial_function_gradient,
- const Tensor<1, dim> &velocity_trial_function_laplacean,
- const Tensor<1, dim> &pressure_trial_function_gradient,
- const Tensor<1, dim> &present_velocity_value,
- const Tensor<2, dim> &present_velocity_gradient,
- const std::optional<Tensor<2,dim>> &velocity_test_function_gradient,
- const std::optional<Tensor<1,dim>> &pressure_test_function_gradient,
- const double          nu,
+(const StabilizationFlags  &stabilization,
+ const Tensor<1, dim>      &velocity_trial_function_value,
+ const Tensor<2, dim>      &velocity_trial_function_gradient,
+ const Tensor<1, dim>      &velocity_trial_function_laplacean,
+ const Tensor<1, dim>      &pressure_trial_function_gradient,
+ const Tensor<1, dim>      &present_velocity_value,
+ const Tensor<2, dim>      &present_velocity_gradient,
+ const Tensor<1, dim>      &present_strong_residual,
+ const Tensor<2, dim>      &velocity_test_function_gradient,
+ const Tensor<1, dim>      &pressure_test_function_gradient,
+ const double               nu,
+ const double               delta,
+ const double               mu,
  const OptionalScalarArguments<dim> &options,
- const bool            apply_newton_linearization = true)
+ const bool                 apply_newton_linearization = true)
 {
-  if (!velocity_test_function_gradient && !pressure_test_function_gradient)
+  if (!(stabilization & (apply_supg|apply_pspg|apply_grad_div)))
     return (0.0);
 
-  // linearized residual
-  Tensor<1, dim> linearized_residual{velocity_trial_function_gradient * present_velocity_value +
-                                     pressure_trial_function_gradient};
+  Assert(nu > 0.0, ExcMessage("The viscosity must be positive."));
+  Assert(delta > 0.0, ExcMessage("The SUPG stabilization parameter must be positive."));
+  Assert(mu > 0.0, ExcMessage("The GradDiv stabilization parameter must be positive."));
 
-  if (apply_newton_linearization)
-    linearized_residual += present_velocity_gradient * velocity_trial_function_value;
+  double matrix{0.0};
 
-  if (options.use_stress_form)
+  if (stabilization & (apply_supg|apply_pspg))
   {
-    Assert(options.velocity_trial_function_grad_divergence, ExcInternalError());
+    // linearized residual
+    Tensor<1, dim> linearized_residual
+    {velocity_trial_function_gradient * present_velocity_value +
+     pressure_trial_function_gradient};
 
-    linearized_residual -= nu * (velocity_trial_function_laplacean +
-                                 *options.velocity_trial_function_grad_divergence);
+    if (apply_newton_linearization)
+      linearized_residual += present_velocity_gradient * velocity_trial_function_value;
+
+    if (options.use_stress_form)
+    {
+      Assert(options.velocity_trial_function_grad_divergence,
+             ExcMessage("Gradient of velocity trial function divergence was not "
+                        "specified in options."));
+
+      linearized_residual -= nu * (velocity_trial_function_laplacean +
+                                   *options.velocity_trial_function_grad_divergence);
+    }
+    else
+      linearized_residual -= nu * velocity_trial_function_laplacean;
+
+    if (options.angular_velocity)
+    {
+      Assert(options.rossby_number,
+             ExcMessage("Rossby number was not assigned in options."));
+
+      if constexpr(dim == 2)
+        linearized_residual += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
+                              cross_product_2d(-velocity_trial_function_value);
+      else if constexpr(dim == 3)
+        linearized_residual += 2.0 / *options.rossby_number *
+                               cross_product_3d(*options.angular_velocity, velocity_trial_function_value);
+    }
+
+    Tensor<1, dim> test_function;
+    if (stabilization & apply_supg)
+      test_function += velocity_test_function_gradient *
+                       present_velocity_value;
+
+    if (stabilization & apply_pspg)
+      test_function += pressure_test_function_gradient;
+
+    matrix += delta * (linearized_residual * test_function);
+
+    if (stabilization & apply_supg)
+      matrix += delta * present_strong_residual *
+                (velocity_test_function_gradient * velocity_trial_function_value);
   }
-  else
-    linearized_residual -= nu * velocity_trial_function_laplacean;
 
-  if (options.angular_velocity)
-  {
-    Assert(options.rossby_number, ExcInternalError());
+  if (stabilization & apply_grad_div)
+    matrix += mu * trace(velocity_trial_function_gradient) *
+                   trace(velocity_test_function_gradient);
 
-    if constexpr(dim == 2)
-      linearized_residual += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
-                            cross_product_2d(-present_velocity_value);
-    else if constexpr(dim == 3)
-      linearized_residual += 2.0 / *options.rossby_number *
-                             cross_product_3d(*options.angular_velocity, present_velocity_value);
-  }
-
-  Tensor<1, dim> test_function;
-
-  if (velocity_test_function_gradient)
-    test_function += *velocity_test_function_gradient * present_velocity_value;
-
-  if (pressure_test_function_gradient)
-    test_function += *pressure_test_function_gradient;
-
-  return (linearized_residual * test_function);
+  return (matrix);
 
 }
-
-
-
-template <int dim>
-inline double compute_grad_div_matrix
-(const Tensor<2, dim> &velocity_trial_function_gradient,
- const Tensor<2, dim> &velocity_test_function_gradient)
-{
-  return (trace(velocity_trial_function_gradient) *
-          trace(velocity_test_function_gradient)
-         );
-}
-
-
-
-template <int dim>
-inline double compute_grad_div_rhs
-(const Tensor<2, dim> &present_velocity_gradient,
- const Tensor<2, dim> &velocity_test_function_gradient)
-{
-  return (- trace(present_velocity_gradient) *
-            trace(velocity_test_function_gradient)
-         );
-}
-
 
 }  // namespace Hydrodynamic
 
