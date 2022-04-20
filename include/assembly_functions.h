@@ -163,16 +163,6 @@ inline void compute_strong_residual
                             nu * present_velocity_laplaceans[q] +
                             present_pressure_gradients[q];
 
-
-  if (options.background_velocity_values)
-  {
-    Assert(options.background_velocity_gradients, ExcInternalError());
-
-    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-      strong_residuals[q] += present_velocity_gradients[q] * options.background_velocity_values->at(q) +
-                             options.background_velocity_gradients->at(q) * present_velocity_values[q];
-  }
-
   if (options.body_force_values)
   {
     Assert(options.froude_number, ExcInternalError());

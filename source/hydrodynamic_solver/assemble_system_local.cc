@@ -42,15 +42,11 @@ assemble_system_local_cell
   OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
 
   // solution values
-  const auto &present_velocity_values = scratch.get_values("evaluation_point",
-                                                            velocity);
-  const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                                 velocity);
-  auto &other_present_velocity_values = scratch.present_velocity_values;
-  auto &other_present_velocity_gradients = scratch.present_velocity_gradients;
-  other_present_velocity_values = scratch.get_values("evaluation_point",
+  auto &present_velocity_values = scratch.present_velocity_values;
+  auto &present_velocity_gradients = scratch.present_velocity_gradients;
+  present_velocity_values = scratch.get_values("evaluation_point",
                                                velocity);
-  other_present_velocity_gradients = scratch.get_gradients("evaluation_point",
+  present_velocity_gradients = scratch.get_gradients("evaluation_point",
                                                      velocity);
   const auto &present_pressure_values = scratch.get_values("evaluation_point",
                                                            pressure);
@@ -91,14 +87,6 @@ assemble_system_local_cell
     // assign scalar options
     scratch.assign_scalar_options_local_cell(q);
 
-    // background field
-    std::optional<Tensor<1,dim>>  background_velocity_value;
-    if (vector_options.background_velocity_values)
-      background_velocity_value = vector_options.background_velocity_values->at(q);
-    std::optional<Tensor<2,dim>>  background_velocity_gradient;
-    if (vector_options.background_velocity_gradients)
-      background_velocity_gradient = vector_options.background_velocity_gradients->at(q);
-
     for (const auto i: fe_values.dof_indices())
     {
       const Tensor<1, dim> &velocity_test_function = scratch.phi_velocity[i];
@@ -131,8 +119,8 @@ assemble_system_local_cell
                                        scratch.grad_phi_velocity[j],
                                        velocity_test_function,
                                        velocity_test_function_gradient,
-                                       other_present_velocity_values[q],
-                                       other_present_velocity_gradients[q],
+                                       present_velocity_values[q],
+                                       present_velocity_gradients[q],
                                        scratch.phi_pressure[j],
                                        pressure_test_function,
                                        nu,
@@ -151,8 +139,8 @@ assemble_system_local_cell
                                                           scratch.grad_phi_velocity[j],
                                                           scratch.laplace_phi_velocity[j],
                                                           scratch.grad_phi_pressure[j],
-                                                          other_present_velocity_values[q],
-                                                          other_present_velocity_gradients[q],
+                                                          present_velocity_values[q],
+                                                          present_velocity_gradients[q],
                                                           optional_velocity_test_function_gradient,
                                                           pressure_test_function_gradient,
                                                           nu,
@@ -172,8 +160,8 @@ assemble_system_local_cell
 
       double rhs = compute_rhs(velocity_test_function,
                                velocity_test_function_gradient,
-                               other_present_velocity_values[q],
-                               other_present_velocity_gradients[q],
+                               present_velocity_values[q],
+                               present_velocity_gradients[q],
                                present_pressure_values[q],
                                pressure_test_function,
                                nu,
@@ -184,13 +172,8 @@ assemble_system_local_cell
         Tensor<1, dim> stabilization_test_function;
 
         if (stabilization & apply_supg)
-        {
           stabilization_test_function += velocity_test_function_gradient *
                                          present_velocity_values[q];
-          if (background_velocity_value)
-            stabilization_test_function += velocity_test_function_gradient *
-                                           *background_velocity_value;
-        }
         if (stabilization & apply_pspg)
           stabilization_test_function += scratch.grad_phi_pressure[i];
 
