@@ -56,10 +56,6 @@ struct OptionalScalarArguments : OptionalArguments<dim>
   // stabilization and stress-based related trial functions
   std::optional<Tensor<1, dim>>           velocity_trial_function_grad_divergence;
 
-  // background velocity term
-  std::optional<Tensor<1, dim>> background_velocity_value;
-  std::optional<Tensor<2, dim>> background_velocity_gradient;
-
   // body force term
   std::optional<Tensor<1, dim>>           body_force_value;
 };

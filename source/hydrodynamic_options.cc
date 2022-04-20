@@ -40,8 +40,6 @@ velocity_trial_function_symmetric_gradient(),
 velocity_test_function_symmetric_gradient(),
 present_symmetric_velocity_gradient(),
 velocity_trial_function_grad_divergence(),
-background_velocity_value(),
-background_velocity_gradient(),
 body_force_value()
 {}
 
@@ -56,8 +54,6 @@ velocity_trial_function_symmetric_gradient(other.velocity_trial_function_symmetr
 velocity_test_function_symmetric_gradient(other.velocity_test_function_symmetric_gradient),
 present_symmetric_velocity_gradient(other.present_symmetric_velocity_gradient),
 velocity_trial_function_grad_divergence(other.velocity_trial_function_grad_divergence),
-background_velocity_value(other.background_velocity_value),
-background_velocity_gradient(other.background_velocity_gradient),
 body_force_value(other.body_force_value)
 {}
 
@@ -74,13 +70,25 @@ OptionalVectorArguments<dim>::OptionalVectorArguments
  const unsigned int n_face_q_points)
 :
 OptionalArguments<dim>(use_stress_form),
+present_velocity_laplaceans(),
+present_pressure_gradients(),
+present_sym_velocity_gradients(),
 present_velocity_grad_divergences(),
 background_velocity_values(),
 background_velocity_gradients(),
 body_force_values(),
 boundary_traction_values()
 {
-  if (use_stress_form && (stabilization & (apply_supg|apply_pspg)))
+  if (stabilization & (apply_supg|apply_pspg))
+  {
+    present_velocity_laplaceans.emplace(n_q_points);
+    present_pressure_gradients.emplace(n_q_points);
+  }
+
+  if (this->use_stress_form)
+    present_sym_velocity_gradients.emplace(n_q_points);
+
+  if (this->use_stress_form && (stabilization & (apply_supg|apply_pspg)))
     present_velocity_grad_divergences.emplace(n_q_points);
 
   if (allocate_background_velocity)
@@ -104,6 +112,9 @@ OptionalVectorArguments<dim>::OptionalVectorArguments
 (const OptionalVectorArguments<dim> &other)
 :
 OptionalArguments<dim>(other),
+present_velocity_laplaceans(other.present_velocity_laplaceans),
+present_pressure_gradients(other.present_pressure_gradients),
+present_sym_velocity_gradients(other.present_sym_velocity_gradients),
 present_velocity_grad_divergences(other.present_velocity_grad_divergences),
 background_velocity_values(other.background_velocity_values),
 background_velocity_gradients(other.background_velocity_gradients),

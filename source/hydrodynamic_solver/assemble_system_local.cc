@@ -155,12 +155,12 @@ assemble_system_local_cell
           present_sym_velocity_gradients->at(q);
 
     // background field
+    std::optional<Tensor<1,dim>>  background_velocity_value;
     if (vector_options.background_velocity_values)
-      scalar_options.background_velocity_value =
-          vector_options.background_velocity_values->at(q);
+      background_velocity_value = vector_options.background_velocity_values->at(q);
+    std::optional<Tensor<2,dim>>  background_velocity_gradient;
     if (vector_options.background_velocity_gradients)
-      scalar_options.background_velocity_gradient =
-          vector_options.background_velocity_gradients->at(q);
+      background_velocity_gradient = vector_options.background_velocity_gradients->at(q);
 
     // body force
     if (vector_options.body_force_values)
@@ -205,6 +205,8 @@ assemble_system_local_cell
                                        pressure_test_function,
                                        nu,
                                        scalar_options,
+                                       background_velocity_value,
+                                       background_velocity_gradient,
                                        use_newton_linearization);
 
         if (stabilization & (apply_supg|apply_pspg))
@@ -225,6 +227,8 @@ assemble_system_local_cell
                                                           pressure_test_function_gradient,
                                                           nu,
                                                           scalar_options,
+                                                          background_velocity_value,
+                                                          background_velocity_gradient,
                                                           use_newton_linearization);
           if (stabilization & apply_supg)
             matrix += delta * scratch.present_strong_residuals[q] *
@@ -245,7 +249,9 @@ assemble_system_local_cell
                                present_pressure_values[q],
                                pressure_test_function,
                                nu,
-                               scalar_options);
+                               scalar_options,
+                               background_velocity_value,
+                               background_velocity_gradient);
 
       if (stabilization & (apply_supg|apply_pspg))
       {
@@ -255,9 +261,9 @@ assemble_system_local_cell
         {
           stabilization_test_function += velocity_test_function_gradient *
                                          present_velocity_values[q];
-          if (scalar_options.background_velocity_value)
+          if (background_velocity_value)
             stabilization_test_function += velocity_test_function_gradient *
-                                           *scalar_options.background_velocity_value;
+                                           *background_velocity_value;
         }
         if (stabilization & apply_pspg)
           stabilization_test_function += scratch.grad_phi_pressure[i];

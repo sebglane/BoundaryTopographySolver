@@ -33,6 +33,8 @@ inline double compute_matrix
  const double          pressure_test_function,
  const double          nu,
  const OptionalScalarArguments<dim> &options,
+ const std::optional<Tensor<1,dim>> &background_velocity_value,
+ const std::optional<Tensor<2,dim>> &background_velocity_gradient,
  const bool            apply_newton_linearization = true)
 {
   const double velocity_trial_function_divergence{trace(velocity_trial_function_gradient)};
@@ -61,16 +63,16 @@ inline double compute_matrix
     matrix += nu * scalar_product(velocity_trial_function_gradient,
                                   velocity_test_function_gradient);
 
-  if (options.background_velocity_value)
+  if (background_velocity_value)
   {
-    Assert(options.background_velocity_gradient, ExcInternalError());
+    Assert(background_velocity_gradient, ExcInternalError());
 
     if (apply_newton_linearization)
-      matrix += (velocity_trial_function_gradient * *options.background_velocity_value +
-                 *options.background_velocity_gradient * velocity_trial_function_value) *
+      matrix += (velocity_trial_function_gradient * *background_velocity_value +
+                 *background_velocity_gradient * velocity_trial_function_value) *
                 velocity_test_function_value;
     else
-      matrix += velocity_trial_function_gradient * *options.background_velocity_value *
+      matrix += velocity_trial_function_gradient * *background_velocity_value *
                 velocity_test_function_value;
   }
 
@@ -102,7 +104,9 @@ inline double compute_rhs
  const double          present_pressure_value,
  const double          pressure_test_function,
  const double          nu,
- const OptionalScalarArguments<dim> &options)
+ const OptionalScalarArguments<dim> &options,
+ const std::optional<Tensor<1,dim>> &background_velocity_value,
+ const std::optional<Tensor<2,dim>> &background_velocity_gradient)
 {
   const double present_velocity_divergence{trace(present_velocity_gradient)};
   const double velocity_test_function_divergence{trace(velocity_test_function_gradient)};
@@ -124,12 +128,12 @@ inline double compute_rhs
     rhs -= nu * scalar_product(present_velocity_gradient,
                                velocity_test_function_gradient);
 
-  if (options.background_velocity_value)
+  if (background_velocity_value)
   {
-    Assert(options.background_velocity_gradient, ExcInternalError());
+    Assert(background_velocity_gradient, ExcInternalError());
 
-    rhs -= (present_velocity_gradient * *options.background_velocity_value +
-            *options.background_velocity_gradient * present_velocity_value) *
+    rhs -= (present_velocity_gradient * *background_velocity_value +
+            *background_velocity_gradient * present_velocity_value) *
             velocity_test_function_value;
   }
 
@@ -232,6 +236,8 @@ inline double compute_residual_linearization_matrix
  const std::optional<Tensor<1,dim>> &pressure_test_function_gradient,
  const double          nu,
  const OptionalScalarArguments<dim> &options,
+ const std::optional<Tensor<1,dim>> &background_velocity_value,
+ const std::optional<Tensor<2,dim>> &background_velocity_gradient,
  const bool            apply_newton_linearization = true)
 {
   if (!velocity_test_function_gradient && !pressure_test_function_gradient)
@@ -254,14 +260,14 @@ inline double compute_residual_linearization_matrix
   else
     linearized_residual -= nu * velocity_trial_function_laplacean;
 
-  if (options.background_velocity_value)
+  if (background_velocity_value)
   {
-    Assert(options.background_velocity_gradient, ExcInternalError());
+    Assert(background_velocity_gradient, ExcInternalError());
 
-    linearized_residual += velocity_trial_function_gradient * *options.background_velocity_value;
+    linearized_residual += velocity_trial_function_gradient * *background_velocity_value;
 
     if (apply_newton_linearization)
-      linearized_residual += *options.background_velocity_gradient * velocity_trial_function_value;
+      linearized_residual += *background_velocity_gradient * velocity_trial_function_value;
   }
 
   if (options.angular_velocity)
@@ -282,8 +288,8 @@ inline double compute_residual_linearization_matrix
   {
     test_function += *velocity_test_function_gradient * present_velocity_value;
 
-    if (options.background_velocity_value)
-      test_function += *velocity_test_function_gradient * *options.background_velocity_value;
+    if (background_velocity_value)
+      test_function += *velocity_test_function_gradient * *background_velocity_value;
   }
   if (pressure_test_function_gradient)
     test_function += *pressure_test_function_gradient;
