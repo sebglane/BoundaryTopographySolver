@@ -51,8 +51,12 @@ inline double compute_matrix
 
   if (options.use_stress_form)
   {
-    Assert(options.velocity_trial_function_symmetric_gradient, ExcInternalError());
-    Assert(options.velocity_test_function_symmetric_gradient, ExcInternalError());
+    Assert(options.velocity_trial_function_symmetric_gradient,
+           ExcMessage("Symmetric velocity trial function gradient was not assigned "
+                      "in options"));
+    Assert(options.velocity_test_function_symmetric_gradient,
+           ExcMessage("Symmetric velocity test function gradient was not assigned "
+                      "in options"));
 
     matrix += 2.0 * nu * scalar_product(*options.velocity_trial_function_symmetric_gradient,
                                         *options.velocity_test_function_symmetric_gradient);
@@ -63,7 +67,8 @@ inline double compute_matrix
 
   if (options.angular_velocity)
   {
-    Assert(options.rossby_number, ExcInternalError());
+    Assert(options.rossby_number,
+           ExcMessage("Rossby number was not assigned in options."));
 
     if constexpr(dim == 2)
       matrix += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
