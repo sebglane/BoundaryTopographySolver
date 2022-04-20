@@ -148,7 +148,7 @@ operator()
   const double nu{1.0 / reynolds_number};
 
   OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
-  vector_options.use_stress_form = use_stress_form;
+//  vector_options.use_stress_form = use_stress_form;
 
   // Coriolis term
   if (angular_velocity_ptr)
@@ -330,7 +330,7 @@ template class EvaluationStabilization<3>;
 }  // namespace Hydrodynamic
 
 
-
+/*
 namespace BuoyantHydrodynamic {
 
 using namespace dealii;
@@ -596,7 +596,7 @@ operator()
                                     scratch.present_strong_density_residuals,
                                     strong_form_options,
                                     buoyancy_strong_form_options);
-     */
+
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;
@@ -606,7 +606,7 @@ operator()
     for (const auto q: fe_values.quadrature_point_indices())
     {
       const double mass_residual{trace(present_velocity_gradients[q])};
-      const double density_residual{/* present_strong_density_residuals[q] */};
+      const double density_residual{/* present_strong_density_residuals[q] };
 
       max_mass_residual[0] = std::max(std::abs(mass_residual),
                                       max_mass_residual[0]);
@@ -701,3 +701,4 @@ template class EvaluationStabilization<3>;
 
 }  // namespace BuoyantHydrodynamic
 
+*/

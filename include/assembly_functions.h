@@ -228,11 +228,13 @@ inline double compute_residual_linearization_matrix
  const Tensor<1, dim> &pressure_trial_function_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const Tensor<2, dim> &present_velocity_gradient,
+ const std::optional<Tensor<2,dim>> &velocity_test_function_gradient,
+ const std::optional<Tensor<1,dim>> &pressure_test_function_gradient,
  const double          nu,
  const OptionalScalarArguments<dim> &options,
  const bool            apply_newton_linearization = true)
 {
-  if (!options.velocity_test_function_gradient && !options.pressure_test_function_gradient)
+  if (!velocity_test_function_gradient && !pressure_test_function_gradient)
     return (0.0);
 
   // linearized residual
@@ -276,15 +278,15 @@ inline double compute_residual_linearization_matrix
 
   Tensor<1, dim> test_function;
 
-  if (options.velocity_test_function_gradient)
+  if (velocity_test_function_gradient)
   {
-    test_function += *options.velocity_test_function_gradient * present_velocity_value;
+    test_function += *velocity_test_function_gradient * present_velocity_value;
 
     if (options.background_velocity_value)
-      test_function += *options.velocity_test_function_gradient * *options.background_velocity_value;
+      test_function += *velocity_test_function_gradient * *options.background_velocity_value;
   }
-  if (options.pressure_test_function_gradient)
-    test_function += *options.pressure_test_function_gradient;
+  if (pressure_test_function_gradient)
+    test_function += *pressure_test_function_gradient;
 
   return (linearized_residual * test_function);
 

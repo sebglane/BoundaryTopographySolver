@@ -40,8 +40,8 @@ assemble_system_local_cell
 
   OptionalScalarArguments<dim> &scalar_options = scratch.scalar_options;
   OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
-  scalar_options.use_stress_form = use_stress_form;
-  vector_options.use_stress_form = use_stress_form;
+//  scalar_options.use_stress_form = use_stress_form;
+//  vector_options.use_stress_form = use_stress_form;
 
   // solution values
   const auto &present_velocity_values = scratch.get_values("evaluation_point",
@@ -180,12 +180,13 @@ assemble_system_local_cell
             scratch.sym_grad_phi_velocity[i];
 
       // stabilization
+      std::optional<Tensor<2,dim>> optional_velocity_test_function_gradient;
       if (stabilization & apply_supg)
-        scalar_options.velocity_test_function_gradient =
+        optional_velocity_test_function_gradient =
             velocity_test_function_gradient;
+      std::optional<Tensor<1,dim>> pressure_test_function_gradient;
       if (stabilization & apply_pspg)
-        scalar_options.pressure_test_function_gradient =
-            scratch.grad_phi_pressure[i];
+        pressure_test_function_gradient = scratch.grad_phi_pressure[i];
 
       for (const auto j: fe_values.dof_indices())
       {
@@ -220,6 +221,8 @@ assemble_system_local_cell
                                                           scratch.grad_phi_pressure[j],
                                                           present_velocity_values[q],
                                                           present_velocity_gradients[q],
+                                                          optional_velocity_test_function_gradient,
+                                                          pressure_test_function_gradient,
                                                           nu,
                                                           scalar_options,
                                                           use_newton_linearization);
@@ -298,9 +301,9 @@ assemble_system_local_boundary
       const auto &JxW = scratch.get_JxW_values();
 
       AssertDimension(fe_face_values.n_quadrature_points,
-                      scratch.boundary_traction_values.size());
+                      scratch.vector_options.boundary_traction_values.size());
       neumann_bcs.at(boundary_id)->value_list(scratch.get_quadrature_points(),
-                                              scratch.boundary_traction_values);
+                                              scratch.vector_options.boundary_traction_values);
 
       // loop over face quadrature points
       for (const auto q: fe_face_values.quadrature_point_indices())
@@ -312,7 +315,7 @@ assemble_system_local_boundary
         // loop over the degrees of freedom
         for (const auto i: fe_face_values.dof_indices())
           data.vectors[0](i) += scratch.phi_velocity[i] *
-                                scratch.boundary_traction_values[q] *
+                                scratch.vector_options.boundary_traction_values[q] *
                                 JxW[q];
 
         } // loop over face quadrature points
@@ -339,14 +342,14 @@ assemble_system_local_boundary
 
       // compute present boundary traction
       AssertDimension(fe_face_values.n_quadrature_points,
-                      scratch.boundary_traction_values.size());
+                      scratch.vector_options.boundary_traction_values.size());
       if (use_stress_form)
       {
         const auto &present_velocity_sym_gradients
           = scratch.get_symmetric_gradients("evaluation_point",
                                             velocity);
         for (const auto q: fe_face_values.quadrature_point_indices())
-          scratch.boundary_traction_values[q] =
+          scratch.vector_options.boundary_traction_values[q] =
               - present_pressure_values[q] * face_normal_vectors[q]
               + 2.0 * nu * present_velocity_sym_gradients[q] * face_normal_vectors[q];
       }
@@ -355,7 +358,7 @@ assemble_system_local_boundary
         const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
                                                                        velocity);
         for (const auto q: fe_face_values.quadrature_point_indices())
-          scratch.boundary_traction_values[q] =
+          scratch.vector_options.boundary_traction_values[q] =
               - present_pressure_values[q] * face_normal_vectors[q]
               + nu * present_velocity_gradients[q] * face_normal_vectors[q];
       }
@@ -393,7 +396,7 @@ assemble_system_local_boundary
                    scratch.phi_velocity[i] * JxW[q];
 
           data.vectors[0](i) += scratch.phi_velocity[i] *
-                                scratch.boundary_traction_values[q] *
+                                scratch.vector_options.boundary_traction_values[q] *
                                 JxW[q];
         }
 

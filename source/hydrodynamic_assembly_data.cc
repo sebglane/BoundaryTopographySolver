@@ -33,11 +33,14 @@ MeshWorker::ScratchData<dim>(mapping,
                              update_flags,
                              face_quadrature,
                              face_update_flags),
+stabilization_flags(stabilization_flags),
 vector_options(stabilization_flags,
-                                 use_stress_form,
-                                 allocate_background_velocity,
-                                 allocate_body_force,
-                                 quadrature.size()),
+               use_stress_form,
+               allocate_background_velocity,
+               allocate_body_force,
+               allocate_traction,
+               quadrature.size(),
+               face_quadrature.size()),
 scalar_options(use_stress_form),
 phi_velocity(fe.n_dofs_per_cell()),
 grad_phi_velocity(fe.n_dofs_per_cell()),
@@ -47,8 +50,7 @@ sym_grad_phi_velocity(),
 grad_phi_pressure(),
 laplace_phi_velocity(),
 grad_div_phi_velocity(),
-present_strong_residuals(),
-boundary_traction_values()
+present_strong_residuals()
 {
   if (use_stress_form)
     sym_grad_phi_velocity.resize(fe.n_dofs_per_cell());
@@ -64,10 +66,6 @@ boundary_traction_values()
 
     present_strong_residuals.resize(quadrature.size());
   }
-
-  // source term face values
-  if (allocate_traction)
-    boundary_traction_values.resize(face_quadrature.size());
 }
 
 
@@ -103,6 +101,7 @@ template <int dim>
 ScratchData<dim>::ScratchData(const ScratchData<dim>  &other)
 :
 MeshWorker::ScratchData<dim>(other),
+stabilization_flags(other.stabilization_flags),
 vector_options(other.vector_options),
 scalar_options(other.scalar_options),
 phi_velocity(other.phi_velocity),
@@ -113,8 +112,7 @@ sym_grad_phi_velocity(other.sym_grad_phi_velocity),
 grad_phi_pressure(other.grad_phi_pressure),
 laplace_phi_velocity(other.laplace_phi_velocity),
 grad_div_phi_velocity(other.grad_div_phi_velocity),
-present_strong_residuals(other.present_strong_residuals),
-boundary_traction_values(other.boundary_traction_values)
+present_strong_residuals(other.present_strong_residuals)
 {}
 
 template class ScratchData<2>;
@@ -145,11 +143,14 @@ MeshWorker::ScratchData<dim>(mapping,
                              update_flags,
                              face_quadrature,
                              face_update_flags),
+stabilization_flags(stabilization_flags),
 vector_options(stabilization_flags,
-                                 use_stress_form,
-                                 allocate_background_velocity,
-                                 allocate_body_force,
-                                 quadrature.size()),
+               use_stress_form,
+               allocate_background_velocity,
+               allocate_body_force,
+               allocate_traction,
+               quadrature.size(),
+               face_quadrature.size()),
 scalar_options(use_stress_form),
 phi_velocity(fe.n_dofs_per_cell()),
 grad_phi_velocity(fe.n_dofs_per_cell()),
@@ -157,8 +158,7 @@ div_phi_velocity(fe.n_dofs_per_cell()),
 phi_pressure(fe.n_dofs_per_cell()),
 sym_grad_phi_velocity(),
 grad_phi_pressure(),
-present_strong_residuals(),
-boundary_traction_values()
+present_strong_residuals()
 {
   if (use_stress_form)
     sym_grad_phi_velocity.resize(fe.n_dofs_per_cell());
@@ -171,10 +171,6 @@ boundary_traction_values()
     // stabilization related quantity
     present_strong_residuals.resize(quadrature.size());
   }
-
-  // source term face values
-  if (allocate_traction)
-    boundary_traction_values.resize(face_quadrature.size());
 }
 
 
@@ -210,6 +206,7 @@ template <int dim>
 ScratchData<dim>::ScratchData(const ScratchData<dim>  &other)
 :
 MeshWorker::ScratchData<dim>(other),
+stabilization_flags(other.stabilization_flags),
 vector_options(other.vector_options),
 scalar_options(other.scalar_options),
 phi_velocity(other.phi_velocity),
@@ -218,8 +215,7 @@ div_phi_velocity(other.div_phi_velocity),
 phi_pressure(other.phi_pressure),
 sym_grad_phi_velocity(other.sym_grad_phi_velocity),
 grad_phi_pressure(other.grad_phi_pressure),
-present_strong_residuals(other.present_strong_residuals),
-boundary_traction_values(other.boundary_traction_values)
+present_strong_residuals(other.present_strong_residuals)
 {}
 
 template class ScratchData<2>;

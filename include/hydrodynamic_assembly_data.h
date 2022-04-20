@@ -53,6 +53,8 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
+  const StabilizationFlags  &stabilization_flags;
+
   OptionalVectorArguments<dim>  vector_options;
   OptionalScalarArguments<dim>  scalar_options;
 
@@ -62,11 +64,17 @@ public:
   std::vector<double>         div_phi_velocity;
   std::vector<double>         phi_pressure;
 
+  // stabilization related shape functions
+  std::vector<Tensor<1, dim>> grad_phi_pressure;
+
+  // present solution values which cannot be referenced
+  std::vector<Tensor<1, dim>> present_velocity_values;
+  std::vector<Tensor<2, dim>> present_velocity_gradients;
+
   // stress tensor related shape functions
   std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
 
   // stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_phi_pressure;
   std::vector<Tensor<1, dim>> laplace_phi_velocity;
 
   // stress tensor and stabilization related shape functions
@@ -74,9 +82,6 @@ public:
 
   // stabilization related quantities
   std::vector<Tensor<1, dim>> present_strong_residuals;
-
-  // source term face values
-  std::vector<Tensor<1, dim>> boundary_traction_values;
 };
 
 }  // namespace Matrix
@@ -116,6 +121,8 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
+  const StabilizationFlags  &stabilization_flags;
+
   OptionalVectorArguments<dim>  vector_options;
   OptionalScalarArguments<dim>  scalar_options;
 
@@ -125,17 +132,18 @@ public:
   std::vector<double>         div_phi_velocity;
   std::vector<double>         phi_pressure;
 
-  // stress tensor related shape functions
-  std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
-
   // stabilization related shape functions
   std::vector<Tensor<1, dim>> grad_phi_pressure;
 
+  // present solution values which cannot be referenced
+  std::vector<Tensor<1, dim>> present_velocity_values;
+  std::vector<Tensor<2, dim>> present_velocity_gradients;
+
+  // stress tensor related shape functions
+  std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
+
   // stabilization related quantities
   std::vector<Tensor<1, dim>> present_strong_residuals;
-
-  // source term face values
-  std::vector<Tensor<1, dim>> boundary_traction_values;
 };
 
 }  // namespace RightHandSide
