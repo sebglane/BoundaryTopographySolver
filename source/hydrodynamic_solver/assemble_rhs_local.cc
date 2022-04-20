@@ -45,6 +45,14 @@ assemble_rhs_local_cell
                                                                  velocity);
   const auto &present_pressure_values = scratch.get_values("evaluation_point",
                                                            pressure);
+  auto &other_present_velocity_values = scratch.present_velocity_values;
+  auto &other_present_velocity_gradients = scratch.present_velocity_gradients;
+  other_present_velocity_values = scratch.get_values("evaluation_point",
+                                               velocity);
+  other_present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                     velocity);
+
+
   // assign vector options
   scratch.assign_vector_options_local_cell("evaluation_point",
                                            velocity,
@@ -54,6 +62,7 @@ assemble_rhs_local_cell
                                            background_velocity_ptr,
                                            rossby_number,
                                            froude_number);
+  scratch.adjust_velocity_field_local_cell();
 
   // stabilization
   if (stabilization & (apply_supg|apply_pspg))
@@ -98,14 +107,12 @@ assemble_rhs_local_cell
 
       double rhs = compute_rhs(scratch.phi_velocity[i],
                                scratch.grad_phi_velocity[i],
-                               present_velocity_values[q],
-                               present_velocity_gradients[q],
+                               other_present_velocity_values[q],
+                               other_present_velocity_gradients[q],
                                present_pressure_values[q],
                                scratch.phi_pressure[i],
                                nu,
-                               scalar_options,
-                               background_velocity_value,
-                               background_velocity_gradient);
+                               scalar_options);
 
       if (stabilization & (apply_supg|apply_pspg))
       {

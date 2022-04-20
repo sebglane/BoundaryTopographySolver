@@ -40,14 +40,18 @@ assemble_system_local_cell
 
   OptionalScalarArguments<dim> &scalar_options = scratch.scalar_options;
   OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
-//  scalar_options.use_stress_form = use_stress_form;
-//  vector_options.use_stress_form = use_stress_form;
 
   // solution values
   const auto &present_velocity_values = scratch.get_values("evaluation_point",
                                                             velocity);
   const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
                                                                  velocity);
+  auto &other_present_velocity_values = scratch.present_velocity_values;
+  auto &other_present_velocity_gradients = scratch.present_velocity_gradients;
+  other_present_velocity_values = scratch.get_values("evaluation_point",
+                                               velocity);
+  other_present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                     velocity);
   const auto &present_pressure_values = scratch.get_values("evaluation_point",
                                                            pressure);
 
@@ -60,6 +64,7 @@ assemble_system_local_cell
                                            background_velocity_ptr,
                                            rossby_number,
                                            froude_number);
+  scratch.adjust_velocity_field_local_cell();
 
   if (stabilization & (apply_supg|apply_pspg))
     compute_strong_residual(present_velocity_values,
@@ -126,14 +131,12 @@ assemble_system_local_cell
                                        scratch.grad_phi_velocity[j],
                                        velocity_test_function,
                                        velocity_test_function_gradient,
-                                       present_velocity_values[q],
-                                       present_velocity_gradients[q],
+                                       other_present_velocity_values[q],
+                                       other_present_velocity_gradients[q],
                                        scratch.phi_pressure[j],
                                        pressure_test_function,
                                        nu,
                                        scalar_options,
-                                       background_velocity_value,
-                                       background_velocity_gradient,
                                        use_newton_linearization);
 
         if (stabilization & (apply_supg|apply_pspg))
@@ -148,14 +151,12 @@ assemble_system_local_cell
                                                           scratch.grad_phi_velocity[j],
                                                           scratch.laplace_phi_velocity[j],
                                                           scratch.grad_phi_pressure[j],
-                                                          present_velocity_values[q],
-                                                          present_velocity_gradients[q],
+                                                          other_present_velocity_values[q],
+                                                          other_present_velocity_gradients[q],
                                                           optional_velocity_test_function_gradient,
                                                           pressure_test_function_gradient,
                                                           nu,
                                                           scalar_options,
-                                                          background_velocity_value,
-                                                          background_velocity_gradient,
                                                           use_newton_linearization);
           if (stabilization & apply_supg)
             matrix += delta * scratch.present_strong_residuals[q] *
@@ -171,14 +172,12 @@ assemble_system_local_cell
 
       double rhs = compute_rhs(velocity_test_function,
                                velocity_test_function_gradient,
-                               present_velocity_values[q],
-                               present_velocity_gradients[q],
+                               other_present_velocity_values[q],
+                               other_present_velocity_gradients[q],
                                present_pressure_values[q],
                                pressure_test_function,
                                nu,
-                               scalar_options,
-                               background_velocity_value,
-                               background_velocity_gradient);
+                               scalar_options);
 
       if (stabilization & (apply_supg|apply_pspg))
       {
