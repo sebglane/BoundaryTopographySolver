@@ -88,6 +88,8 @@ public:
 
   void adjust_velocity_field_local_cell();
 
+  void adjust_velocity_field_local_boundary();
+
   const StabilizationFlags  &stabilization_flags;
 
   OptionalVectorArguments<dim>  vector_options;
