@@ -78,6 +78,9 @@ public:
   // advection field
   std::vector<Tensor<1,dim>>  advection_field_values;
 
+  // stabilization related quantities
+  std::vector<double>         present_strong_residuals;
+
 };
 
 

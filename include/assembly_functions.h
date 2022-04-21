@@ -452,16 +452,12 @@ using namespace dealii;
  * @attention The advection field must include contributions due to a possible
  * background field.
  *
- * @attention The test function must include contributions related to
- * stabilization terms.
- *
  */
 template <int dim>
 double compute_matrix
 (const Tensor<1, dim>                &trial_function_gradient,
  const Tensor<1, dim>                &advection_field_value,
- const double                         test_function_value,
- const OptionalScalarArguments<dim>  &/* options */);
+ const double                         test_function_value);
 
 
 /*!
@@ -470,16 +466,17 @@ double compute_matrix
  * @attention The advection field must include contributions due to a possible
  * background field.
  *
- * @attention The test function must include contributions related to
- * stabilization terms.
- *
  */
 template <int dim>
 double compute_rhs
-(const Tensor<1, dim>                &present_gradient,
- const Tensor<1, dim>                &advection_field_value,
- const double                         test_function_value,
- const OptionalScalarArguments<dim>  &options);
+(const double           test_function_value,
+ const Tensor<1, dim>  &test_function_gradient,
+ const Tensor<1, dim>  &present_gradient,
+ const Tensor<1, dim>  &advection_field_value,
+ const double           present_strong_residual,
+ const double           delta,
+ const OptionalScalarArguments<dim> &options);
+
 
 
 
@@ -497,6 +494,18 @@ void compute_strong_residual
  std::vector<double>                 &strong_residuals,
  const OptionalVectorArguments<dim>  &options);
 
+
+/*!
+ * @brief Computes the linearization of the strong residual of the advection
+ * equation.
+ *
+ */
+template <int dim>
+double compute_residual_linearization_matrix
+(const Tensor<1, dim>                &trial_function_gradient,
+ const Tensor<1, dim>                &advection_field_value,
+ const Tensor<1, dim>                &test_function_gradient,
+ const double                         delta);
 
 }  // namespace Advection
 

@@ -24,6 +24,9 @@ assemble_system_local_cell
                                    this->evaluation_point);
   const auto &JxW = scratch.get_JxW_values();
 
+  // stabilization parameter
+  const double delta{c * std::pow(cell->diameter(), 2)};
+
   // solution values
   const auto &present_gradients = scratch.get_gradients("evaluation_point",
                                                         FEValuesExtractors::Scalar(FEValuesExtractors::Scalar(scalar_fe_index)));
@@ -32,16 +35,18 @@ assemble_system_local_cell
   advection_field_ptr->value_list(scratch.get_quadrature_points(),
                                   scratch.advection_field_values);
 
-  // options
+  // assign vector options
   scratch.assign_vector_options_local_cell(source_term_ptr,
                                            nullptr,
                                            reference_field_ptr,
                                            gradient_scaling_number);
   scratch.adjust_advection_field_local_cell();
 
-  // stabilization parameter
-  const double delta{c * std::pow(cell->diameter(), 2)};
-  Assert(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
+  // stabilization
+  compute_strong_residual(present_gradients,
+                          scratch.advection_field_values,
+                          scratch.present_strong_residuals,
+                          scratch.vector_options);
 
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
@@ -56,23 +61,27 @@ assemble_system_local_cell
 
     for (const auto i: fe_values.dof_indices())
     {
-      const double test_function_value{scratch.phi[i] +
-                                       delta *
-                                       scratch.advection_field_values[q] *
-                                       scratch.grad_phi[i]};
+      const double test_function_value{scratch.phi[i]};
+      const Tensor<1,dim> &test_function_gradient{scratch.grad_phi[i]};
 
       for (const auto j: fe_values.dof_indices())
       {
-        const double matrix{compute_matrix(scratch.grad_phi[j],
-                                           scratch.advection_field_values[q],
-                                           test_function_value,
-                                           scratch.scalar_options)};
+        double matrix{compute_matrix(scratch.grad_phi[j],
+                                     scratch.advection_field_values[q],
+                                     test_function_value)};
+        matrix += compute_residual_linearization_matrix(scratch.grad_phi[j],
+                                                        scratch.advection_field_values[q],
+                                                        test_function_gradient,
+                                                        delta);
         data.matrices[0](i, j) += matrix * JxW[q];
       }
 
-      const double rhs{compute_rhs(present_gradients[q],
+      const double rhs{compute_rhs(test_function_value,
+                                   test_function_gradient,
+                                   present_gradients[q],
                                    scratch.advection_field_values[q],
-                                   test_function_value,
+                                   scratch.present_strong_residuals[q],
+                                   delta,
                                    scratch.scalar_options)};
 
       data.vectors[0](i) += rhs * JxW[q];

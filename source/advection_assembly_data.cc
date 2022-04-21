@@ -39,7 +39,8 @@ vector_options(quadrature.size(),
                allocate_reference_gradient),
 phi(fe.n_dofs_per_cell()),
 grad_phi(fe.n_dofs_per_cell()),
-advection_field_values(quadrature.size())
+advection_field_values(quadrature.size()),
+present_strong_residuals(quadrature.size())
 {}
 
 
@@ -77,7 +78,8 @@ scalar_options(other.scalar_options),
 vector_options(other.vector_options),
 phi(other.phi),
 grad_phi(other.grad_phi),
-advection_field_values(other.advection_field_values)
+advection_field_values(other.advection_field_values),
+present_strong_residuals(other.present_strong_residuals)
 {}
 
 
@@ -90,22 +92,42 @@ assign_vector_options_local_cell
  const std::shared_ptr<const Function<dim>>          &reference_field_ptr,
  const double                                         gradient_scaling)
 {
+  const unsigned int n_q_points{this->get_current_fe_values().n_quadrature_points};
+
   if (source_term_ptr != nullptr)
+  {
+    Assert(vector_options.source_term_values,
+           ExcMessage("Source term values are not allocated in options."));
+    AssertDimension(vector_options.source_term_values->size(),
+                    n_q_points);
+
     source_term_ptr->value_list(this->get_quadrature_points(),
                                 *vector_options.source_term_values);
+  }
 
   if (background_advection_ptr != nullptr)
+  {
+    Assert(vector_options.background_advection_values,
+           ExcMessage("Source term values are not allocated in options."));
+    AssertDimension(vector_options.background_advection_values->size(),
+                    n_q_points);
+
     background_advection_ptr->value_list(this->get_quadrature_points(),
                                          *vector_options.background_advection_values);
+  }
 
   if (reference_field_ptr != nullptr)
   {
     Assert(gradient_scaling > 0.0,
            ExcLowerRangeType<double>(gradient_scaling, 0.0));
 
+    Assert(vector_options.reference_gradients,
+           ExcMessage("Reference field gradients are not allocated in options."));
+    AssertDimension(vector_options.reference_gradients->size(),
+                    n_q_points);
+
     reference_field_ptr->gradient_list(this->get_quadrature_points(),
                                        *vector_options.reference_gradients);
-
     vector_options.gradient_scaling = gradient_scaling;
     scalar_options.gradient_scaling = gradient_scaling;
   }
