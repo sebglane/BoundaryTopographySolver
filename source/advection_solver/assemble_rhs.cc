@@ -92,7 +92,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
                       face_quadrature_formula,
                       face_update_flags,
                       source_term_ptr != nullptr,
-                      !boundary_conditions.dirichlet_bcs.empty(),
+                      !scalar_boundary_conditions.dirichlet_bcs.empty(),
                       false,
                       reference_field_ptr != nullptr);
   CopyData  copy(this->fe_system->n_dofs_per_cell());

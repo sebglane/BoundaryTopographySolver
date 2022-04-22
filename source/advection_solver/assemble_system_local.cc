@@ -105,7 +105,7 @@ assemble_system_local_boundary
  MeshWorker::CopyData<1,1,1>                           &data) const
 {
   const typename ScalarBoundaryConditions<dim>::BCMapping
-  &dirichlet_bcs = boundary_conditions.dirichlet_bcs;
+  &dirichlet_bcs = scalar_boundary_conditions.dirichlet_bcs;
   const types::boundary_id  boundary_id{cell->face(face_number)->boundary_id()};
 
   if (!dirichlet_bcs.empty())

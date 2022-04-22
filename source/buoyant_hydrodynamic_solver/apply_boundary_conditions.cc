@@ -24,6 +24,10 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
   AssertThrow(density_boundary_conditions.closed(),
               ExcMessage("The density boundary conditions have not been closed."));
 
+  const FEValuesExtractors::Vector velocity(this->velocity_fe_index);
+  const FEValuesExtractors::Scalar pressure(this->pressure_fe_index);
+  const FEValuesExtractors::Scalar density(this->pressure_fe_index + 1);
+
   if (!this->velocity_boundary_conditions.periodic_bcs.empty() ||
       !this->pressure_boundary_conditions.periodic_bcs.empty() ||
       !density_boundary_conditions.periodic_bcs.empty())
@@ -93,10 +97,14 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
 
     }
 
-    this->apply_periodicity_constraints(this->velocity_boundary_conditions.periodic_bcs);
+    this->apply_periodicity_constraints(this->velocity_boundary_conditions.periodic_bcs,
+                                        this->fe_system->component_mask(velocity));
+    this->apply_periodicity_constraints(this->velocity_boundary_conditions.periodic_bcs,
+                                        this->fe_system->component_mask(pressure));
+    this->apply_periodicity_constraints(this->velocity_boundary_conditions.periodic_bcs,
+                                        this->fe_system->component_mask(density));
   }
   {
-    const FEValuesExtractors::Vector  velocity(0);
 
     if (!this->velocity_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(this->velocity_boundary_conditions.dirichlet_bcs,
@@ -107,15 +115,11 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
                                           this->fe_system->component_mask(velocity));
   }
   {
-    const FEValuesExtractors::Scalar  pressure(dim);
-
     if (!this->pressure_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(this->pressure_boundary_conditions.dirichlet_bcs,
                                         this->fe_system->component_mask(pressure));
   }
   {
-    const FEValuesExtractors::Scalar  density(dim+1);
-
     if (!density_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(density_boundary_conditions.dirichlet_bcs,
                                         this->fe_system->component_mask(density));

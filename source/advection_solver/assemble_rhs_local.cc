@@ -99,7 +99,7 @@ assemble_rhs_local_boundary
  MeshWorker::CopyData<0,1,1>                           &data) const
 {
   const typename ScalarBoundaryConditions<dim>::BCMapping
-  &dirichlet_bcs = boundary_conditions.dirichlet_bcs;
+  &dirichlet_bcs = scalar_boundary_conditions.dirichlet_bcs;
   const types::boundary_id  boundary_id{cell->face(face_number)->boundary_id()};
 
   // Dirichlet boundary condition
