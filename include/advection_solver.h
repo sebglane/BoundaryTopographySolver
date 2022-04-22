@@ -52,14 +52,9 @@ struct SolverParameters: Base::Parameters
   friend Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
   /*!
-   * @brief Stabilization parameter used to compute the maximum viscosity.
+   * @brief Stabilization parameter controlling the SUPG term.
    */
-  double  c_max;
-
-  /*!
-   * @brief Stabilization parameter used to compute the entropy viscosity.
-   */
-  double  c_entropy;
+  double  c;
 
 };
 
@@ -136,11 +131,8 @@ private:
 
   const unsigned int  fe_degree;
 
-  const double        c_max;
+  const double        c;
 
-  const double        c_entropy;
-
-  double              global_entropy_variation;
 };
 
 // inline functions

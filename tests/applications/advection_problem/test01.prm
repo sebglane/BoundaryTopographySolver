@@ -10,9 +10,8 @@ set Spatial dimension                = 2
 set Verbose                          = false
 
 
-subsection Buoyant hydrodynamic solver parameters
-  set Entropy stabilization coefficients = 0.1
-  set Standard stabilization coefficient = 0.1
+subsection Advection solver parameters
+  set SUPG stabilization coefficient = 0.1
 end
 
 
