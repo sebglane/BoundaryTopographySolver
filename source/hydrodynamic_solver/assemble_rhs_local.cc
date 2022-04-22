@@ -36,8 +36,8 @@ assemble_rhs_local_cell
   const double delta{c * std::pow(cell->diameter(), 2)};
   Assert(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
 
-  OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.hydrodynamic_weak_form_options;
-  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
+  OptionalScalarArguments<dim> &weak_form_options = scratch.hydrodynamic_weak_form_options;
+  OptionalVectorArguments<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
   weak_form_options.use_stress_form = use_stress_form;
   strong_form_options.use_stress_form = use_stress_form;
 

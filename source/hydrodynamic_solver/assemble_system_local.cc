@@ -38,8 +38,8 @@ assemble_system_local_cell
   const double nu{1.0 / reynolds_number};
   const double delta{c * std::pow(cell->diameter(), 2)};
 
-  OptionalArgumentsWeakForm<dim>   &weak_form_options = scratch.hydrodynamic_weak_form_options;
-  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
+  OptionalScalarArguments<dim>   &weak_form_options = scratch.hydrodynamic_weak_form_options;
+  OptionalVectorArguments<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
   weak_form_options.use_stress_form = use_stress_form;
   strong_form_options.use_stress_form = use_stress_form;
 
@@ -270,6 +270,7 @@ assemble_system_local_cell
   } // end loop over cell quadrature points
 
 }
+
 
 
 template <int dim, typename TriangulationType>

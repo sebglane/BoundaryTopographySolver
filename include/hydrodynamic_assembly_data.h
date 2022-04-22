@@ -53,9 +53,9 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
-  OptionalArgumentsStrongForm<dim>  hydrodynamic_strong_form_options;
+  OptionalVectorArguments<dim>  hydrodynamic_strong_form_options;
 
-  OptionalArgumentsWeakForm<dim>    hydrodynamic_weak_form_options;
+  OptionalScalarArguments<dim>    hydrodynamic_weak_form_options;
 
   // shape functions
   std::vector<Tensor<1, dim>> phi_velocity;
@@ -117,9 +117,9 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
-  OptionalArgumentsStrongForm<dim>  hydrodynamic_strong_form_options;
+  OptionalVectorArguments<dim>  hydrodynamic_strong_form_options;
 
-  OptionalArgumentsWeakForm<dim>    hydrodynamic_weak_form_options;
+  OptionalScalarArguments<dim>    hydrodynamic_weak_form_options;
 
   // shape functions
   std::vector<Tensor<1, dim>> phi_velocity;

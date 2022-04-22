@@ -33,7 +33,7 @@ rossby_number(other.rossby_number)
 
 
 template<int dim>
-OptionalArgumentsWeakForm<dim>::OptionalArgumentsWeakForm(const bool use_stress_form)
+OptionalScalarArguments<dim>::OptionalScalarArguments(const bool use_stress_form)
 :
 OptionalArguments<dim>(use_stress_form),
 velocity_trial_function_symmetric_gradient(),
@@ -50,8 +50,8 @@ body_force_value()
 
 
 template<int dim>
-OptionalArgumentsWeakForm<dim>::OptionalArgumentsWeakForm
-(const OptionalArgumentsWeakForm<dim> &other)
+OptionalScalarArguments<dim>::OptionalScalarArguments
+(const OptionalScalarArguments<dim> &other)
 :
 OptionalArguments<dim>(other),
 velocity_trial_function_symmetric_gradient(other.velocity_trial_function_symmetric_gradient),
@@ -68,7 +68,7 @@ body_force_value(other.body_force_value)
 
 
 template<int dim>
-OptionalArgumentsStrongForm<dim>::OptionalArgumentsStrongForm
+OptionalVectorArguments<dim>::OptionalVectorArguments
 (const StabilizationFlags stabilization,
  const bool use_stress_form,
  const bool allocate_background_velocity,
@@ -97,8 +97,8 @@ body_force_values()
 
 
 template<int dim>
-OptionalArgumentsStrongForm<dim>::OptionalArgumentsStrongForm
-(const OptionalArgumentsStrongForm<dim> &other)
+OptionalVectorArguments<dim>::OptionalVectorArguments
+(const OptionalVectorArguments<dim> &other)
 :
 OptionalArguments<dim>(other),
 present_velocity_grad_divergences(other.present_velocity_grad_divergences),
@@ -111,11 +111,11 @@ body_force_values(other.body_force_values)
 template struct OptionalArguments<2>;
 template struct OptionalArguments<3>;
 
-template struct OptionalArgumentsWeakForm<2>;
-template struct OptionalArgumentsWeakForm<3>;
+template struct OptionalScalarArguments<2>;
+template struct OptionalScalarArguments<3>;
 
-template struct OptionalArgumentsStrongForm<2>;
-template struct OptionalArgumentsStrongForm<3>;
+template struct OptionalVectorArguments<2>;
+template struct OptionalVectorArguments<3>;
 
 }  // namespace Hydrodynamic
 
