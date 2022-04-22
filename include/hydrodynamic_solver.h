@@ -122,7 +122,7 @@ enum ViscousTermWeakForm
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.
  */
-struct SolverParameters: Base::Parameters
+struct SolverParameters: virtual Base::Parameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
@@ -457,6 +457,7 @@ protected:
 
   const bool          include_boundary_stress_terms;
 
+protected:
   unsigned int        velocity_fe_index;
 
   unsigned int        pressure_fe_index;

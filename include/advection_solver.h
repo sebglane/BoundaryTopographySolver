@@ -23,7 +23,7 @@ using namespace BoundaryConditions;
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.
  */
-struct SolverParameters: Base::Parameters
+struct SolverParameters: virtual Base::Parameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
@@ -149,6 +149,7 @@ private:
 
   const double        nu;
 
+protected:
   unsigned int        scalar_fe_index;
 
   unsigned int        scalar_block_index;
