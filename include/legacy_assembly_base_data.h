@@ -1,5 +1,5 @@
-#ifndef INCLUDE_ASSEMBLY_BASE_DATA_H_
-#define INCLUDE_ASSEMBLY_BASE_DATA_H_
+#ifndef INCLUDE_LEGACY_ASSEMBLY_BASE_DATA_H_
+#define INCLUDE_LEGACY_ASSEMBLY_BASE_DATA_H_
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -91,4 +91,4 @@ struct Scratch
 
 } // namespace AssemblyBaseData
 
-#endif /* INCLUDE_ASSEMBLY_BASE_DATA_H_ */
+#endif /* INCLUDE_LEGACY_ASSEMBLY_BASE_DATA_H_ */

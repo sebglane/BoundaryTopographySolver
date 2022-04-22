@@ -3,7 +3,7 @@ SET(TARGET "boundary_topography")
 
 SET(TARGET_SRC
     angular_velocity.cc
-    assembly_base_data.cc
+    legacy_assembly_base_data.cc
     block_schur_preconditioner.cc
     boundary_conditions.cc
     evaluation_boundary_traction.cc

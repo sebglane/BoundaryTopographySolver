@@ -9,10 +9,10 @@
 #define INCLUDE_HYDRODYNAMIC_SOLVER_H_
 
 #include <angular_velocity.h>
-#include <assembly_base_data.h>
 #include <base.h>
 #include <boundary_conditions.h>
 #include <hydrodynamic_options.h>
+#include <legacy_assembly_base_data.h>
 #include <stabilization_flags.h>
 
 #include <memory>

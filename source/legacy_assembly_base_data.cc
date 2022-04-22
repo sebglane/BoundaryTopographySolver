@@ -4,7 +4,7 @@
  *  Created on: Sep 25, 2021
  *      Author: sg
  */
-#include <assembly_base_data.h>
+#include <legacy_assembly_base_data.h>
 
 namespace AssemblyBaseData
 {
