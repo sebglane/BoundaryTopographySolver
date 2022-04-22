@@ -31,7 +31,7 @@ Scratch<dim>::Scratch
  const bool                allocate_reference_density,
  const bool                allocate_density_bc)
 :
-Hydrodynamic::AssemblyData::Matrix::Scratch<dim>(mapping,
+Hydrodynamic::LegacyAssemblyData::Matrix::Scratch<dim>(mapping,
                                                  quadrature_formula,
                                                  fe,
                                                  update_flags,
@@ -73,7 +73,7 @@ density_boundary_values()
 template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim>  &data)
 :
-Hydrodynamic::AssemblyData::Matrix::Scratch<dim>(data),
+Hydrodynamic::LegacyAssemblyData::Matrix::Scratch<dim>(data),
 strong_form_options(data.strong_form_options),
 weak_form_options(data.weak_form_options),
 phi_density(data.phi_density),
@@ -112,7 +112,7 @@ Scratch<dim>::Scratch
  const bool                allocate_reference_density,
  const bool                allocate_density_bc)
 :
-Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>(mapping,
+Hydrodynamic::LegacyAssemblyData::RightHandSide::Scratch<dim>(mapping,
                                                         quadrature_formula,
                                                         fe,
                                                         update_flags,
@@ -154,7 +154,7 @@ density_boundary_values()
 template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim>  &data)
 :
-Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>(data),
+Hydrodynamic::LegacyAssemblyData::RightHandSide::Scratch<dim>(data),
 strong_form_options(data.strong_form_options),
 weak_form_options(data.weak_form_options),
 phi_density(data.phi_density),

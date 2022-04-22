@@ -79,7 +79,7 @@ namespace AssemblyData {
 namespace Matrix {
 
 template <int dim>
-struct Scratch : Hydrodynamic::AssemblyData::Matrix::Scratch<dim>
+struct Scratch : Hydrodynamic::LegacyAssemblyData::Matrix::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
           const Quadrature<dim>     &quadrature_formula,
@@ -129,7 +129,7 @@ namespace RightHandSide
 {
 
 template <int dim>
-struct Scratch : Hydrodynamic::AssemblyData::RightHandSide::Scratch<dim>
+struct Scratch : Hydrodynamic::LegacyAssemblyData::RightHandSide::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
           const Quadrature<dim>     &quadrature_formula,

@@ -9,7 +9,7 @@
 
 namespace Hydrodynamic {
 
-namespace AssemblyData {
+namespace LegacyAssemblyData {
 
 namespace Matrix {
 
@@ -272,6 +272,6 @@ template struct Scratch<3>;
 
 } // namespace RightHandSide
 
-} // namespace AssemblyData
+} // namespace LegacyAssemblyData
 
 } // namespace Hydrodynamic

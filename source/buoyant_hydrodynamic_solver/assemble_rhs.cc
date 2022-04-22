@@ -61,7 +61,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
   // Set up the lambda function for the copy local to global operation
   auto copier = [this, use_homogeneous_constraints](const Copy   &data)
       {
-        this->copy_local_to_global_rhs(data, use_homogeneous_constraints);
+        this->legacy_copy_local_to_global_rhs(data, use_homogeneous_constraints);
       };
 
   // Assemble using the WorkStream approach

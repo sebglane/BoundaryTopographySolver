@@ -13,18 +13,22 @@ SET(TARGET_SRC
     postprocessor_base.cc
     # solver base
     solver_base/apply_constraints.cc
+    solver_base/copy_local_to_global.cc
     solver_base/refine_mesh.cc
     solver_base/setup.cc
     solver_base/solve_linear_system.cc
     solver_base/solver_base.cc
     # hydrodynamic solver
+    hydrodynamic_assembly_data.cc
     hydrodynamic_options.cc
     hydrodynamic_postprocessor.cc
     hydrodynamic_problem.cc
     hydrodynamic_solver/apply_boundary_conditions.cc
     hydrodynamic_solver/assembly_data.cc
     hydrodynamic_solver/assemble_rhs.cc
+    hydrodynamic_solver/assemble_rhs_local.cc
     hydrodynamic_solver/assemble_system.cc
+    hydrodynamic_solver/assemble_system_local.cc
     hydrodynamic_solver/hydrodynamic_solver.cc
     hydrodynamic_solver/setup.cc
     # buoyant hydrodynamic solver

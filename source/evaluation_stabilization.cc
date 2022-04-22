@@ -13,11 +13,11 @@
 #include <deal.II/lac/block_vector.h>
 
 #include <assembly_functions.h>
-#include <buoyant_hydrodynamic_problem.h>
-#include <hydrodynamic_problem.h>
 #include <evaluation_stabilization.h>
-#include <hydrodynamic_solver.h>
+#include <hydrodynamic_assembly_data.h>
+#include <buoyant_hydrodynamic_solver.h>
 
+#include <optional>
 
 namespace Hydrodynamic {
 
@@ -129,18 +129,18 @@ operator()
   if (angular_velocity_ptr || background_velocity_ptr)
     update_flags |= update_quadrature_points;
 
-  using Scratch = AssemblyData::RightHandSide::Scratch<dim>;
+  using ScratchData = AssemblyData::RightHandSide::ScratchData<dim>;
 
-  Scratch scratch(mapping,
-                  quadrature_formula,
-                  fe,
-                  update_flags,
-                  Quadrature<dim-1>(1),
-                  update_default,
-                  stabilization,
-                  use_stress_form,
-                  background_velocity_ptr != nullptr,
-                  body_force_ptr != nullptr);
+  ScratchData scratch(mapping,
+                      fe,
+                      quadrature_formula,
+                      update_flags,
+                      Quadrature<dim-1>(),
+                      update_default,
+                      stabilization,
+                      use_stress_form,
+                      background_velocity_ptr != nullptr,
+                      body_force_ptr != nullptr);
 
   const FEValuesExtractors::Vector  velocity(velocity_start_index);
   const FEValuesExtractors::Scalar  pressure(pressure_index);
@@ -177,38 +177,38 @@ operator()
   for (const auto &cell: dof_handler.active_cell_iterators())
   if (cell->is_locally_owned())
   {
-    scratch.fe_values.reinit(cell);
+    const auto &fe_values = scratch.reinit(cell);
+    scratch.extract_local_dof_values("evaluation_point",
+                                     solution);
+    const auto &JxW = scratch.get_JxW_values();
 
     const double delta{c * std::pow(cell->diameter(), 2)};
 
     // solution values
-    scratch.fe_values[velocity].get_function_values(solution,
-                                                    scratch.present_velocity_values);
-    scratch.fe_values[velocity].get_function_gradients(solution,
-                                                       scratch.present_velocity_gradients);
-
-    scratch.fe_values[pressure].get_function_values(solution,
-                                                    scratch.present_pressure_values);
+    const auto &present_velocity_values = scratch.get_values("evaluation_point",
+                                                             velocity);
+    const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                                   velocity);
 
     // stress form
+    std::optional<std::vector<SymmetricTensor<2, dim>>> present_sym_velocity_gradients;
     if (use_stress_form)
-      scratch.fe_values[velocity].get_function_symmetric_gradients(solution,
-                                                                   scratch.present_sym_velocity_gradients);
+      present_sym_velocity_gradients = scratch.get_symmetric_gradients("evaluation_point",
+                                                                       velocity);
 
     // stabilization related solution values
+    std::optional<std::vector<Tensor<1, dim>>> present_velocity_laplaceans;
+    std::optional<std::vector<Tensor<1, dim>>> present_pressure_gradients;
     if (stabilization & (apply_supg|apply_pspg))
     {
-      scratch.fe_values[velocity].get_function_laplacians(solution,
-                                                          scratch.present_velocity_laplaceans);
-      scratch.fe_values[pressure].get_function_gradients(solution,
-                                                         scratch.present_pressure_gradients);
-
-      // stress form
+      present_velocity_laplaceans = scratch.get_laplacians("evaluation_point",
+                                                           velocity);
+      present_pressure_gradients = scratch.get_gradients("evaluation_point",
+                                                         pressure);
       if (use_stress_form)
       {
-        std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
-        scratch.fe_values[velocity].get_function_hessians(solution,
-                                                          present_hessians);
+        const auto &present_hessians = scratch.get_hessians("evaluation_point",
+                                                            velocity);
 
         std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
             strong_form_options.present_velocity_grad_divergences.value();
@@ -222,28 +222,35 @@ operator()
     }
 
     // body force
-    if (body_force_ptr)
+    if (body_force_ptr != nullptr)
     {
-      body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
+      body_force_ptr->value_list(scratch.get_quadrature_points(),
                                  *strong_form_options.body_force_values);
       strong_form_options.froude_number = froude_number;
     }
 
     // background field
-    if (background_velocity_ptr)
+    if (background_velocity_ptr != nullptr)
     {
-      background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
+      background_velocity_ptr->value_list(scratch.get_quadrature_points(),
                                           *strong_form_options.background_velocity_values);
-      background_velocity_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
+      background_velocity_ptr->gradient_list(scratch.get_quadrature_points(),
                                              *strong_form_options.background_velocity_gradients);
+    }
+
+    // Coriolis term
+    if (angular_velocity_ptr != nullptr)
+    {
+      strong_form_options.angular_velocity = angular_velocity_ptr->value();
+      strong_form_options.rossby_number = rossby_number;
     }
 
     // stabilization
     if (stabilization & (apply_supg|apply_pspg))
-      compute_strong_residual(scratch.present_velocity_values,
-                              scratch.present_velocity_gradients,
-                              scratch.present_velocity_laplaceans,
-                              scratch.present_pressure_gradients,
+      compute_strong_residual(present_velocity_values,
+                              present_velocity_gradients,
+                              present_velocity_laplaceans.value(),
+                              present_pressure_gradients.value(),
                               scratch.present_strong_residuals,
                               nu,
                               strong_form_options);
@@ -252,16 +259,14 @@ operator()
     cell_mass_residual = 0;
     cell_volume = 0;
 
-    for (const auto q: scratch.fe_values.quadrature_point_indices())
+    for (const auto q: fe_values.quadrature_point_indices())
     {
-      const double JxW{scratch.fe_values.JxW(q)};
-
-      const double mass_residual{trace(scratch.present_velocity_gradients[q])};
+      const double mass_residual{trace(present_velocity_gradients[q])};
       max_mass_residual[0] = std::max(std::abs(mass_residual), max_mass_residual[0]);
-      cell_mass_residual += mass_residual * JxW;
+      cell_mass_residual += mass_residual * JxW[q];
 
-      cell_volume += JxW;
-      volume += JxW;
+      cell_volume += JxW[q];
+      volume += JxW[q];
 
       if (this->stabilization & (apply_supg|apply_pspg))
       {
@@ -271,7 +276,7 @@ operator()
                                             max_momentum_residual[0]);
         max_momentum_viscosity[0] = std::max(delta * momentum_residual,
                                              max_momentum_viscosity[0]);
-        cell_momentum_residual += momentum_residual * JxW;
+        cell_momentum_residual += momentum_residual * JxW[q];
       }
     } // end loop over cell quadrature points
 
