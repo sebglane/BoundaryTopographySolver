@@ -27,7 +27,7 @@ assemble_rhs_local_cell
 
   // solution values
   const auto &present_gradients = scratch.get_gradients("evaluation_point",
-                                                        FEValuesExtractors::Scalar(0));
+                                                        FEValuesExtractors::Scalar(scalar_fe_index));
 
   // source term
   if (source_term_ptr != nullptr)
@@ -97,7 +97,7 @@ assemble_rhs_local_boundary
       scratch.extract_local_dof_values("evaluation_point",
                                        this->evaluation_point);
       const auto &present_values  = scratch.get_values("evaluation_point",
-                                                       FEValuesExtractors::Scalar(0));
+                                                       FEValuesExtractors::Scalar(scalar_fe_index));
 
       // boundary values
       dirichlet_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),

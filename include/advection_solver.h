@@ -70,7 +70,7 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 template <int dim,
           typename TriangulationType = Triangulation<dim>>
-class Solver: public Base::Solver<dim, TriangulationType>
+class Solver: virtual public Base::Solver<dim, TriangulationType>
 {
 
 public:
@@ -132,6 +132,10 @@ private:
   const unsigned int  fe_degree;
 
   const double        c;
+
+  unsigned int        scalar_fe_index;
+
+  unsigned int        scalar_block_index;
 
 };
 

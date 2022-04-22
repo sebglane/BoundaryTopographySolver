@@ -32,8 +32,8 @@ assemble_system_local_cell
                                    this->evaluation_point);
   const auto &JxW = scratch.get_JxW_values();
 
-  const FEValuesExtractors::Vector  velocity(0);
-  const FEValuesExtractors::Scalar  pressure(dim);
+  const FEValuesExtractors::Vector  velocity(velocity_fe_index);
+  const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 
   const double nu{1.0 / reynolds_number};
   const double delta{c * std::pow(cell->diameter(), 2)};
@@ -281,8 +281,8 @@ assemble_system_local_boundary
  MeshWorker::CopyData<1,1,1>                           &data,
  const bool                                             use_stress_form) const
 {
-  const FEValuesExtractors::Vector  velocity(0);
-  const FEValuesExtractors::Scalar  pressure(dim);
+  const FEValuesExtractors::Vector  velocity(velocity_fe_index);
+  const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 
   const types::boundary_id  boundary_id{cell->face(face_number)->boundary_id()};
 

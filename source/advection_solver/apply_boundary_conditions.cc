@@ -23,11 +23,11 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
   if (!boundary_conditions.periodic_bcs.empty())
     this->apply_periodicity_constraints(boundary_conditions.periodic_bcs);
 
-  const FEValuesExtractors::Scalar  field(0);
+  FEValuesExtractors::Scalar  scalar_field(scalar_fe_index);
 
   if (boundary_conditions.dirichlet_bcs.empty())
     this->apply_dirichlet_constraints(boundary_conditions.dirichlet_bcs,
-                                      this->fe_system->component_mask(field));
+                                      this->fe_system->component_mask(scalar_field));
 }
 
 // explicit instantiation

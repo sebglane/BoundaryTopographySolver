@@ -349,7 +349,7 @@ struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
 
 template <int dim,
           typename TriangulationType = Triangulation<dim>>
-class Solver: public Base::Solver<dim, TriangulationType>
+class Solver: virtual public Base::Solver<dim, TriangulationType>
 {
 public:
   Solver(TriangulationType   &tria,
@@ -456,6 +456,15 @@ protected:
   const double        mu;
 
   const bool          include_boundary_stress_terms;
+
+  unsigned int        velocity_fe_index;
+
+  unsigned int        pressure_fe_index;
+
+  unsigned int        velocity_block_index;
+
+  unsigned int        pressure_block_index;
+
 };
 
 

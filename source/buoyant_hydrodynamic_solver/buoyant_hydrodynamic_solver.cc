@@ -92,6 +92,7 @@ Solver<dim, TriangulationType>::Solver
  const double           stratification,
  const double           rossby)
 :
+Base::Solver<dim>(tria, mapping, parameters),
 Hydrodynamic::Solver<dim, TriangulationType>(tria, mapping, parameters, reynolds, froude, rossby),
 density_boundary_conditions(this->triangulation),
 reference_density_ptr(),
