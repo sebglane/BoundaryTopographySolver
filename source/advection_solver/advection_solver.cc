@@ -92,7 +92,7 @@ advection_field_ptr(),
 reference_field_ptr(),
 source_term_ptr(),
 gradient_scaling_number(gradient_scaling_number),
-fe_degree(1),
+scalar_fe_degree(1),
 c(parameters.c),
 nu(parameters.nu),
 scalar_fe_index(numbers::invalid_unsigned_int),
@@ -112,7 +112,7 @@ void Solver<dim, TriangulationType>::output_results(const unsigned int cycle) co
   data_out.attach_dof_handler(this->dof_handler);
   data_out.add_data_vector(this->present_solution, "field");
 
-  data_out.build_patches(fe_degree);
+  data_out.build_patches(scalar_fe_degree);
 
   // write output to disk
   const std::string filename = ("solution-" +

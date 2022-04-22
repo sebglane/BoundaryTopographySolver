@@ -20,7 +20,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
   AssertThrow(scalar_boundary_conditions.closed(),
               ExcMessage("The velocity boundary conditions have not been closed."));
 
-  FEValuesExtractors::Scalar  scalar_field(scalar_fe_index);
+  const FEValuesExtractors::Scalar  scalar_field(scalar_fe_index);
 
   if (!scalar_boundary_conditions.periodic_bcs.empty())
     this->apply_periodicity_constraints(scalar_boundary_conditions.periodic_bcs,

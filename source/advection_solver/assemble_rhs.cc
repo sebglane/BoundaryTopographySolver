@@ -32,10 +32,10 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
   this->system_rhs = 0;
 
   // initialize quadrature formula
-  const QGauss<dim>   quadrature_formula(fe_degree + 1);
+  const QGauss<dim>   quadrature_formula(scalar_fe_degree + 1);
 
   // initialize face quadrature formula
-  const QGauss<dim-1>   face_quadrature_formula(fe_degree + 1);
+  const QGauss<dim-1>   face_quadrature_formula(scalar_fe_degree + 1);
 
   // setup lambda functions for the local assembly operation
   using ScratchData = AssemblyData::RightHandSide::ScratchData<dim>;

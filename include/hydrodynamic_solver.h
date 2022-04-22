@@ -375,17 +375,20 @@ public:
 
   double get_froude_number() const;
 
-private:
-  virtual void setup_fe_system();
-
-  virtual void setup_dofs();
-
+protected:
   virtual void apply_boundary_conditions();
 
+private:
   virtual void assemble_system(const bool use_homogenenous_constraints,
                                const bool use_newton_linearization);
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints);
+
+  virtual void setup_dofs();
+
+  virtual void setup_fe_system();
+
+  virtual void output_results(const unsigned int cycle = 0) const;
 
   void assemble_system_local_cell
   (const typename DoFHandler<dim>::active_cell_iterator  &cell,
@@ -413,8 +416,6 @@ private:
    AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
    MeshWorker::CopyData<0,1,1>                           &data,
    const bool                                             use_stress_form) const;
-
-  virtual void output_results(const unsigned int cycle = 0) const;
 
 protected:
   void legacy_copy_local_to_global_system

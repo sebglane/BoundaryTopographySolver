@@ -97,17 +97,20 @@ public:
 
   const ScalarBoundaryConditions<dim>&  get_bcs() const;
 
+protected:
+  virtual void apply_boundary_conditions();
+
 private:
   virtual void setup_fe_system();
 
   virtual void setup_dofs();
 
-  virtual void apply_boundary_conditions();
-
   virtual void assemble_system(const bool use_homogenenous_constraints,
                                const bool use_newton_linearization);
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints);
+
+  virtual void output_results(const unsigned int cycle = 0) const;
 
   void assemble_system_local_cell
   (const typename DoFHandler<dim>::active_cell_iterator  &cell,
@@ -131,8 +134,6 @@ private:
    AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
    MeshWorker::CopyData<0,1,1>                           &data) const;
 
-  virtual void output_results(const unsigned int cycle = 0) const;
-
 protected:
   ScalarBoundaryConditions<dim>                 scalar_boundary_conditions;
 
@@ -144,7 +145,7 @@ protected:
 
   const double        gradient_scaling_number;
 
-  const unsigned int  fe_degree;
+  const unsigned int  scalar_fe_degree;
 
   const double        c;
 
