@@ -30,11 +30,21 @@ assemble_system_local_cell
 
   // source term
   if (source_term_ptr != nullptr)
-    source_term_ptr->value_list(fe_values.get_quadrature_points(),
+    source_term_ptr->value_list(scratch.get_quadrature_points(),
                                 *scratch.vector_options.source_term_values);
 
+  // reference field
+  if (reference_field_ptr != nullptr)
+  {
+    reference_field_ptr->gradient_list(scratch.get_quadrature_points(),
+                                       *scratch.vector_options.reference_gradients);
+
+    scratch.scalar_options.gradient_scaling = gradient_scaling_number;
+    scratch.vector_options.gradient_scaling = gradient_scaling_number;
+  }
+
   // advection field
-  advection_field_ptr->value_list(fe_values.get_quadrature_points(),
+  advection_field_ptr->value_list(scratch.get_quadrature_points(),
                                   scratch.advection_field_values);
 
   // stabilization parameter
@@ -47,6 +57,10 @@ assemble_system_local_cell
     // source term
     if (scratch.vector_options.source_term_values)
       scratch.scalar_options.source_term_value = scratch.vector_options.source_term_values->at(q);
+
+    // reference field
+    if (scratch.vector_options.reference_gradients)
+      scratch.scalar_options.reference_gradient = scratch.vector_options.reference_gradients->at(q);
 
     for (const auto i: fe_values.dof_indices())
     {

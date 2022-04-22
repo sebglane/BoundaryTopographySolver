@@ -24,6 +24,11 @@ void Solver<dim, TriangulationType>::assemble_system
   AssertThrow(advection_field_ptr != nullptr,
               ExcMessage("The advection field must be specified."));
 
+  if (reference_field_ptr != nullptr)
+    AssertThrow(gradient_scaling_number > 0.0,
+                ExcMessage("Non-vanishing gradient scaling number is required if"
+                           " the reference field is specified."));
+
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 
   this->system_matrix = 0;
@@ -89,7 +94,9 @@ void Solver<dim, TriangulationType>::assemble_system
                       face_quadrature_formula,
                       face_update_flags,
                       source_term_ptr != nullptr,
-                      !boundary_conditions.dirichlet_bcs.empty());
+                      !boundary_conditions.dirichlet_bcs.empty(),
+                      false,
+                      reference_field_ptr != nullptr);
   CopyData  copy(this->fe_system->n_dofs_per_cell());
 
   // mesh worker
