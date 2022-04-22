@@ -9,7 +9,6 @@
 
 #include <deal.II/meshworker/mesh_loop.h>
 
-#include <assembly_functions.h>
 #include <advection_solver.h>
 
 namespace Advection {

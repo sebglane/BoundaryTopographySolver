@@ -10,6 +10,8 @@
 
 #include <deal.II/meshworker/scratch_data.h>
 
+#include <advection_options.h>
+
 namespace Advection {
 
 using namespace dealii;
@@ -28,7 +30,9 @@ public:
     const Quadrature<dim-1>  &face_quadrature = Quadrature<dim-1>(),
     const UpdateFlags        &face_update_flags = update_default,
     const bool                allocate_source_term = false,
-    const bool                allocate_boundary_values = false);
+    const bool                allocate_boundary_values = false,
+    const bool                allocate_background_velocity = false,
+    const bool                allocate_reference_gradient = false);
 
   ScratchData(
     const FiniteElement<dim> &fe,
@@ -37,9 +41,15 @@ public:
     const Quadrature<dim-1>  &face_quadrature   = Quadrature<dim-1>(),
     const UpdateFlags        &face_update_flags = update_default,
     const bool                allocate_source_term = false,
-    const bool                allocate_boundary_values = false);
+    const bool                allocate_boundary_values = false,
+    const bool                allocate_background_velocity = false,
+    const bool                allocate_reference_gradient = false);
 
   ScratchData(const ScratchData<dim>  &data);
+
+  // optional parameters
+  OptionalScalarArguments<dim>  scalar_options;
+  OptionalVectorArguments<dim>  vector_options;
 
   // shape functions
   std::vector<double>         phi;
@@ -47,13 +57,6 @@ public:
 
   // advection field
   std::vector<Tensor<1,dim>>  advection_field_values;
-  std::vector<Tensor<1,dim>>  advection_field_face_values;
-
-  // source term
-  std::vector<double> source_term_values;
-
-  // boundary term
-  std::vector<double> boundary_values;
 
 };
 

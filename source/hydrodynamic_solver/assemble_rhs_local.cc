@@ -34,6 +34,7 @@ assemble_rhs_local_cell
 
   const double nu{1.0 / reynolds_number};
   const double delta{c * std::pow(cell->diameter(), 2)};
+  Assert(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
 
   OptionalArgumentsWeakForm<dim> &weak_form_options = scratch.hydrodynamic_weak_form_options;
   OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
