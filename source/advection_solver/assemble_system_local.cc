@@ -110,15 +110,19 @@ assemble_system_local_boundary
       // boundary values
       dirichlet_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
                                                 scratch.boundary_values);
+      const auto &boundary_values{scratch.boundary_values};
+
       // advection field
       advection_field_ptr->value_list(fe_face_values.get_quadrature_points(),
                                       scratch.advection_field_face_values);
+      const auto &advection_field_values{scratch.advection_field_face_values};
+
       // normal vectors
       const auto &normal_vectors = fe_face_values.get_normal_vectors();
 
       // loop over face quadrature points
       for (const auto q: fe_face_values.quadrature_point_indices())
-        if (normal_vectors[q] * scratch.advection_field_face_values[q] < 0.)
+        if (normal_vectors[q] * advection_field_values[q] < 0.)
         {
           // extract the test function's values at the face quadrature points
           for (const auto i: fe_face_values.dof_indices())
@@ -129,14 +133,14 @@ assemble_system_local_boundary
           {
             for (const auto j: fe_face_values.dof_indices())
               data.matrices[0](i, j) -= normal_vectors[q] *
-                                        scratch.advection_field_face_values[q] *
+                                        advection_field_values[q] *
                                         scratch.phi[i] *
                                         scratch.phi[j] *
                                         JxW[q];
-            data.vectors[0](i) += scratch.advection_field_face_values[q] *
+            data.vectors[0](i) += advection_field_values[q] *
                                   normal_vectors[q] *
                                   scratch.phi[i] *
-                                  (present_values[q] - scratch.boundary_values[q]) *
+                                  (present_values[q] - boundary_values[q]) *
                                   JxW[q];
           }
         } // loop over face quadrature points
