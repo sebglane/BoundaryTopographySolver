@@ -1,0 +1,40 @@
+Make grid
+    Number of active cells: 4
+    Number of total degrees of freedom: 59
+Solved the linear system for 
+	- pressure mean value constraint: true
+Make grid
+    Number of active cells: 4
+    Number of total degrees of freedom: 59
+Solved the linear system for 
+	- pressure mean value constraint: false
+Make grid
+    Number of active cells: 16
+    Number of total degrees of freedom: 187
+Solved the linear system for 
+	- pressure mean value constraint: true
+Make grid
+    Number of active cells: 16
+    Number of total degrees of freedom: 187
+Solved the linear system for 
+	- pressure mean value constraint: false
+Make grid
+    Number of active cells: 64
+    Number of total degrees of freedom: 659
+Solved the linear system for 
+	- pressure mean value constraint: true
+Make grid
+    Number of active cells: 64
+    Number of total degrees of freedom: 659
+Solved the linear system for 
+	- pressure mean value constraint: false
+Make grid
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Solved the linear system for 
+	- pressure mean value constraint: true
+Make grid
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Solved the linear system for 
+	- pressure mean value constraint: false
