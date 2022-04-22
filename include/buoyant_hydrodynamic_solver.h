@@ -8,6 +8,7 @@
 #ifndef INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 #define INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 
+#include <advection_options.h>
 #include <buoyant_hydrodynamic_options.h>
 #include <hydrodynamic_solver.h>
 
@@ -101,7 +102,10 @@ struct Scratch : Hydrodynamic::LegacyAssemblyData::Matrix::Scratch<dim>
 
   OptionalVectorArguments<dim>  strong_form_options;
 
-  OptionalScalarArguments<dim>    weak_form_options;
+  OptionalScalarArguments<dim>  weak_form_options;
+
+  Advection::OptionalVectorArguments<dim> density_strong_form_options;
+  Advection::OptionalScalarArguments<dim> density_weak_form_options;
 
   // shape functions
   std::vector<double>         phi_density;
@@ -151,7 +155,10 @@ struct Scratch : Hydrodynamic::LegacyAssemblyData::RightHandSide::Scratch<dim>
 
   OptionalVectorArguments<dim>  strong_form_options;
 
-  OptionalScalarArguments<dim>    weak_form_options;
+  OptionalScalarArguments<dim>  weak_form_options;
+
+  Advection::OptionalVectorArguments<dim> density_strong_form_options;
+  Advection::OptionalScalarArguments<dim> density_weak_form_options;
 
   // shape functions
   std::vector<double>         phi_density;

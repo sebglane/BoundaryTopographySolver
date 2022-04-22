@@ -443,7 +443,12 @@ operator()
   Hydrodynamic::OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
   strong_form_options.use_stress_form = this->use_stress_form;
 
-  BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_strong_form_options = scratch.strong_form_options;
+  BuoyantHydrodynamic::OptionalVectorArguments<dim>
+  &buoyancy_strong_form_options = scratch.strong_form_options;
+
+  Advection::OptionalVectorArguments<dim>
+  &advection_strong_form_options = scratch.density_strong_form_options;
+
 
   // Coriolis term
   if (this->angular_velocity_ptr)
@@ -551,9 +556,9 @@ operator()
     if (reference_density_ptr)
     {
       reference_density_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                           *buoyancy_strong_form_options.reference_density_gradients);
+                                           *advection_strong_form_options.reference_gradients);
 
-      buoyancy_strong_form_options.stratification_number = stratification_number;
+      advection_strong_form_options.gradient_scaling = stratification_number;
     }
 
     // gravity field
@@ -567,6 +572,7 @@ operator()
 
     // stabilization
     if (this->stabilization & (apply_supg|apply_pspg))
+      LegacyBuoyantHydrodynamic::
       compute_strong_hydrodynamic_residual(scratch.present_velocity_values,
                                            scratch.present_velocity_gradients,
                                            scratch.present_velocity_laplaceans,
@@ -580,7 +586,7 @@ operator()
                                     scratch.present_velocity_values,
                                     scratch.present_strong_density_residuals,
                                     strong_form_options,
-                                    buoyancy_strong_form_options);
+                                    advection_strong_form_options);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;

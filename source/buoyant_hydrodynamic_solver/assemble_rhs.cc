@@ -138,8 +138,12 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
   weak_form_options.use_stress_form = use_stress_form;
   strong_form_options.use_stress_form = use_stress_form;
 
-  BuoyantHydrodynamic::OptionalScalarArguments<dim>   &buoyancy_weak_form_options = scratch.weak_form_options;
+  BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_weak_form_options = scratch.weak_form_options;
   BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_strong_form_options = scratch.strong_form_options;
+
+  Advection::OptionalScalarArguments<dim> &density_weak_form_options = scratch.density_weak_form_options;
+  Advection::OptionalVectorArguments<dim> &density_strong_form_options = scratch.density_strong_form_options;
+
 
   scratch.fe_values[velocity].get_function_values(this->evaluation_point,
                                                   scratch.present_velocity_values);
@@ -217,10 +221,10 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
   if (reference_density_ptr != nullptr)
   {
     reference_density_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                         *buoyancy_strong_form_options.reference_density_gradients);
+                                         *density_strong_form_options.reference_gradients);
 
-    buoyancy_strong_form_options.stratification_number = stratification_number;
-    buoyancy_weak_form_options.stratification_number = stratification_number;
+    density_strong_form_options.gradient_scaling = stratification_number;
+    density_weak_form_options.gradient_scaling = stratification_number;
   }
 
   // gravity field
@@ -235,6 +239,7 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
 
   // stabilization
   if (this->stabilization & (apply_supg|apply_pspg))
+    LegacyBuoyantHydrodynamic::
     compute_strong_hydrodynamic_residual(scratch.present_velocity_values,
                                          scratch.present_velocity_gradients,
                                          scratch.present_velocity_laplaceans,
@@ -245,11 +250,12 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
                                          strong_form_options,
                                          buoyancy_strong_form_options);
 
+
   compute_strong_density_residual(scratch.present_density_gradients,
                                   scratch.present_velocity_values,
                                   scratch.present_strong_density_residuals,
                                   strong_form_options,
-                                  buoyancy_strong_form_options);
+                                  density_strong_form_options);
 
   for (const auto q: scratch.fe_values.quadrature_point_indices())
   {
@@ -290,9 +296,9 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
           strong_form_options.body_force_values->at(q);
 
     // reference density
-    if (buoyancy_strong_form_options.reference_density_gradients)
-      buoyancy_weak_form_options.reference_density_gradient =
-          buoyancy_strong_form_options.reference_density_gradients->at(q);
+    if (density_strong_form_options.reference_gradients)
+      density_weak_form_options.reference_gradient =
+          density_strong_form_options.reference_gradients->at(q);
 
     // gravity field
     if (buoyancy_strong_form_options.gravity_field_values)
@@ -310,7 +316,8 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
             scratch.sym_grad_phi_velocity[i];
 
       // rhs step 1: hydrodynamic part
-      double rhs = compute_hydrodynamic_rhs(scratch.phi_velocity[i],
+      double rhs = LegacyBuoyantHydrodynamic::
+                   compute_hydrodynamic_rhs(scratch.phi_velocity[i],
                                             scratch.grad_phi_velocity[i],
                                             scratch.present_velocity_values[q],
                                             scratch.present_velocity_gradients[q],
@@ -350,7 +357,7 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
                                  scratch.present_velocity_values[q],
                                  scratch.phi_density[i],
                                  weak_form_options,
-                                 buoyancy_weak_form_options);
+                                 density_weak_form_options);
 
       // standard stabilization terms
       {
