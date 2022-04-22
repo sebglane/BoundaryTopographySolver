@@ -17,7 +17,7 @@ using namespace dealii;
 namespace AssemblyData {
 
 template <int dim>
-class ScratchData : public MeshWorker::ScratchData<dim>
+class ScratchData : virtual public MeshWorker::ScratchData<dim>
 {
 public:
   ScratchData(

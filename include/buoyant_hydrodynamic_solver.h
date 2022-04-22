@@ -99,9 +99,9 @@ struct Scratch : Hydrodynamic::LegacyAssemblyData::Matrix::Scratch<dim>
 
   Scratch(const Scratch<dim>  &data);
 
-  OptionalArgumentsStrongForm<dim>  strong_form_options;
+  OptionalVectorArguments<dim>  strong_form_options;
 
-  OptionalArgumentsWeakForm<dim>    weak_form_options;
+  OptionalScalarArguments<dim>    weak_form_options;
 
   // shape functions
   std::vector<double>         phi_density;
@@ -149,9 +149,9 @@ struct Scratch : Hydrodynamic::LegacyAssemblyData::RightHandSide::Scratch<dim>
 
   Scratch(const Scratch<dim>  &data);
 
-  OptionalArgumentsStrongForm<dim>  strong_form_options;
+  OptionalVectorArguments<dim>  strong_form_options;
 
-  OptionalArgumentsWeakForm<dim>    weak_form_options;
+  OptionalScalarArguments<dim>    weak_form_options;
 
   // shape functions
   std::vector<double>         phi_density;
