@@ -24,6 +24,7 @@ template <int dim>
 class ScratchData : public Hydrodynamic::AssemblyData::Matrix::ScratchData<dim>,
                     public Advection::AssemblyData::ScratchData<dim>
 {
+public:
   ScratchData(
     const Mapping<dim>       &mapping,
     const FiniteElement<dim> &fe,
@@ -75,6 +76,7 @@ template <int dim>
 class ScratchData : public Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim>,
                     public Advection::AssemblyData::ScratchData<dim>
 {
+public:
   ScratchData(
     const Mapping<dim>       &mapping,
     const FiniteElement<dim> &fe,
