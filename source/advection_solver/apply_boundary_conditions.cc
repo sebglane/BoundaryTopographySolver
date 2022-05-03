@@ -26,7 +26,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
     this->apply_periodicity_constraints(scalar_boundary_conditions.periodic_bcs,
                                         this->fe_system->component_mask(scalar_field));
 
-  if (scalar_boundary_conditions.dirichlet_bcs.empty())
+  if (!scalar_boundary_conditions.dirichlet_bcs.empty())
     this->apply_dirichlet_constraints(scalar_boundary_conditions.dirichlet_bcs,
                                       this->fe_system->component_mask(scalar_field));
 }

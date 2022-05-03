@@ -8,7 +8,7 @@
 #ifndef INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 #define INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 
-#include <advection_options.h>
+#include <advection_solver.h>
 #include <buoyant_hydrodynamic_options.h>
 #include <hydrodynamic_solver.h>
 
@@ -24,7 +24,7 @@ using namespace BoundaryConditions;
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.
  */
-struct SolverParameters: Hydrodynamic::SolverParameters
+struct SolverParameters: Hydrodynamic::SolverParameters, Advection::SolverParameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
@@ -52,17 +52,6 @@ struct SolverParameters: Hydrodynamic::SolverParameters
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
-  /*!
-   * @brief Stabilization parameter controlling the SUPG term of the density equation.
-   */
-  double  c_density;
-
-  /*!
-   * @brief Minimal viscosity to stabilize the density equation in case of a
-   * vanishing velocity.
-   */
-  double  nu_density;
-
 };
 
 
@@ -75,7 +64,7 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 
-namespace AssemblyData {
+namespace LegacyAssemblyData {
 
 namespace Matrix {
 
@@ -182,31 +171,24 @@ struct Scratch : Hydrodynamic::LegacyAssemblyData::RightHandSide::Scratch<dim>
 
 } // namespace RightHandSide
 
-} // namespace AssemblyData
+} // namespace LegacyAssemblyData
 
 template <int dim,
           typename TriangulationType = Triangulation<dim>>
-class Solver: public Hydrodynamic::Solver<dim, TriangulationType>
+class Solver: public Hydrodynamic::Solver<dim, TriangulationType>,
+              public Advection::Solver<dim, TriangulationType>
 {
 
 public:
-  Solver(TriangulationType   &tria,
-         Mapping<dim>        &mapping,
-         const SolverParameters &parameters,
-         const double         reynolds_number = 1.0,
-         const double         froude_number = 0.0,
-         const double         stratification_number = 1.0,
-         const double         rossby_number = 0.0);
-
-  void set_reference_density(const std::shared_ptr<const Function<dim>> &reference_density);
+  Solver(TriangulationType       &tria,
+         Mapping<dim>            &mapping,
+         const SolverParameters  &parameters,
+         const double             reynolds_number = 1.0,
+         const double             froude_number = 0.0,
+         const double             stratification_number = 1.0,
+         const double             rossby_number = 0.0);
 
   void set_gravity_field(const std::shared_ptr<const TensorFunction<1, dim>> &gravity_field);
-
-  ScalarBoundaryConditions<dim>&  get_density_bcs();
-
-  const ScalarBoundaryConditions<dim>&  get_density_bcs() const;
-
-  double get_stratification_number() const;
 
 private:
   virtual void setup_fe_system();
@@ -222,14 +204,14 @@ private:
 
   void assemble_local_system
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
-   AssemblyData::Matrix::Scratch<dim> &scratch,
+   LegacyAssemblyData::Matrix::Scratch<dim> &scratch,
    AssemblyBaseData::Matrix::Copy     &data,
    const bool use_picard_linearization,
    const bool use_stress_tensor) const;
 
   void assemble_local_rhs
   (const typename DoFHandler<dim>::active_cell_iterator &cell,
-   AssemblyData::RightHandSide::Scratch<dim> &scratch,
+   LegacyAssemblyData::RightHandSide::Scratch<dim> &scratch,
    AssemblyBaseData::RightHandSide::Copy     &data,
    const bool use_stress_form) const;
 
@@ -238,65 +220,17 @@ private:
   virtual void postprocess_newton_iteration(const unsigned int iteration,
                                             const bool         is_initial_cycle);
 
-  ScalarBoundaryConditions<dim> density_boundary_conditions;
-
-  std::shared_ptr<const Function<dim>> reference_density_ptr;
-
   std::shared_ptr<const TensorFunction<1, dim>> gravity_field_ptr;
-
-  const double        stratification_number;
-
-  const unsigned int  density_fe_degree;
-
-  const double        c_density;
-
-  const double        nu_density;
 
 };
 
 // inline functions
-template <int dim, typename TriangulationType>
-inline const ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType>::get_density_bcs() const
-{
-  return density_boundary_conditions;
-}
-
-
-
-template <int dim, typename TriangulationType>
-inline ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType>::get_density_bcs()
-{
-  return density_boundary_conditions;
-}
-
-
-
-template <int dim, typename TriangulationType>
-inline void Solver<dim, TriangulationType>::set_reference_density
-(const std::shared_ptr<const Function<dim>> &reference_density)
-{
-  reference_density_ptr = reference_density;
-  return;
-}
-
-
-
 template <int dim, typename TriangulationType>
 inline void Solver<dim, TriangulationType>::set_gravity_field
 (const std::shared_ptr<const TensorFunction<1, dim>> &gravity_field)
 {
   gravity_field_ptr = gravity_field;
   return;
-}
-
-
-
-template <int dim, typename TriangulationType>
-inline double Solver<dim, TriangulationType>::get_stratification_number() const
-{
-  return (stratification_number);
 }
 
 }  // namespace TopographyProblem

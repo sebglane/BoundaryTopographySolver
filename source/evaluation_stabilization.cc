@@ -418,7 +418,7 @@ operator()
   if (this->stabilization & (apply_supg|apply_pspg))
     update_flags |= update_hessians;
 
-  using Scratch = AssemblyData::RightHandSide::Scratch<dim>;
+  using Scratch = LegacyAssemblyData::RightHandSide::Scratch<dim>;
   Scratch scratch(mapping,
                   quadrature_formula,
                   fe,

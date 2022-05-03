@@ -28,6 +28,10 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
   AssertThrow(gravity_field_ptr != nullptr,
               ExcMessage("For a buoyant fluid, the gravity field must be specified."));
 
+  AssertThrow(this->reference_field_ptr != nullptr,
+              ExcMessage("Reference field pointer not specified."));
+  AssertThrow(this->gradient_scaling_number > 0.0,
+              ExcMessage("The stratification number must not vanish."));
   AssertThrow(this->froude_number > 0.0,
               ExcMessage("For a buoyant fluid, the Froude number must be specified."));
   AssertThrow(this->reynolds_number > 0.0,
@@ -47,7 +51,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
   const QGauss<dim-1>   face_quadrature_formula(this->velocity_fe_degree + 1);
 
   // Set up the lambda function for the local assembly operation
-  using Scratch = AssemblyData::RightHandSide::Scratch<dim>;
+  using Scratch = LegacyAssemblyData::RightHandSide::Scratch<dim>;
   using Copy = AssemblyBaseData::RightHandSide::Copy;
   auto worker =
       [this, use_stress_form]
@@ -78,7 +82,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
   if (this->include_boundary_stress_terms)
     face_update_flags |= update_gradients|
                          update_normal_vectors;
-  if (!density_boundary_conditions.dirichlet_bcs.empty())
+  if (!this->scalar_boundary_conditions.dirichlet_bcs.empty())
     face_update_flags |= update_normal_vectors;
 
   using CellFilter = FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -103,8 +107,8 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
            this->include_boundary_stress_terms,
            !this->velocity_boundary_conditions.neumann_bcs.empty(),
            gravity_field_ptr != nullptr,
-           reference_density_ptr != nullptr,
-           !density_boundary_conditions.dirichlet_bcs.empty()),
+           this->reference_field_ptr != nullptr,
+           !this->scalar_boundary_conditions.dirichlet_bcs.empty()),
    Copy(this->fe_system->n_dofs_per_cell()));
 
   this->system_rhs.compress(VectorOperation::add);
@@ -115,7 +119,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
 template <int dim, typename TriangulationType>
 void Solver<dim, TriangulationType>::assemble_local_rhs
 (const typename DoFHandler<dim>::active_cell_iterator &cell,
- AssemblyData::RightHandSide::Scratch<dim> &scratch,
+ LegacyAssemblyData::RightHandSide::Scratch<dim> &scratch,
  AssemblyBaseData::RightHandSide::Copy     &data,
  const bool use_stress_form) const
 {
@@ -130,8 +134,8 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
   const FEValuesExtractors::Scalar  density(dim+1);
 
   const double nu{1.0 / this->reynolds_number};
-  const double delta{this->c * std::pow(cell->diameter(), 2)};
-  const double delta_density{c_density * std::pow(cell->diameter(), 2)};
+  const double delta{this->Advection::Solver<dim, TriangulationType>::c * std::pow(cell->diameter(), 2)};
+  const double delta_density{this->Advection::Solver<dim, TriangulationType>::c * std::pow(cell->diameter(), 2)};
 
   Hydrodynamic::OptionalScalarArguments<dim>    &weak_form_options = scratch.hydrodynamic_weak_form_options;
   Hydrodynamic::OptionalVectorArguments<dim>  &strong_form_options = scratch.hydrodynamic_strong_form_options;
@@ -218,13 +222,13 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
   }
 
   // reference density
-  if (reference_density_ptr != nullptr)
+  if (this->reference_field_ptr != nullptr)
   {
-    reference_density_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                         *density_strong_form_options.reference_gradients);
+    this->reference_field_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
+                                             *density_strong_form_options.reference_gradients);
 
-    density_strong_form_options.gradient_scaling = stratification_number;
-    density_weak_form_options.gradient_scaling = stratification_number;
+    density_strong_form_options.gradient_scaling = this->gradient_scaling_number;
+    density_weak_form_options.gradient_scaling = this->gradient_scaling_number;
   }
 
   // gravity field
@@ -379,7 +383,7 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
   const typename VectorBoundaryConditions<dim>::NeumannBCMapping
   &neumann_bcs = this->velocity_boundary_conditions.neumann_bcs;
   const typename ScalarBoundaryConditions<dim>::BCMapping
-  &dirichlet_bcs = density_boundary_conditions.dirichlet_bcs;
+  &dirichlet_bcs = this->scalar_boundary_conditions.dirichlet_bcs;
   if (!neumann_bcs.empty() || !dirichlet_bcs.empty())
     if (cell->at_boundary())
       for (const auto &face : cell->face_iterators())
@@ -507,12 +511,12 @@ void Solver<dim, TriangulationType>::assemble_local_rhs
 // explicit instantiation
 template void Solver<2>::assemble_local_rhs
 (const typename DoFHandler<2>::active_cell_iterator &cell,
- AssemblyData::RightHandSide::Scratch<2> &,
+ LegacyAssemblyData::RightHandSide::Scratch<2> &,
  AssemblyBaseData::RightHandSide::Copy   &,
  const bool) const;
 template void Solver<3>::assemble_local_rhs
 (const typename DoFHandler<3>::active_cell_iterator &cell,
- AssemblyData::RightHandSide::Scratch<3> &,
+ LegacyAssemblyData::RightHandSide::Scratch<3> &,
  AssemblyBaseData::RightHandSide::Copy   &,
  const bool) const;
 

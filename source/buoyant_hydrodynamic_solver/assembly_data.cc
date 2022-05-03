@@ -9,7 +9,7 @@
 
 namespace BuoyantHydrodynamic {
 
-namespace AssemblyData {
+namespace LegacyAssemblyData {
 
 namespace Matrix {
 

@@ -20,8 +20,7 @@ namespace BuoyantHydrodynamic {
 SolverParameters::SolverParameters()
 :
 Hydrodynamic::SolverParameters(),
-c_density(1.0),
-nu_density(1e-4)
+Advection::SolverParameters()
 {}
 
 
@@ -29,18 +28,7 @@ nu_density(1e-4)
 void SolverParameters::declare_parameters(ParameterHandler &prm)
 {
   Hydrodynamic::SolverParameters::declare_parameters(prm);
-
-  prm.enter_subsection("Buoyant hydrodynamic solver parameters");
-  {
-    prm.declare_entry("SUPG density stabilization parameter",
-                      "1.0",
-                      Patterns::Double(std::numeric_limits<double>::epsilon()));
-
-    prm.declare_entry("Minimal viscosity (density)",
-                      "1.0e-4",
-                      Patterns::Double(std::numeric_limits<double>::epsilon()));
-  }
-  prm.leave_subsection();
+  Advection::SolverParameters::declare_parameters(prm);
 }
 
 
@@ -48,20 +36,7 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
 void SolverParameters::parse_parameters(ParameterHandler &prm)
 {
   Hydrodynamic::SolverParameters::parse_parameters(prm);
-
-  prm.enter_subsection("Buoyant hydrodynamic solver parameters");
-  {
-    c_density = prm.get_double("SUPG density stabilization parameter");
-    AssertIsFinite(c_density);
-    Assert(c_density > 0.0, ExcLowerRangeType<double>(c_density, 0.0));
-
-    nu_density = prm.get_double("Minimal viscosity (density)");
-    AssertIsFinite(nu_density);
-    Assert(nu_density > 0.0, ExcLowerRangeType<double>(nu_density, 0.0));
-
-
-  }
-  prm.leave_subsection();
+  Advection::SolverParameters::parse_parameters(prm);
 }
 
 
@@ -70,12 +45,7 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const SolverParameters &prm)
 {
   stream << static_cast<const Hydrodynamic::SolverParameters &>(prm);
-
-  Utility::add_header(stream);
-  Utility::add_line(stream, "Buoyant hydrodynamic solver parameters");
-  Utility::add_line(stream, "SUPG density stab. parameter", prm.c_density);
-  Utility::add_line(stream, "Minimal viscosity (density)", prm.nu_density);
-  Utility::add_header(stream);
+  stream << static_cast<const Advection::SolverParameters &>(prm);
 
   return (stream);
 }
@@ -94,13 +64,8 @@ Solver<dim, TriangulationType>::Solver
 :
 Base::Solver<dim>(tria, mapping, parameters),
 Hydrodynamic::Solver<dim, TriangulationType>(tria, mapping, parameters, reynolds, froude, rossby),
-density_boundary_conditions(this->triangulation),
-reference_density_ptr(),
-gravity_field_ptr(),
-stratification_number(stratification),
-density_fe_degree(1),
-c_density(parameters.c_density),
-nu_density(parameters.nu_density)
+Advection::Solver<dim, TriangulationType>(tria, mapping, parameters, stratification),
+gravity_field_ptr()
 {}
 
 
