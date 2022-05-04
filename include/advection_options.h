@@ -61,8 +61,8 @@ struct OptionalVectorArguments : OptionalArguments
   std::optional<std::vector<double>>          source_term_values;
 
   // boundary term
-  std::vector<double>         boundary_values;
-  std::vector<Tensor<1,dim>>  advection_field_face_values;
+  std::vector<double>                         boundary_values;
+  std::vector<Tensor<1,dim>>                  advection_field_face_values;
 
   // background advection field
   std::optional<std::vector<Tensor<1, dim>>>  background_advection_values;
