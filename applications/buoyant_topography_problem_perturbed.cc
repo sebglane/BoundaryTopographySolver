@@ -77,7 +77,7 @@ template <int dim>
 class Problem : public BuoyantHydrodynamicProblem<dim>
 {
 public:
-  Problem(ProblemParameters &parameters);
+  Problem(const ProblemParameters &parameters);
 
 protected:
   virtual void make_grid() override;
@@ -115,7 +115,7 @@ private:
 
 
 template <>
-Problem<2>::Problem(ProblemParameters &parameters)
+Problem<2>::Problem(const ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<2>(parameters),
 traction_evaluation_ptr(
@@ -148,10 +148,10 @@ front_bndry_id(numbers::invalid_boundary_id)
   Assert(reference_density_ptr->gradient(point) * gravity_field_ptr->value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 
-  Hydrodynamic::SolverParameters &hydrodynamic_parameters =
-  static_cast<Hydrodynamic::SolverParameters &>(parameters);
-  Hydrodynamic::SolverParameters &advection_parameters =
-  static_cast<Hydrodynamic::SolverParameters &>(parameters);
+  const Hydrodynamic::SolverParameters &hydrodynamic_parameters =
+  static_cast<const Hydrodynamic::SolverParameters &>(parameters);
+  const Advection::SolverParameters &advection_parameters =
+  static_cast<const Advection::SolverParameters &>(parameters);
 
   stabilization_evaluation_ptr->set_stabilization_parameters(hydrodynamic_parameters.c, hydrodynamic_parameters.mu, advection_parameters.c);
   stabilization_evaluation_ptr->set_background_velocity(background_velocity_ptr);
@@ -162,7 +162,7 @@ front_bndry_id(numbers::invalid_boundary_id)
 
 
 template <>
-Problem<3>::Problem(ProblemParameters &parameters)
+Problem<3>::Problem(const ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<3>(parameters),
 traction_evaluation_ptr(
@@ -195,10 +195,10 @@ front_bndry_id(numbers::invalid_boundary_id)
   Assert(reference_density_ptr->gradient(point) * gravity_field_ptr->value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 
-  Hydrodynamic::SolverParameters &hydrodynamic_parameters =
-  static_cast<Hydrodynamic::SolverParameters &>(parameters);
-  Hydrodynamic::SolverParameters &advection_parameters =
-  static_cast<Hydrodynamic::SolverParameters &>(parameters);
+  const Hydrodynamic::SolverParameters &hydrodynamic_parameters =
+  static_cast<const Hydrodynamic::SolverParameters &>(parameters);
+  const Advection::SolverParameters &advection_parameters =
+  static_cast<const Advection::SolverParameters &>(parameters);
 
   stabilization_evaluation_ptr->set_stabilization_parameters(hydrodynamic_parameters.c, hydrodynamic_parameters.mu, advection_parameters.c);
   stabilization_evaluation_ptr->set_background_velocity(background_velocity_ptr);

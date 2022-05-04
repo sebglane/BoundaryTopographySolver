@@ -25,7 +25,6 @@ void Solver<dim, TriangulationType>::assemble_system
     AssertThrow(this->rossby_number > 0.0,
                 ExcMessage("Non-vanishing Rossby number is required if the angular "
                            "velocity vector is specified."));
-
   if (this->body_force_ptr != nullptr)
     AssertThrow(this->froude_number > 0.0,
                 ExcMessage("Non-vanishing Froude number is required if the body "

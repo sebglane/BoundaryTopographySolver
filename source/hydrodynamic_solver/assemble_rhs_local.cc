@@ -8,7 +8,6 @@
 #include <assembly_functions.h>
 #include <hydrodynamic_solver.h>
 
-#include <functional>
 #include <optional>
 
 namespace Hydrodynamic {
