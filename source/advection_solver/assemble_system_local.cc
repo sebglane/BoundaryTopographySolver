@@ -28,24 +28,16 @@ assemble_system_local_cell
   const auto &present_gradients = scratch.get_gradients("evaluation_point",
                                                         FEValuesExtractors::Scalar(FEValuesExtractors::Scalar(scalar_fe_index)));
 
-  // source term
-  if (source_term_ptr != nullptr)
-    source_term_ptr->value_list(scratch.get_quadrature_points(),
-                                *scratch.vector_options.source_term_values);
-
-  // reference field
-  if (reference_field_ptr != nullptr)
-  {
-    reference_field_ptr->gradient_list(scratch.get_quadrature_points(),
-                                       *scratch.vector_options.reference_gradients);
-
-    scratch.scalar_options.gradient_scaling = gradient_scaling_number;
-    scratch.vector_options.gradient_scaling = gradient_scaling_number;
-  }
-
   // advection field
   advection_field_ptr->value_list(scratch.get_quadrature_points(),
                                   scratch.advection_field_values);
+
+  // options
+  scratch.assign_vector_options_local_cell(source_term_ptr,
+                                           nullptr,
+                                           reference_field_ptr,
+                                           gradient_scaling_number);
+  scratch.adjust_advection_field_local_cell();
 
   // stabilization parameter
   const double delta{c * std::pow(cell->diameter(), 2)};
@@ -54,13 +46,7 @@ assemble_system_local_cell
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
   {
-    // source term
-    if (scratch.vector_options.source_term_values)
-      scratch.scalar_options.source_term_value = scratch.vector_options.source_term_values->at(q);
-
-    // reference field
-    if (scratch.vector_options.reference_gradients)
-      scratch.scalar_options.reference_gradient = scratch.vector_options.reference_gradients->at(q);
+    scratch.assign_scalar_options_local_cell(q);
 
     for (const auto i: fe_values.dof_indices())
     {
