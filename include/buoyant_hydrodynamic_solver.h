@@ -9,6 +9,7 @@
 #define INCLUDE_BUOYANT_HYDRODYNAMIC_SOLVER_H_
 
 #include <advection_solver.h>
+#include <buoyant_hydrodynamic_assembly_data.h>
 #include <buoyant_hydrodynamic_options.h>
 #include <hydrodynamic_solver.h>
 
@@ -202,12 +203,33 @@ private:
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints);
 
-  void assemble_local_system
-  (const typename DoFHandler<dim>::active_cell_iterator &cell,
-   LegacyAssemblyData::Matrix::Scratch<dim> &scratch,
-   AssemblyBaseData::Matrix::Copy     &data,
-   const bool use_picard_linearization,
-   const bool use_stress_tensor) const;
+  void assemble_system_local_cell
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<1,1,1>                           &data,
+   const bool                                             use_newton_linearization,
+   const bool                                             use_stress_tensor) const;
+
+  void assemble_system_local_boundary
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   const unsigned int                                     face_number,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<1,1,1>                           &data,
+   const bool                                             use_newton_linearization,
+   const bool                                             use_stress_tensor) const;
+
+  void assemble_rhs_local_cell
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<0,1,1>                           &data,
+   const bool                                             use_stress_form) const;
+
+  void assemble_rhs_local_boundary
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   const unsigned int                                     face_number,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<0,1,1>                           &data,
+   const bool                                             use_stress_form) const;
 
   void assemble_local_rhs
   (const typename DoFHandler<dim>::active_cell_iterator &cell,

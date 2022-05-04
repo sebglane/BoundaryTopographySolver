@@ -62,7 +62,7 @@ Solver<dim, TriangulationType>::Solver
  const double           stratification,
  const double           rossby)
 :
-Base::Solver<dim>(tria, mapping, parameters),
+Base::Solver<dim, TriangulationType>(tria, mapping, parameters),
 Hydrodynamic::Solver<dim, TriangulationType>(tria, mapping, parameters, reynolds, froude, rossby),
 Advection::Solver<dim, TriangulationType>(tria, mapping, parameters, stratification),
 gravity_field_ptr()
@@ -76,9 +76,10 @@ void Solver<dim, TriangulationType>::output_results(const unsigned int cycle) co
   if (this->verbose)
     this->pcout << "    Output results..." << std::endl;
 
-  Hydrodynamic::Postprocessor<dim>  postprocessor(0, dim);
+  Hydrodynamic::Postprocessor<dim>  postprocessor(this->velocity_fe_index,
+                                                  this->pressure_fe_index);
 
-  Utility::PostprocessorScalarField<dim>  density_postprocessor("density", dim+1);
+  Utility::PostprocessorScalarField<dim>  density_postprocessor("density", this->scalar_fe_index);
 
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
