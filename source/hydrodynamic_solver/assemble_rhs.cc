@@ -128,35 +128,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
 
 
 
-
-template <int dim, typename TriangulationType>
-void Solver<dim, TriangulationType>::legacy_copy_local_to_global_rhs
-(const AssemblyBaseData::RightHandSide::Copy  &data,
- const bool use_homogeneous_constraints)
-{
-  const AffineConstraints<double> &constraints =
-      (use_homogeneous_constraints ? this->zero_constraints: this->nonzero_constraints);
-
-  constraints.distribute_local_to_global(data.local_rhs,
-                                         data.local_dof_indices,
-                                         this->system_rhs);
-}
-
-
 // explicit instantiation
-template
-void
-Solver<2>::
-legacy_copy_local_to_global_rhs
-(const AssemblyBaseData::RightHandSide::Copy  &data,
- const bool use_homogeneous_constraints);
-template
-void
-Solver<3>::
-legacy_copy_local_to_global_rhs
-(const AssemblyBaseData::RightHandSide::Copy  &data,
- const bool use_homogeneous_constraints);
-
 template void Solver<2>::assemble_rhs(const bool);
 template void Solver<3>::assemble_rhs(const bool);
 

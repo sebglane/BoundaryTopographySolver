@@ -3,7 +3,6 @@ SET(TARGET "boundary_topography")
 
 SET(TARGET_SRC
     angular_velocity.cc
-    legacy_assembly_base_data.cc
     block_schur_preconditioner.cc
     boundary_conditions.cc
     evaluation_boundary_traction.cc
@@ -24,7 +23,6 @@ SET(TARGET_SRC
     hydrodynamic_postprocessor.cc
     hydrodynamic_problem.cc
     hydrodynamic_solver/apply_boundary_conditions.cc
-    hydrodynamic_solver/assembly_data.cc
     hydrodynamic_solver/assemble_rhs.cc
     hydrodynamic_solver/assemble_rhs_local.cc
     hydrodynamic_solver/assemble_system.cc
@@ -36,7 +34,6 @@ SET(TARGET_SRC
     buoyant_hydrodynamic_options.cc
     buoyant_hydrodynamic_problem.cc
     buoyant_hydrodynamic_solver/apply_boundary_conditions.cc
-    buoyant_hydrodynamic_solver/assembly_data.cc
     buoyant_hydrodynamic_solver/assemble_system.cc
     buoyant_hydrodynamic_solver/assemble_system_local.cc
     buoyant_hydrodynamic_solver/assemble_rhs.cc
