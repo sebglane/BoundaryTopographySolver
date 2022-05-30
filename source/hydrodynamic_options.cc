@@ -39,11 +39,7 @@ OptionalArguments<dim>(use_stress_form),
 velocity_trial_function_symmetric_gradient(),
 velocity_test_function_symmetric_gradient(),
 present_symmetric_velocity_gradient(),
-pressure_test_function_gradient(),
-velocity_test_function_gradient(),
 velocity_trial_function_grad_divergence(),
-background_velocity_value(),
-background_velocity_gradient(),
 body_force_value()
 {}
 
@@ -57,11 +53,7 @@ OptionalArguments<dim>(other),
 velocity_trial_function_symmetric_gradient(other.velocity_trial_function_symmetric_gradient),
 velocity_test_function_symmetric_gradient(other.velocity_test_function_symmetric_gradient),
 present_symmetric_velocity_gradient(other.present_symmetric_velocity_gradient),
-pressure_test_function_gradient(other.pressure_test_function_gradient),
-velocity_test_function_gradient(other.velocity_test_function_gradient),
 velocity_trial_function_grad_divergence(other.velocity_trial_function_grad_divergence),
-background_velocity_value(other.background_velocity_value),
-background_velocity_gradient(other.background_velocity_gradient),
 body_force_value(other.body_force_value)
 {}
 
@@ -69,19 +61,34 @@ body_force_value(other.body_force_value)
 
 template<int dim>
 OptionalVectorArguments<dim>::OptionalVectorArguments
-(const StabilizationFlags stabilization,
+(const StabilizationFlags &stabilization,
  const bool use_stress_form,
  const bool allocate_background_velocity,
  const bool allocate_body_force,
- const unsigned int n_q_points)
+ const bool allocate_traction,
+ const unsigned int n_q_points,
+ const unsigned int n_face_q_points)
 :
 OptionalArguments<dim>(use_stress_form),
+present_velocity_laplaceans(),
+present_pressure_gradients(),
+present_sym_velocity_gradients(),
 present_velocity_grad_divergences(),
 background_velocity_values(),
 background_velocity_gradients(),
-body_force_values()
+body_force_values(),
+boundary_traction_values()
 {
-  if (use_stress_form && (stabilization & (apply_supg|apply_pspg)))
+  if (stabilization & (apply_supg|apply_pspg))
+  {
+    present_velocity_laplaceans.emplace(n_q_points);
+    present_pressure_gradients.emplace(n_q_points);
+  }
+
+  if (this->use_stress_form)
+    present_sym_velocity_gradients.emplace(n_q_points);
+
+  if (this->use_stress_form && (stabilization & (apply_supg|apply_pspg)))
     present_velocity_grad_divergences.emplace(n_q_points);
 
   if (allocate_background_velocity)
@@ -92,6 +99,10 @@ body_force_values()
 
   if (allocate_body_force)
     body_force_values.emplace(n_q_points);
+
+  if (allocate_traction)
+    boundary_traction_values.resize(n_face_q_points);
+
 }
 
 
@@ -101,10 +112,14 @@ OptionalVectorArguments<dim>::OptionalVectorArguments
 (const OptionalVectorArguments<dim> &other)
 :
 OptionalArguments<dim>(other),
+present_velocity_laplaceans(other.present_velocity_laplaceans),
+present_pressure_gradients(other.present_pressure_gradients),
+present_sym_velocity_gradients(other.present_sym_velocity_gradients),
 present_velocity_grad_divergences(other.present_velocity_grad_divergences),
 background_velocity_values(other.background_velocity_values),
 background_velocity_gradients(other.background_velocity_gradients),
-body_force_values(other.body_force_values)
+body_force_values(other.body_force_values),
+boundary_traction_values(other.boundary_traction_values)
 {}
 
 // explicit instantiations

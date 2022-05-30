@@ -48,9 +48,6 @@ assemble_system_local_cell
   ScratchData<dim> &advection_scratch
     = static_cast<Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
 
-  hydrodynamic_scratch.scalar_options.use_stress_form = use_stress_form;
-  hydrodynamic_scratch.vector_options.use_stress_form = use_stress_form;
-
   // solution values
   const auto &present_velocity_values = scratch.get_values("evaluation_point",
                                                             velocity);
@@ -203,12 +200,12 @@ assemble_system_local_cell
           present_sym_velocity_gradients->at(q);
 
     // background field
+    std::optional<Tensor<1,dim>>  background_velocity_value;
     if (hydrodynamic_scratch.vector_options.background_velocity_values)
-      hydrodynamic_scratch.scalar_options.background_velocity_value =
-          hydrodynamic_scratch.vector_options.background_velocity_values->at(q);
+      background_velocity_value = hydrodynamic_scratch.vector_options.background_velocity_values->at(q);
+    std::optional<Tensor<2,dim>>  background_velocity_gradient;
     if (hydrodynamic_scratch.vector_options.background_velocity_gradients)
-      hydrodynamic_scratch.scalar_options.background_velocity_gradient =
-          hydrodynamic_scratch.vector_options.background_velocity_gradients->at(q);
+      background_velocity_gradient = hydrodynamic_scratch.vector_options.background_velocity_gradients->at(q);
 
     // body force
     if (hydrodynamic_scratch.vector_options.body_force_values)
@@ -241,12 +238,12 @@ assemble_system_local_cell
             hydrodynamic_scratch.sym_grad_phi_velocity[i];
 
       // stabilization
+      std::optional<Tensor<2,dim>> optional_velocity_test_function_gradient;
       if (this->stabilization & apply_supg)
-        hydrodynamic_scratch.scalar_options.velocity_test_function_gradient =
-            velocity_test_function_gradient;
+        optional_velocity_test_function_gradient = velocity_test_function_gradient;
+      std::optional<Tensor<1,dim>> pressure_test_function_gradient;
       if (this->stabilization & apply_pspg)
-        hydrodynamic_scratch.scalar_options.pressure_test_function_gradient =
-            hydrodynamic_scratch.grad_phi_pressure[i];
+        pressure_test_function_gradient = scratch.grad_phi_pressure[i];
 
       for (const auto j: fe_values.dof_indices())
       {
@@ -257,7 +254,7 @@ assemble_system_local_cell
 
 
         // matrix step 1: hydrodynamic part
-        double matrix = LegacyBuoyantHydrodynamic::
+        double matrix = BuoyantHydrodynamic::
                         compute_hydrodynamic_matrix(hydrodynamic_scratch.phi_velocity[j],
                                                     hydrodynamic_scratch.grad_phi_velocity[j],
                                                     velocity_test_function,
@@ -270,6 +267,8 @@ assemble_system_local_cell
                                                     nu,
                                                     hydrodynamic_scratch.scalar_options,
                                                     scratch.scalar_options,
+                                                    background_velocity_value,
+                                                    background_velocity_gradient,
                                                     use_newton_linearization);
 
         if (this->stabilization & (apply_supg|apply_pspg))
@@ -279,7 +278,8 @@ assemble_system_local_cell
             hydrodynamic_scratch.scalar_options.velocity_trial_function_grad_divergence =
                 hydrodynamic_scratch.grad_div_phi_velocity[j];
 
-          matrix += delta * LegacyBuoyantHydrodynamic::
+
+          matrix += delta * BuoyantHydrodynamic::
                     compute_hydrodynamic_residual_linearization_matrix(hydrodynamic_scratch.phi_velocity[j],
                                                                        hydrodynamic_scratch.grad_phi_velocity[j],
                                                                        hydrodynamic_scratch.laplace_phi_velocity[j],
@@ -287,9 +287,13 @@ assemble_system_local_cell
                                                                        present_velocity_values[q],
                                                                        present_velocity_gradients[q],
                                                                        advection_scratch.phi[j],
+                                                                       optional_velocity_test_function_gradient,
+                                                                       pressure_test_function_gradient,
                                                                        nu,
                                                                        hydrodynamic_scratch.scalar_options,
                                                                        scratch.scalar_options,
+                                                                       background_velocity_value,
+                                                                       background_velocity_gradient,
                                                                        use_newton_linearization);
 
           if (this->stabilization & apply_supg)
@@ -308,8 +312,8 @@ assemble_system_local_cell
                                          present_density_gradients[q],
                                          present_velocity_values[q],
                                          density_test_function,
-                                         hydrodynamic_scratch.scalar_options,
                                          advection_scratch.scalar_options,
+                                         background_velocity_value,
                                          use_newton_linearization);
 
         // standard stabilization terms
@@ -320,8 +324,8 @@ assemble_system_local_cell
                                                                 present_density_gradients[q],
                                                                 present_velocity_values[q],
                                                                 nu_density,
-                                                                hydrodynamic_scratch.scalar_options,
                                                                 advection_scratch.scalar_options,
+                                                                background_velocity_value,
                                                                 use_newton_linearization);
         matrix += delta_density * present_strong_density_residuals[q] *
                   (hydrodynamic_scratch.phi_velocity[j] * density_test_function_gradient);
@@ -330,7 +334,7 @@ assemble_system_local_cell
       }
 
       // rhs step 1: hydrodynamic part
-      double rhs = LegacyBuoyantHydrodynamic::
+      double rhs = BuoyantHydrodynamic::
                    compute_hydrodynamic_rhs(velocity_test_function,
                                             velocity_test_function_gradient,
                                             present_velocity_values[q],
@@ -340,7 +344,9 @@ assemble_system_local_cell
                                             pressure_test_function,
                                             nu,
                                             hydrodynamic_scratch.scalar_options,
-                                            scratch.scalar_options);
+                                            scratch.scalar_options,
+                                            background_velocity_value,
+                                            background_velocity_gradient);
 
       if (this->stabilization & (apply_supg|apply_pspg))
       {
@@ -350,9 +356,9 @@ assemble_system_local_cell
         {
           stabilization_test_function += velocity_test_function_gradient *
                                          present_velocity_values[q];
-          if (hydrodynamic_scratch.scalar_options.background_velocity_value)
+          if (background_velocity_value)
             stabilization_test_function += velocity_test_function_gradient *
-                                           *hydrodynamic_scratch.scalar_options.background_velocity_value;
+                                           *background_velocity_value;
         }
         if (this->stabilization & apply_pspg)
           stabilization_test_function += hydrodynamic_scratch.grad_phi_pressure[i];
@@ -365,16 +371,16 @@ assemble_system_local_cell
       rhs += compute_density_rhs(present_density_gradients[q],
                                  present_velocity_values[q],
                                  density_test_function,
-                                 hydrodynamic_scratch.scalar_options,
-                                 advection_scratch.scalar_options);
+                                 advection_scratch.scalar_options,
+                                 background_velocity_value);
 
       // standard stabilization terms
       {
         double stabilization_test_function{present_velocity_values[q] *
                                            density_test_function_gradient};
 
-        if (hydrodynamic_scratch.scalar_options.background_velocity_value)
-          stabilization_test_function += *hydrodynamic_scratch.scalar_options.background_velocity_value *
+        if (background_velocity_value)
+          stabilization_test_function += *background_velocity_value *
                                          density_test_function_gradient;
 
         rhs -= delta_density * present_strong_density_residuals[q] *
@@ -399,7 +405,7 @@ assemble_system_local_boundary
  AssemblyData::Matrix::ScratchData<dim>                &scratch,
  MeshWorker::CopyData<1,1,1>                           &data,
  const bool                                             /* use_newton_linearization */,
- const bool                                             use_stress_tensor) const
+ const bool                                             /* use_stress_tensor */) const
 {
   const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
   const FEValuesExtractors::Scalar  pressure(this->pressure_fe_index);
@@ -475,11 +481,16 @@ assemble_system_local_boundary
       const auto &fe_face_values = scratch.reinit(cell, face_number);
       const auto &JxW = scratch.get_JxW_values();
 
-      // boundary values
-      AssertDimension(fe_face_values.n_quadrature_points,
-                      scratch.boundary_traction_values.size());
-      neumann_bcs.at(boundary_id)->value_list(scratch.get_quadrature_points(),
-                                              hydrodynamic_scratch.boundary_traction_values);
+      // assign vector options
+      hydrodynamic_scratch.assign_vector_options_local_boundary("",
+                                                                velocity,
+                                                                pressure,
+                                                                0.0,
+                                                                neumann_bcs.at(boundary_id),
+                                                                this->background_velocity_ptr);
+
+      // boundary traction
+      const auto &boundary_tractions{hydrodynamic_scratch.vector_options.boundary_traction_values};
 
       // loop over face quadrature points
       for (const auto q: fe_face_values.quadrature_point_indices())
@@ -491,11 +502,10 @@ assemble_system_local_boundary
         // loop over the degrees of freedom
         for (const auto i: fe_face_values.dof_indices())
           data.vectors[0](i) += hydrodynamic_scratch.phi_velocity[i] *
-                                hydrodynamic_scratch.boundary_traction_values[q] *
+                                boundary_tractions[q] *
                                 JxW[q];
-
-        } // loop over face quadrature points
-      }
+      } // loop over face quadrature points
+    }
 
   // unconstrained boundary condition
   if (this->include_boundary_stress_terms)
@@ -508,36 +518,23 @@ assemble_system_local_boundary
       const auto &fe_face_values = scratch.reinit(cell, face_number);
       const auto &JxW = scratch.get_JxW_values();
 
+      // evaluate solution
       scratch.extract_local_dof_values("evaluation_point",
                                        this->evaluation_point);
-      const auto &present_pressure_values = scratch.get_values("evaluation_point",
-                                                               pressure);
 
       // normal vectors
-      const auto &normal_vectors = scratch.get_normal_vectors();
+      const auto &face_normal_vectors = scratch.get_normal_vectors();
 
-      // compute present boundary traction
-      AssertDimension(fe_face_values.n_quadrature_points,
-                      hydrodynamic_scratch.boundary_traction_values.size());
-      if (use_stress_tensor)
-      {
-        const auto &present_velocity_sym_gradients
-          = scratch.get_symmetric_gradients("evaluation_point",
-                                            velocity);
-        for (const auto q: fe_face_values.quadrature_point_indices())
-          hydrodynamic_scratch.boundary_traction_values[q] =
-            - present_pressure_values[q] * normal_vectors[q]
-            + 2.0 * nu * present_velocity_sym_gradients[q] * normal_vectors[q];
-      }
-      else
-      {
-        const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                                       velocity);
-        for (const auto q: fe_face_values.quadrature_point_indices())
-          hydrodynamic_scratch.boundary_traction_values[q] =
-            - present_pressure_values[q] * normal_vectors[q]
-            + nu * present_velocity_gradients[q] * normal_vectors[q];
-      }
+      // assign vector options
+      hydrodynamic_scratch.assign_vector_options_local_boundary("evaluation_point",
+                                                                velocity,
+                                                                pressure,
+                                                                nu,
+                                                                nullptr,
+                                                                this->background_velocity_ptr);
+
+      // boundary traction
+      const auto &boundary_tractions{hydrodynamic_scratch.vector_options.boundary_traction_values};
 
       // loop over face quadrature points
       for (const auto q: fe_face_values.quadrature_point_indices())
@@ -547,35 +544,33 @@ assemble_system_local_boundary
         {
           hydrodynamic_scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
           hydrodynamic_scratch.phi_pressure[i] = fe_face_values[pressure].value(i, q);
-
-          if (use_stress_tensor)
-            hydrodynamic_scratch.sym_grad_phi_velocity[i] = fe_face_values[velocity].symmetric_gradient(i, q);
-          else
-            hydrodynamic_scratch.grad_phi_velocity[i] = fe_face_values[velocity].gradient(i, q);
         }
 
+        // assign optional shape functions
+        hydrodynamic_scratch.assign_optional_shape_functions_local_boundary(velocity, q);
+
         // loop over the degrees of freedom
-        if (use_stress_tensor)
+        if (hydrodynamic_scratch.vector_options.use_stress_form)
           for (const auto i: fe_face_values.dof_indices())
             for (const auto j: fe_face_values.dof_indices())
               data.matrices[0](i, j) -=
-                  (-hydrodynamic_scratch.phi_pressure[j] * normal_vectors[q] +
-                   2.0 * nu * hydrodynamic_scratch.sym_grad_phi_velocity[j] * normal_vectors[q]) *
+                  (-hydrodynamic_scratch.phi_pressure[j] * face_normal_vectors[q] +
+                   2.0 * nu * hydrodynamic_scratch.sym_grad_phi_velocity[j] * face_normal_vectors[q]) *
                    hydrodynamic_scratch.phi_velocity[i] * JxW[q];
         else
           for (const auto i: fe_face_values.dof_indices())
             for (const auto j: fe_face_values.dof_indices())
               data.matrices[0](i, j) -=
-                  (-hydrodynamic_scratch.phi_pressure[j] * normal_vectors[q] +
-                   nu * hydrodynamic_scratch.grad_phi_velocity[j] * normal_vectors[q]) *
+                  (-hydrodynamic_scratch.phi_pressure[j] * face_normal_vectors[q] +
+                   nu * hydrodynamic_scratch.grad_phi_velocity[j] * face_normal_vectors[q]) *
                    hydrodynamic_scratch.phi_velocity[i] * JxW[q];
 
         for (const auto i: fe_face_values.dof_indices())
           data.vectors[0](i) += hydrodynamic_scratch.phi_velocity[i] *
-                                hydrodynamic_scratch.boundary_traction_values[q] *
+                                boundary_tractions[q] *
                                 JxW[q];
-      } // loop over face quadrature points
 
+      } // loop over face quadrature points
     }
 }
 
