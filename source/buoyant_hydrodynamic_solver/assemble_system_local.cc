@@ -49,10 +49,12 @@ assemble_system_local_cell
     = static_cast<Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
 
   // solution values
-  const auto &present_velocity_values = scratch.get_values("evaluation_point",
-                                                            velocity);
-  const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                                 velocity);
+  auto &present_velocity_values = hydrodynamic_scratch.present_velocity_values;
+  auto &present_velocity_gradients = hydrodynamic_scratch.present_velocity_gradients;
+  present_velocity_values = scratch.get_values("evaluation_point",
+                                               velocity);
+  present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                     velocity);
   const auto &present_pressure_values = scratch.get_values("evaluation_point",
                                                            pressure);
   const auto &present_density_values = scratch.get_values("evaluation_point",
@@ -60,63 +62,17 @@ assemble_system_local_cell
   const auto &present_density_gradients = scratch.get_gradients("evaluation_point",
                                                                 density);
 
-  // stress form
-  std::optional<std::vector<SymmetricTensor<2, dim>>> present_sym_velocity_gradients;
-  if (use_stress_form)
-    present_sym_velocity_gradients = scratch.get_symmetric_gradients("evaluation_point",
-                                                                     velocity);
-  // stabilization related solution values
-  std::vector<Tensor<1, dim>> present_velocity_laplaceans(fe_values.n_quadrature_points);
-  std::vector<Tensor<1, dim>> present_pressure_gradients(fe_values.n_quadrature_points);
-  if (this->stabilization & (apply_supg|apply_pspg))
-  {
-    present_velocity_laplaceans = scratch.get_laplacians("evaluation_point",
-                                                         velocity);
-    present_pressure_gradients = scratch.get_gradients("evaluation_point",
-                                                       pressure);
-    if (use_stress_form)
-    {
-      const auto &present_hessians = scratch.get_hessians("evaluation_point",
-                                                          velocity);
+  // assign vector options
+  hydrodynamic_scratch.assign_vector_options_local_cell("evaluation_point",
+                                                        velocity,
+                                                        pressure,
+                                                        this->angular_velocity_ptr,
+                                                        this->body_force_ptr,
+                                                        this->background_velocity_ptr,
+                                                        this->rossby_number,
+                                                        this->froude_number);
+  hydrodynamic_scratch.adjust_velocity_field_local_cell();
 
-      std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
-          hydrodynamic_scratch.vector_options.present_velocity_grad_divergences.value();
-      for (std::size_t q=0; q<present_hessians.size(); ++q)
-      {
-        present_velocity_grad_divergences[q] = 0;
-        for (unsigned int d=0; d<dim; ++d)
-          present_velocity_grad_divergences[q] += present_hessians[q][d][d];
-      }
-    }
-  }
-
-  // body force
-  if (this->body_force_ptr != nullptr)
-  {
-    this->body_force_ptr->value_list(scratch.get_quadrature_points(),
-                                     *hydrodynamic_scratch.vector_options.body_force_values);
-    hydrodynamic_scratch.vector_options.froude_number = this->froude_number;
-    hydrodynamic_scratch.scalar_options.froude_number = this->froude_number;
-  }
-
-  // background field
-  if (this->background_velocity_ptr != nullptr)
-  {
-    this->background_velocity_ptr->value_list(scratch.get_quadrature_points(),
-                                              *hydrodynamic_scratch.vector_options.background_velocity_values);
-    this->background_velocity_ptr->gradient_list(scratch.get_quadrature_points(),
-                                                 *hydrodynamic_scratch.vector_options.background_velocity_gradients);
-  }
-
-  // Coriolis term
-  if (this->angular_velocity_ptr != nullptr)
-  {
-    hydrodynamic_scratch.vector_options.angular_velocity = this->angular_velocity_ptr->value();
-    hydrodynamic_scratch.vector_options.rossby_number = this->rossby_number;
-
-    hydrodynamic_scratch.scalar_options.angular_velocity = this->angular_velocity_ptr->value();
-    hydrodynamic_scratch.scalar_options.rossby_number = this->rossby_number;
-  }
 
   // reference density
   if (this->reference_field_ptr != nullptr)
@@ -140,11 +96,8 @@ assemble_system_local_cell
 
   // stabilization
   if (this->stabilization & (apply_supg|apply_pspg))
-    LegacyBuoyantHydrodynamic::
     compute_strong_hydrodynamic_residual(present_velocity_values,
                                          present_velocity_gradients,
-                                         present_velocity_laplaceans,
-                                         present_pressure_gradients,
                                          present_density_values,
                                          hydrodynamic_scratch.present_strong_residuals,
                                          nu,
@@ -155,7 +108,6 @@ assemble_system_local_cell
   compute_strong_density_residual(present_density_gradients,
                                   present_velocity_values,
                                   present_strong_density_residuals,
-                                  hydrodynamic_scratch.vector_options,
                                   advection_scratch.vector_options);
 
   for (const auto q: fe_values.quadrature_point_indices())
@@ -166,51 +118,16 @@ assemble_system_local_cell
       hydrodynamic_scratch.grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
       hydrodynamic_scratch.div_phi_velocity[i] = fe_values[velocity].divergence(i, q);
       hydrodynamic_scratch.phi_pressure[i] = fe_values[pressure].value(i, q);
+      hydrodynamic_scratch.grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
       advection_scratch.phi[i] = fe_values[density].value(i, q);
       advection_scratch.grad_phi[i] = fe_values[density].gradient(i, q);
     }
 
-    // stress form
-    if (use_stress_form)
-      for (const auto i: fe_values.dof_indices())
-        hydrodynamic_scratch.sym_grad_phi_velocity[i] = fe_values[velocity].symmetric_gradient(i, q);
+    // assign optional shape functions
+    hydrodynamic_scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
 
-    // stabilization related shape functions
-    if (this->stabilization & (apply_supg|apply_pspg))
-      for (const auto i: fe_values.dof_indices())
-      {
-        hydrodynamic_scratch.grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
-
-        const Tensor<3, dim> shape_hessian{fe_values[velocity].hessian(i, q)};
-        for (unsigned int d=0; d<dim; ++d)
-          hydrodynamic_scratch.laplace_phi_velocity[i][d] = trace(shape_hessian[d]);
-
-        // stress form
-        if (use_stress_form)
-        {
-          hydrodynamic_scratch.grad_div_phi_velocity[i] = 0;
-          for (unsigned int d=0; d<dim; ++d)
-            hydrodynamic_scratch.grad_div_phi_velocity[i] += shape_hessian[d][d];
-        }
-      }
-
-    // stress form
-    if (use_stress_form)
-      hydrodynamic_scratch.scalar_options.present_symmetric_velocity_gradient =
-          present_sym_velocity_gradients->at(q);
-
-    // background field
-    std::optional<Tensor<1,dim>>  background_velocity_value;
-    if (hydrodynamic_scratch.vector_options.background_velocity_values)
-      background_velocity_value = hydrodynamic_scratch.vector_options.background_velocity_values->at(q);
-    std::optional<Tensor<2,dim>>  background_velocity_gradient;
-    if (hydrodynamic_scratch.vector_options.background_velocity_gradients)
-      background_velocity_gradient = hydrodynamic_scratch.vector_options.background_velocity_gradients->at(q);
-
-    // body force
-    if (hydrodynamic_scratch.vector_options.body_force_values)
-      hydrodynamic_scratch.scalar_options.body_force_value =
-          hydrodynamic_scratch.vector_options.body_force_values->at(q);
+    // assign scalar options
+    hydrodynamic_scratch.assign_scalar_options_local_cell(q);
 
     // reference density
     if (advection_scratch.vector_options.reference_gradients)
@@ -224,38 +141,33 @@ assemble_system_local_cell
 
     for (const auto i: fe_values.dof_indices())
     {
-      const Tensor<1, dim> &velocity_test_function{hydrodynamic_scratch.phi_velocity[i]};
-      const Tensor<2, dim> &velocity_test_function_gradient{hydrodynamic_scratch.grad_phi_velocity[i]};
-
-      const double          pressure_test_function{hydrodynamic_scratch.phi_pressure[i]};
+      const Tensor<1, dim> &velocity_test_function{scratch.phi_velocity[i]};
+      const Tensor<2, dim> &velocity_test_function_gradient{scratch.grad_phi_velocity[i]};
+      const double          pressure_test_function{scratch.phi_pressure[i]};
+      const Tensor<1, dim> &pressure_test_function_gradient{scratch.grad_phi_pressure[i]};
 
       const Tensor<1, dim> &density_test_function_gradient{advection_scratch.grad_phi[i]};
       const double          density_test_function{advection_scratch.phi[i]};
 
       // stress form
-      if (use_stress_form)
+      if (hydrodynamic_scratch.scalar_options.use_stress_form)
         hydrodynamic_scratch.scalar_options.velocity_test_function_symmetric_gradient =
             hydrodynamic_scratch.sym_grad_phi_velocity[i];
 
-      // stabilization
-      std::optional<Tensor<2,dim>> optional_velocity_test_function_gradient;
-      if (this->stabilization & apply_supg)
-        optional_velocity_test_function_gradient = velocity_test_function_gradient;
-      std::optional<Tensor<1,dim>> pressure_test_function_gradient;
-      if (this->stabilization & apply_pspg)
-        pressure_test_function_gradient = scratch.grad_phi_pressure[i];
 
       for (const auto j: fe_values.dof_indices())
       {
         // stress form
-        if (use_stress_form)
+        if (hydrodynamic_scratch.scalar_options.use_stress_form)
           hydrodynamic_scratch.scalar_options.velocity_trial_function_symmetric_gradient =
               hydrodynamic_scratch.sym_grad_phi_velocity[j];
-
+        // stabilization
+        if (this->stabilization & (apply_supg|apply_pspg))
+          hydrodynamic_scratch.scalar_options.velocity_trial_function_grad_divergence =
+              hydrodynamic_scratch.grad_div_phi_velocity[j];
 
         // matrix step 1: hydrodynamic part
-        double matrix = BuoyantHydrodynamic::
-                        compute_hydrodynamic_matrix(hydrodynamic_scratch.phi_velocity[j],
+        double matrix = compute_hydrodynamic_matrix(hydrodynamic_scratch.phi_velocity[j],
                                                     hydrodynamic_scratch.grad_phi_velocity[j],
                                                     velocity_test_function,
                                                     velocity_test_function_gradient,
@@ -267,44 +179,23 @@ assemble_system_local_cell
                                                     nu,
                                                     hydrodynamic_scratch.scalar_options,
                                                     scratch.scalar_options,
-                                                    background_velocity_value,
-                                                    background_velocity_gradient,
                                                     use_newton_linearization);
-
-        if (this->stabilization & (apply_supg|apply_pspg))
-        {
-          // stress form
-          if (use_stress_form)
-            hydrodynamic_scratch.scalar_options.velocity_trial_function_grad_divergence =
-                hydrodynamic_scratch.grad_div_phi_velocity[j];
-
-
-          matrix += delta * BuoyantHydrodynamic::
-                    compute_hydrodynamic_residual_linearization_matrix(hydrodynamic_scratch.phi_velocity[j],
-                                                                       hydrodynamic_scratch.grad_phi_velocity[j],
-                                                                       hydrodynamic_scratch.laplace_phi_velocity[j],
-                                                                       hydrodynamic_scratch.grad_phi_pressure[j],
-                                                                       present_velocity_values[q],
-                                                                       present_velocity_gradients[q],
-                                                                       advection_scratch.phi[j],
-                                                                       optional_velocity_test_function_gradient,
-                                                                       pressure_test_function_gradient,
-                                                                       nu,
-                                                                       hydrodynamic_scratch.scalar_options,
-                                                                       scratch.scalar_options,
-                                                                       background_velocity_value,
-                                                                       background_velocity_gradient,
-                                                                       use_newton_linearization);
-
-          if (this->stabilization & apply_supg)
-            matrix += delta * hydrodynamic_scratch.present_strong_residuals[q] *
-                      (velocity_test_function_gradient * hydrodynamic_scratch.phi_velocity[j]);
-        }
-
-        if (this->stabilization & apply_grad_div)
-          matrix += this->mu * Hydrodynamic::
-                    compute_grad_div_matrix(hydrodynamic_scratch.grad_phi_velocity[j],
-                                            velocity_test_function_gradient);
+        matrix += compute_hydrodynamic_residual_linearization_matrix(this->stabilization,
+                                                                     hydrodynamic_scratch.phi_velocity[j],
+                                                                     hydrodynamic_scratch.grad_phi_velocity[j],
+                                                                     hydrodynamic_scratch.laplace_phi_velocity[j],
+                                                                     hydrodynamic_scratch.grad_phi_pressure[j],
+                                                                     present_velocity_values[q],
+                                                                     present_velocity_gradients[q],
+                                                                     hydrodynamic_scratch.present_strong_residuals[q],
+                                                                     advection_scratch.phi[j],
+                                                                     velocity_test_function_gradient,
+                                                                     pressure_test_function_gradient,
+                                                                     nu,
+                                                                     delta,
+                                                                     this->mu,
+                                                                     hydrodynamic_scratch.scalar_options,
+                                                                     scratch.scalar_options);
 
         // matrix step 2: density part
         matrix += compute_density_matrix(advection_scratch.grad_phi[j],
@@ -313,79 +204,49 @@ assemble_system_local_cell
                                          present_velocity_values[q],
                                          density_test_function,
                                          advection_scratch.scalar_options,
-                                         background_velocity_value,
                                          use_newton_linearization);
 
         // standard stabilization terms
-        matrix += delta_density *
-                  compute_density_residual_linearization_matrix(advection_scratch.grad_phi[j],
-                                                                density_test_function_gradient,
+        matrix += compute_density_residual_linearization_matrix(advection_scratch.grad_phi[j],
                                                                 hydrodynamic_scratch.phi_velocity[j],
-                                                                present_density_gradients[q],
+                                                                density_test_function_gradient,
                                                                 present_velocity_values[q],
+                                                                present_density_gradients[q],
+                                                                present_strong_density_residuals[q],
+                                                                delta_density,
                                                                 nu_density,
                                                                 advection_scratch.scalar_options,
-                                                                background_velocity_value,
                                                                 use_newton_linearization);
-        matrix += delta_density * present_strong_density_residuals[q] *
-                  (hydrodynamic_scratch.phi_velocity[j] * density_test_function_gradient);
 
         data.matrices[0](i, j) += matrix * JxW[q];
       }
 
       // rhs step 1: hydrodynamic part
       double rhs = BuoyantHydrodynamic::
-                   compute_hydrodynamic_rhs(velocity_test_function,
+                   compute_hydrodynamic_rhs(hydrodynamic_scratch.stabilization_flags,
+                                            velocity_test_function,
                                             velocity_test_function_gradient,
                                             present_velocity_values[q],
                                             present_velocity_gradients[q],
+                                            hydrodynamic_scratch.present_strong_residuals[q],
                                             present_pressure_values[q],
                                             present_density_values[q],
                                             pressure_test_function,
+                                            pressure_test_function_gradient,
                                             nu,
+                                            this->mu,
+                                            delta,
                                             hydrodynamic_scratch.scalar_options,
-                                            scratch.scalar_options,
-                                            background_velocity_value,
-                                            background_velocity_gradient);
-
-      if (this->stabilization & (apply_supg|apply_pspg))
-      {
-        Tensor<1, dim> stabilization_test_function;
-
-        if (this->stabilization & apply_supg)
-        {
-          stabilization_test_function += velocity_test_function_gradient *
-                                         present_velocity_values[q];
-          if (background_velocity_value)
-            stabilization_test_function += velocity_test_function_gradient *
-                                           *background_velocity_value;
-        }
-        if (this->stabilization & apply_pspg)
-          stabilization_test_function += hydrodynamic_scratch.grad_phi_pressure[i];
-
-        rhs -= delta * hydrodynamic_scratch.present_strong_residuals[q] * stabilization_test_function;
-      }
-
+                                            scratch.scalar_options);
 
       // rhs step 2: density part
       rhs += compute_density_rhs(present_density_gradients[q],
                                  present_velocity_values[q],
+                                 present_strong_density_residuals[q],
                                  density_test_function,
-                                 advection_scratch.scalar_options,
-                                 background_velocity_value);
-
-      // standard stabilization terms
-      {
-        double stabilization_test_function{present_velocity_values[q] *
-                                           density_test_function_gradient};
-
-        if (background_velocity_value)
-          stabilization_test_function += *background_velocity_value *
-                                         density_test_function_gradient;
-
-        rhs -= delta_density * present_strong_density_residuals[q] *
-               stabilization_test_function;
-      }
+                                 density_test_function_gradient,
+                                 delta_density,
+                                 advection_scratch.scalar_options);
 
       data.vectors[0](i) += rhs * JxW[q];
 

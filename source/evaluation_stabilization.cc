@@ -147,15 +147,6 @@ operator()
 
   const double nu{1.0 / reynolds_number};
 
-  OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
-
-  // Coriolis term
-  if (angular_velocity_ptr)
-  {
-    vector_options.angular_velocity = angular_velocity_ptr->value();
-    vector_options.rossby_number = rossby_number;
-  }
-
   double cell_momentum_residual;
   double mean_momentum_residual{0.0};
   double max_momentum_residual[2]{std::numeric_limits<double>::min(),
@@ -184,11 +175,14 @@ operator()
     const double delta{c * std::pow(cell->diameter(), 2)};
 
     // solution values
-    const auto &present_velocity_values = scratch.get_values("evaluation_point",
-                                                             velocity);
-    const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                                   velocity);
+    auto &present_velocity_values = scratch.present_velocity_values;
+    auto &present_velocity_gradients = scratch.present_velocity_gradients;
+    present_velocity_values = scratch.get_values("evaluation_point",
+                                                 velocity);
+    present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                       velocity);
 
+    // assign vector options
     scratch.assign_vector_options_local_cell("evaluation_point",
                                              velocity,
                                              pressure,
@@ -197,25 +191,15 @@ operator()
                                              background_velocity_ptr,
                                              rossby_number,
                                              froude_number);
-
-    // background field
-    if (background_velocity_ptr != nullptr)
-    {
-      background_velocity_ptr->value_list(scratch.get_quadrature_points(),
-                                          *vector_options.background_velocity_values);
-      background_velocity_ptr->gradient_list(scratch.get_quadrature_points(),
-                                             *vector_options.background_velocity_gradients);
-    }
+    scratch.adjust_velocity_field_local_cell();
 
     // stabilization
     if (stabilization & (apply_supg|apply_pspg))
       compute_strong_residual(present_velocity_values,
                               present_velocity_gradients,
-                              vector_options.present_velocity_laplaceans.value(),
-                              vector_options.present_pressure_gradients.value(),
-                              scratch.present_strong_residuals,
+                              scratch.vector_options,
                               nu,
-                              vector_options);
+                              scratch.present_strong_residuals);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;
@@ -463,65 +447,33 @@ operator()
     const double delta{this->c * std::pow(cell->diameter(), 2)};
     const double delta_density{c_density * std::pow(cell->diameter(), 2)};
 
+
     // solution values
-    const auto &present_velocity_values = scratch.get_values("evaluation_point",
-                                                             velocity);
-    const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                                   velocity);
-    const auto &present_pressure_values = scratch.get_gradients("evaluation_point",
-                                                                pressure);
+    auto &present_velocity_values = hydrodynamic_scratch.present_velocity_values;
+    auto &present_velocity_gradients = hydrodynamic_scratch.present_velocity_gradients;
+    present_velocity_values = scratch.get_values("evaluation_point",
+                                                 velocity);
+    present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                       velocity);
+
+    // assign vector options
+    hydrodynamic_scratch.assign_vector_options_local_cell("evaluation_point",
+                                                          velocity,
+                                                          pressure,
+                                                          this->angular_velocity_ptr,
+                                                          this->body_force_ptr,
+                                                          this->background_velocity_ptr,
+                                                          this->rossby_number,
+                                                          this->froude_number);
+    hydrodynamic_scratch.adjust_velocity_field_local_cell();
+
+
+
+    // solution values
     const auto &present_density_values = scratch.get_values("evaluation_point",
                                                             density);
     const auto &present_density_gradients = scratch.get_gradients("evaluation_point",
                                                                   density);
-
-    // stress form
-    std::optional<std::vector<SymmetricTensor<2, dim>>> present_sym_velocity_gradients;
-    if (this->use_stress_form)
-      present_sym_velocity_gradients = scratch.get_symmetric_gradients("evaluation_point",
-                                                                       velocity);
-
-    // stabilization related solution values
-    std::optional<std::vector<Tensor<1, dim>>> present_velocity_laplaceans;
-    std::optional<std::vector<Tensor<1, dim>>> present_pressure_gradients;
-    if (this->stabilization & (apply_supg|apply_pspg))
-    {
-      present_velocity_laplaceans = scratch.get_laplacians("evaluation_point",
-                                                           velocity);
-      present_pressure_gradients = scratch.get_gradients("evaluation_point",
-                                                         pressure);
-      if (this->use_stress_form)
-      {
-        const auto &present_hessians = scratch.get_hessians("evaluation_point",
-                                                            velocity);
-
-        std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
-            hydrodynamic_vector_options.present_velocity_grad_divergences.value();
-        for (std::size_t q=0; q<present_hessians.size(); ++q)
-        {
-          present_velocity_grad_divergences[q] = 0;
-          for (unsigned int d=0; d<dim; ++d)
-            present_velocity_grad_divergences[q] += present_hessians[q][d][d];
-        }
-      }
-    }
-
-    // body force
-    if (this->body_force_ptr)
-    {
-      this->body_force_ptr->value_list(fe_values.get_quadrature_points(),
-                                       *hydrodynamic_vector_options.body_force_values);
-      hydrodynamic_vector_options.froude_number = this->froude_number;
-    }
-
-    // background field
-    if (this->background_velocity_ptr)
-    {
-      this->background_velocity_ptr->value_list(fe_values.get_quadrature_points(),
-                                                *hydrodynamic_vector_options.background_velocity_values);
-      this->background_velocity_ptr->gradient_list(fe_values.get_quadrature_points(),
-                                                   *hydrodynamic_vector_options.background_velocity_gradients);
-    }
 
     // reference density
     if (reference_density_ptr)
@@ -543,11 +495,8 @@ operator()
 
     // stabilization
     if (this->stabilization & (apply_supg|apply_pspg))
-      LegacyBuoyantHydrodynamic::
       compute_strong_hydrodynamic_residual(present_velocity_values,
                                            present_velocity_gradients,
-                                           present_velocity_laplaceans.value(),
-                                           present_pressure_gradients.value(),
                                            present_density_values,
                                            hydrodynamic_scratch.present_strong_residuals,
                                            nu,
@@ -557,7 +506,6 @@ operator()
     compute_strong_density_residual(present_density_gradients,
                                     present_velocity_values,
                                     present_strong_density_residuals,
-                                    hydrodynamic_scratch.vector_options,
                                     advection_scratch.vector_options);
 
     cell_momentum_residual = 0;

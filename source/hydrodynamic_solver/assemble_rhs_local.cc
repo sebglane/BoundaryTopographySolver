@@ -18,7 +18,7 @@ assemble_rhs_local_cell
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
  MeshWorker::CopyData<0,1,1>                           &data,
- const bool                                             use_stress_form) const
+ const bool                                             /* use_stress_form */) const
 {
   data.vectors[0] = 0;
   cell->get_dof_indices(data.local_dof_indices[0]);
@@ -35,16 +35,16 @@ assemble_rhs_local_cell
   const double delta{c * std::pow(cell->diameter(), 2)};
   Assert(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
 
-  OptionalScalarArguments<dim> &scalar_options = scratch.scalar_options;
-  OptionalVectorArguments<dim> &vector_options = scratch.vector_options;
-
   // solution values
-  const auto &present_velocity_values = scratch.get_values("evaluation_point",
-                                                           velocity);
-  const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                                 velocity);
+  auto &present_velocity_values = scratch.present_velocity_values;
+  auto &present_velocity_gradients = scratch.present_velocity_gradients;
+  present_velocity_values = scratch.get_values("evaluation_point",
+                                               velocity);
+  present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                     velocity);
   const auto &present_pressure_values = scratch.get_values("evaluation_point",
                                                            pressure);
+
   // assign vector options
   scratch.assign_vector_options_local_cell("evaluation_point",
                                            velocity,
@@ -54,16 +54,15 @@ assemble_rhs_local_cell
                                            background_velocity_ptr,
                                            rossby_number,
                                            froude_number);
+  scratch.adjust_velocity_field_local_cell();
 
   // stabilization
   if (stabilization & (apply_supg|apply_pspg))
     compute_strong_residual(present_velocity_values,
                             present_velocity_gradients,
-                            vector_options.present_velocity_laplaceans.value(),
-                            vector_options.present_pressure_gradients.value(),
-                            scratch.present_strong_residuals,
+                            scratch.vector_options,
                             nu,
-                            vector_options);
+                            scratch.present_strong_residuals);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
@@ -81,57 +80,31 @@ assemble_rhs_local_cell
     // assign scalar options
     scratch.assign_scalar_options_local_cell(q);
 
-    // background field
-    std::optional<Tensor<1,dim>>  background_velocity_value;
-    if (vector_options.background_velocity_values)
-      background_velocity_value = vector_options.background_velocity_values->at(q);
-    std::optional<Tensor<2,dim>>  background_velocity_gradient;
-    if (vector_options.background_velocity_gradients)
-      background_velocity_gradient = vector_options.background_velocity_gradients->at(q);
-
     for (const auto i: fe_values.dof_indices())
     {
+      const Tensor<1, dim> &velocity_test_function{scratch.phi_velocity[i]};
+      const Tensor<2, dim> &velocity_test_function_gradient{scratch.grad_phi_velocity[i]};
+      const double          pressure_test_function{scratch.phi_pressure[i]};
+      const Tensor<1, dim> &pressure_test_function_gradient{scratch.grad_phi_pressure[i]};
+
       // stress form
-      if (use_stress_form)
-        scalar_options.velocity_test_function_symmetric_gradient =
+      if (scratch.scalar_options.use_stress_form)
+        scratch.scalar_options.velocity_test_function_symmetric_gradient =
             scratch.sym_grad_phi_velocity[i];
 
-      double rhs = compute_rhs(scratch.phi_velocity[i],
-                               scratch.grad_phi_velocity[i],
-                               present_velocity_values[q],
-                               present_velocity_gradients[q],
-                               present_pressure_values[q],
-                               scratch.phi_pressure[i],
-                               nu,
-                               scalar_options,
-                               background_velocity_value,
-                               background_velocity_gradient);
-
-      if (stabilization & (apply_supg|apply_pspg))
-      {
-        Tensor<1, dim> stabilization_test_function;
-
-        if (stabilization & apply_supg)
-        {
-          stabilization_test_function += scratch.grad_phi_velocity[i] *
-                                         present_velocity_values[q];
-          if (background_velocity_ptr != nullptr)
-          {
-            Assert(background_velocity_value,
-                   ExcMessage("Optional background velocity was not specified."));
-            stabilization_test_function += scratch.grad_phi_velocity[i] *
-                                           *background_velocity_value;
-          }
-        }
-        if (stabilization & apply_pspg)
-          stabilization_test_function += scratch.grad_phi_pressure[i];
-
-        rhs -= delta * scratch.present_strong_residuals[q] * stabilization_test_function;
-      }
-
-      if (stabilization & apply_grad_div)
-        rhs += mu * compute_grad_div_rhs(present_velocity_gradients[q],
-                                         scratch.grad_phi_velocity[i]);
+      const double rhs{compute_rhs(scratch.stabilization_flags,
+                                   velocity_test_function,
+                                   velocity_test_function_gradient,
+                                   present_velocity_values[q],
+                                   present_velocity_gradients[q],
+                                   scratch.present_strong_residuals[q],
+                                   present_pressure_values[q],
+                                   pressure_test_function,
+                                   pressure_test_function_gradient,
+                                   nu,
+                                   mu,
+                                   delta,
+                                   scratch.scalar_options)};
 
       data.vectors[0](i) += rhs * JxW[q];
 

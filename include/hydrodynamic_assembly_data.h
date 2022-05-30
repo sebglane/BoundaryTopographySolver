@@ -86,6 +86,7 @@ public:
     const FEValuesExtractors::Vector &velocity,
     const unsigned int                q_point_index);
 
+  void adjust_velocity_field_local_cell();
 
   const StabilizationFlags  &stabilization_flags;
 
@@ -431,6 +432,29 @@ assign_scalar_options_local_cell
 
 
 
+template <int dim>
+inline void ScratchData<dim>::
+adjust_velocity_field_local_cell()
+{
+  if (vector_options.background_velocity_values)
+  {
+    Assert(vector_options.background_velocity_gradients,
+           ExcMessage("Background velocity gradients are not assigned in options."));
+
+    AssertDimension(vector_options.background_velocity_values->size(),
+                    present_velocity_values.size());
+    AssertDimension(vector_options.background_velocity_gradients->size(),
+                    present_velocity_gradients.size());
+    AssertDimension(present_velocity_values.size(),
+                    present_velocity_gradients.size());
+
+    for (unsigned int q=0; q<present_velocity_values.size(); ++q)
+    {
+      present_velocity_values[q] += vector_options.background_velocity_values->at(q);
+      present_velocity_gradients[q] += vector_options.background_velocity_gradients->at(q);
+    }
+  }
+}
 
 }  // namespace Matrix
 
@@ -494,6 +518,7 @@ public:
       const FEValuesExtractors::Scalar &pressure,
       const unsigned int                q_point_index);
 
+    void adjust_velocity_field_local_cell();
 
     void adjust_velocity_field_local_boundary();
 
@@ -795,6 +820,37 @@ assign_scalar_options_local_cell
 
 
 
+template <int dim>
+inline void ScratchData<dim>::
+adjust_velocity_field_local_cell()
+{
+  if (vector_options.background_velocity_values)
+  {
+    Assert(vector_options.background_velocity_gradients, ExcInternalError());
+
+    AssertDimension(vector_options.background_velocity_values->size(),
+                    present_velocity_values.size());
+    AssertDimension(vector_options.background_velocity_gradients->size(),
+                    present_velocity_gradients.size());
+    AssertDimension(present_velocity_values.size(),
+                    present_velocity_gradients.size());
+
+    for (unsigned int q=0; q<present_velocity_values.size(); ++q)
+    {
+      present_velocity_values[q] += vector_options.background_velocity_values->at(q);
+      present_velocity_gradients[q] += vector_options.background_velocity_gradients->at(q);
+    }
+  }
+}
+
+
+
+//template <int dim>
+//inline void ScratchData<dim>::
+//adjust_velocity_field_local_boundary()
+//{
+//
+//}
 
 
 }  // namespace RightHandSide
