@@ -130,6 +130,9 @@ assign_vector_options_local_cell
  const double                                                rossby_number,
  const double                                                froude_number)
 {
+  Assert(!name.empty(),
+         ExcMessage("The solution name string is empty."));
+
   const unsigned int n_q_points{this->get_current_fe_values().n_quadrature_points};
 
   // stress form
@@ -313,6 +316,9 @@ assign_vector_options_local_boundary
   }
   else if (vector_options.use_stress_form)
   {
+    Assert(!name.empty(),
+           ExcMessage("The solution name string is empty."));
+
     // evaluate solution
     const auto &present_pressure_values = this->get_values(name,
                                                            pressure);
@@ -345,6 +351,9 @@ assign_vector_options_local_boundary
   }
   else
   {
+    Assert(!name.empty(),
+           ExcMessage("The solution name string is empty."));
+
     // evaluate solution
     const auto &present_pressure_values = this->get_values(name,
                                                            pressure);
@@ -421,6 +430,7 @@ assign_scalar_options_local_cell
     scalar_options.present_symmetric_velocity_gradient =
           vector_options.present_sym_velocity_gradients->at(q);
   }
+
   // body force
   if (vector_options.body_force_values)
     scalar_options.body_force_value =
@@ -595,6 +605,8 @@ assign_vector_options_local_cell
   // stress form
   if (vector_options.use_stress_form)
   {
+    Assert(!name.empty(),
+           ExcMessage("The solution name string is empty."));
     Assert(vector_options.present_sym_velocity_gradients,
            ExcMessage("Symmetric velocity gradients are not allocated in options."));
     AssertDimension(vector_options.present_sym_velocity_gradients->size(),
@@ -607,6 +619,8 @@ assign_vector_options_local_cell
   // stabilization related solution values
   if (stabilization_flags & (apply_supg|apply_pspg))
   {
+    Assert(!name.empty(),
+           ExcMessage("The solution name string is empty."));
     Assert(vector_options.present_velocity_laplaceans,
            ExcMessage("Velocity laplaceans are not allocated in options."));
     AssertDimension(vector_options.present_velocity_laplaceans->size(),
