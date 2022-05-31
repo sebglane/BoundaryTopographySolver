@@ -440,6 +440,536 @@ compute_residual_linearization_matrix
 
 
 
+
+namespace BuoyantHydrodynamic {
+
+template <int dim>
+double compute_hydrodynamic_matrix
+(const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<2, dim> &velocity_trial_function_gradient,
+ const Tensor<1, dim> &velocity_test_function_value,
+ const Tensor<2, dim> &velocity_test_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const double          pressure_trial_function,
+ const double          density_trial_function_value,
+ const double          pressure_test_function,
+ const double          nu,
+ const Hydrodynamic::OptionalScalarArguments<dim>        &options,
+ const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
+ const bool            apply_newton_linearization)
+{
+  double matrix = Hydrodynamic::
+                  compute_matrix(velocity_trial_function_value,
+                                 velocity_trial_function_gradient,
+                                 velocity_test_function_value,
+                                 velocity_test_function_gradient,
+                                 present_velocity_value,
+                                 present_velocity_gradient,
+                                 pressure_trial_function,
+                                 pressure_test_function,
+                                 nu,
+                                 options,
+                                 apply_newton_linearization);
+
+  if (buoyancy_options.gravity_field_value)
+  {
+    Assert(options.froude_number, ExcInternalError());
+
+    matrix -= density_trial_function_value * *buoyancy_options.gravity_field_value *
+              velocity_test_function_value /
+              (*options.froude_number * *options.froude_number);
+  }
+
+  return (matrix);
+}
+
+
+
+template <int dim>
+double compute_hydrodynamic_residual_linearization_matrix
+(const StabilizationFlags  &stabilization,
+ const Tensor<1, dim>      &velocity_trial_function_value,
+ const Tensor<2, dim>      &velocity_trial_function_gradient,
+ const Tensor<1, dim>      &velocity_trial_function_laplacean,
+ const Tensor<1, dim>      &pressure_trial_function_gradient,
+ const Tensor<1, dim>      &present_velocity_value,
+ const Tensor<2, dim>      &present_velocity_gradient,
+ const Tensor<1, dim>      &present_strong_residual,
+ const double               density_trial_function_value,
+ const Tensor<2, dim>      &velocity_test_function_gradient,
+ const Tensor<1, dim>      &pressure_test_function_gradient,
+ const double               nu,
+ const double               delta,
+ const double               mu,
+ const Hydrodynamic::OptionalScalarArguments<dim>        &options,
+ const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
+ const bool                 apply_newton_linearization)
+{
+  if (!(stabilization & (apply_supg|apply_pspg|apply_grad_div)))
+    return (0.0);
+
+  double matrix = Hydrodynamic::
+                  compute_residual_linearization_matrix(stabilization,
+                                                        velocity_trial_function_value,
+                                                        velocity_trial_function_gradient,
+                                                        velocity_trial_function_laplacean,
+                                                        pressure_trial_function_gradient,
+                                                        present_velocity_value,
+                                                        present_velocity_gradient,
+                                                        present_strong_residual,
+                                                        velocity_test_function_gradient,
+                                                        pressure_test_function_gradient,
+                                                        nu,
+                                                        delta,
+                                                        mu,
+                                                        options,
+                                                        apply_newton_linearization);
+
+  if (buoyancy_options.gravity_field_value)
+  {
+    Assert(options.froude_number, ExcInternalError());
+
+    Tensor<1, dim> test_function;
+    if (stabilization & apply_supg)
+      test_function += velocity_test_function_gradient * present_velocity_value;
+    if (stabilization & apply_pspg)
+      test_function += pressure_test_function_gradient;
+
+    matrix -= delta * density_trial_function_value * *buoyancy_options.gravity_field_value *
+              test_function /
+              (*options.froude_number * *options.froude_number);
+  }
+
+  return (matrix);
+
+}
+
+
+
+template <int dim>
+double compute_hydrodynamic_rhs
+(const StabilizationFlags & stabilization,
+ const Tensor<1, dim> &velocity_test_function_value,
+ const Tensor<2, dim> &velocity_test_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const Tensor<1, dim> &present_strong_residual,
+ const double          present_pressure_value,
+ const double          present_density_value,
+ const double          pressure_test_function,
+ const Tensor<1, dim> &pressure_test_function_gradient,
+ const double          nu,
+ const double          mu,
+ const double          delta,
+ const Hydrodynamic::OptionalScalarArguments<dim>        &options,
+ const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options)
+{
+  double rhs = Hydrodynamic::
+               compute_rhs(stabilization,
+                           velocity_test_function_value,
+                           velocity_test_function_gradient,
+                           present_velocity_value,
+                           present_velocity_gradient,
+                           present_strong_residual,
+                           present_pressure_value,
+                           pressure_test_function,
+                           pressure_test_function_gradient,
+                           nu,
+                           mu,
+                           delta,
+                           options);
+
+  if (buoyancy_options.gravity_field_value)
+  {
+    Assert(options.froude_number, ExcInternalError());
+
+    rhs += present_density_value * *buoyancy_options.gravity_field_value *
+           velocity_test_function_value /
+           (*options.froude_number * *options.froude_number);
+  }
+
+  return (rhs);
+}
+
+
+
+template <int dim>
+void compute_strong_hydrodynamic_residual
+(const std::vector<Tensor<1, dim>> &present_velocity_values,
+ const std::vector<Tensor<2, dim>> &present_velocity_gradients,
+ const std::vector<double>         &present_density_values,
+ std::vector<Tensor<1, dim>>       &strong_residuals,
+ const double                       nu,
+ const Hydrodynamic::OptionalVectorArguments<dim>        &options,
+ const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options)
+{
+  Hydrodynamic::
+  compute_strong_residual(present_velocity_values,
+                          present_velocity_gradients,
+                          options,
+                          nu,
+                          strong_residuals);
+
+  if (buoyancy_options.gravity_field_values)
+  {
+    Assert(options.froude_number, ExcInternalError());
+
+    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+      strong_residuals[q] -= present_density_values[q] *
+                             buoyancy_options.gravity_field_values->at(q) /
+                             (*options.froude_number * *options.froude_number);
+  }
+}
+
+
+
+template <int dim>
+void compute_strong_density_residual
+(const std::vector<Tensor<1, dim>>             &present_density_gradients,
+ const std::vector<Tensor<1, dim>>             &present_velocity_values,
+ std::vector<double>                           &strong_residuals,
+ const Advection::OptionalVectorArguments<dim> &advection_options)
+{
+  Advection::compute_strong_residual(present_density_gradients,
+                                     present_velocity_values,
+                                     strong_residuals,
+                                     advection_options);
+}
+
+
+
+template <int dim>
+double compute_density_matrix
+(const Tensor<1, dim> &density_trial_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<1, dim> &present_density_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const double          density_test_function_value,
+ const Advection::OptionalScalarArguments<dim>      &advection_options,
+ const bool            apply_newton_linearization)
+{
+  double linearized_residual =
+      present_velocity_value * density_trial_function_gradient +
+      (apply_newton_linearization?
+          velocity_trial_function_value * present_density_gradient:
+          0.0);
+
+  if (advection_options.reference_gradient && apply_newton_linearization)
+  {
+    Assert(advection_options.gradient_scaling, ExcInternalError());
+
+    linearized_residual += *advection_options.gradient_scaling *
+                           velocity_trial_function_value *
+                           *advection_options.reference_gradient;
+  }
+
+  return (linearized_residual * density_test_function_value);
+}
+
+
+
+template <int dim>
+double compute_density_rhs
+(const Tensor<1, dim> &present_density_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const double          present_strong_residual,
+ const double          density_test_function_value,
+ const Tensor<1, dim> &density_test_function_gradient,
+ const double          delta,
+ const Advection::OptionalScalarArguments<dim>  &advection_options)
+{
+  double residual = -(present_velocity_value * present_density_gradient);
+
+  if (advection_options.reference_gradient)
+  {
+    Assert(advection_options.gradient_scaling, ExcInternalError());
+
+    residual -= *advection_options.gradient_scaling *
+                present_velocity_value *
+                *advection_options.reference_gradient;
+  }
+
+  double rhs{residual * density_test_function_value};
+
+  // standard stabilization terms
+  {
+    double stabilization_test_function{present_velocity_value *  density_test_function_gradient};
+
+    rhs -= delta * present_strong_residual * stabilization_test_function;
+  }
+
+  return (rhs);
+}
+
+
+
+template <int dim>
+double compute_density_residual_linearization_matrix
+(const Tensor<1, dim> &density_trial_function_gradient,
+ const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<1, dim> &density_test_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<1, dim> &present_density_gradient,
+ const double          present_strong_residual,
+ const double          delta,
+ const double          nu,
+ const Advection::OptionalScalarArguments<dim>    &advection_options,
+ const bool            apply_newton_linearization)
+{
+  double matrix{0.0};
+
+  if (present_velocity_value.norm() > 0.0)
+  {
+    double linearized_residual =
+        present_velocity_value * density_trial_function_gradient +
+        (apply_newton_linearization?
+            velocity_trial_function_value * present_density_gradient:
+            0.0);
+
+
+    if (advection_options.reference_gradient && apply_newton_linearization)
+    {
+      Assert(advection_options.gradient_scaling, ExcInternalError());
+
+      linearized_residual += *advection_options.gradient_scaling *
+                             velocity_trial_function_value *
+                             *advection_options.reference_gradient;
+    }
+
+    matrix = delta * linearized_residual * (density_test_function_gradient * present_velocity_value);
+  }
+  else
+    matrix = nu * density_trial_function_gradient * density_test_function_gradient;
+
+  matrix += delta * present_strong_residual *
+            (velocity_trial_function_value * density_test_function_gradient);
+
+  return (matrix);
+}
+
+
+
+// explicit instantiations
+template
+double compute_hydrodynamic_matrix
+(const Tensor<1, 2> &,
+ const Tensor<2, 2> &,
+ const Tensor<1, 2> &,
+ const Tensor<2, 2> &,
+ const Tensor<1, 2> &,
+ const Tensor<2, 2> &,
+ const double        ,
+ const double        ,
+ const double        ,
+ const double        ,
+ const Hydrodynamic::OptionalScalarArguments<2> &,
+ const OptionalScalarArguments<2> &,
+ const bool           );
+template
+double compute_hydrodynamic_matrix
+(const Tensor<1, 3> &,
+ const Tensor<2, 3> &,
+ const Tensor<1, 3> &,
+ const Tensor<2, 3> &,
+ const Tensor<1, 3> &,
+ const Tensor<2, 3> &,
+ const double        ,
+ const double        ,
+ const double        ,
+ const double        ,
+ const Hydrodynamic::OptionalScalarArguments<3> &,
+ const OptionalScalarArguments<3> &,
+ const bool           );
+
+template
+double
+compute_hydrodynamic_residual_linearization_matrix
+(const StabilizationFlags &,
+ const Tensor<1, 2>       &,
+ const Tensor<2, 2>       &,
+ const Tensor<1, 2>       &,
+ const Tensor<1, 2>       &,
+ const Tensor<1, 2>       &,
+ const Tensor<2, 2>       &,
+ const Tensor<1, 2>       &,
+ const double              ,
+ const Tensor<2, 2>       &,
+ const Tensor<1, 2>       &,
+ const double              ,
+ const double              ,
+ const double              ,
+ const Hydrodynamic::OptionalScalarArguments<2>        &,
+ const BuoyantHydrodynamic::OptionalScalarArguments<2> &,
+ const bool                 );
+template
+double
+compute_hydrodynamic_residual_linearization_matrix
+(const StabilizationFlags &,
+ const Tensor<1, 3>       &,
+ const Tensor<2, 3>       &,
+ const Tensor<1, 3>       &,
+ const Tensor<1, 3>       &,
+ const Tensor<1, 3>       &,
+ const Tensor<2, 3>       &,
+ const Tensor<1, 3>       &,
+ const double              ,
+ const Tensor<2, 3>       &,
+ const Tensor<1, 3>       &,
+ const double              ,
+ const double              ,
+ const double              ,
+ const Hydrodynamic::OptionalScalarArguments<3>        &,
+ const BuoyantHydrodynamic::OptionalScalarArguments<3> &,
+ const bool                 );
+
+
+template
+double
+compute_hydrodynamic_rhs
+(const StabilizationFlags &,
+ const Tensor<1, 2>       &,
+ const Tensor<2, 2>       &,
+ const Tensor<1, 2>       &,
+ const Tensor<2, 2>       &,
+ const Tensor<1, 2>       &,
+ const double              ,
+ const double              ,
+ const double              ,
+ const Tensor<1, 2>       &,
+ const double              ,
+ const double              ,
+ const double              ,
+ const Hydrodynamic::OptionalScalarArguments<2>        &,
+ const BuoyantHydrodynamic::OptionalScalarArguments<2> & );
+template
+double
+compute_hydrodynamic_rhs
+(const StabilizationFlags &,
+ const Tensor<1, 3>       &,
+ const Tensor<2, 3>       &,
+ const Tensor<1, 3>       &,
+ const Tensor<2, 3>       &,
+ const Tensor<1, 3>       &,
+ const double              ,
+ const double              ,
+ const double              ,
+ const Tensor<1, 3>       &,
+ const double              ,
+ const double              ,
+ const double              ,
+ const Hydrodynamic::OptionalScalarArguments<3>        &,
+ const BuoyantHydrodynamic::OptionalScalarArguments<3> & );
+
+template
+void
+compute_strong_hydrodynamic_residual
+(const std::vector<Tensor<1, 2>>  &,
+ const std::vector<Tensor<2, 2>>  &,
+ const std::vector<double>        &,
+ std::vector<Tensor<1, 2>>        &,
+ const double                      ,
+ const Hydrodynamic::OptionalVectorArguments<2>        &,
+ const BuoyantHydrodynamic::OptionalVectorArguments<2> & );
+template
+void
+compute_strong_hydrodynamic_residual
+(const std::vector<Tensor<1, 3>>  &,
+ const std::vector<Tensor<2, 3>>  &,
+ const std::vector<double>        &,
+ std::vector<Tensor<1, 3>>        &,
+ const double                      ,
+ const Hydrodynamic::OptionalVectorArguments<3>        &,
+ const BuoyantHydrodynamic::OptionalVectorArguments<3> & );
+
+template
+void
+compute_strong_density_residual
+(const std::vector<Tensor<1, 2>>             &,
+ const std::vector<Tensor<1, 2>>             &,
+ std::vector<double>                         &,
+ const Advection::OptionalVectorArguments<2> &);
+template
+void
+compute_strong_density_residual
+(const std::vector<Tensor<1, 3>>             &,
+ const std::vector<Tensor<1, 3>>             &,
+ std::vector<double>                         &,
+ const Advection::OptionalVectorArguments<3> &);
+
+template
+double
+compute_density_matrix
+(const Tensor<1, 2> &,
+ const Tensor<1, 2> &,
+ const Tensor<1, 2> &,
+ const Tensor<1, 2> &,
+ const double        ,
+ const Advection::OptionalScalarArguments<2>  &,
+ const bool                                     );
+template
+double
+compute_density_matrix
+(const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const double        ,
+ const Advection::OptionalScalarArguments<3>  &,
+ const bool                                     );
+
+template
+double
+compute_density_rhs
+(const Tensor<1, 2> &,
+ const Tensor<1, 2> &,
+ const double        ,
+ const double        ,
+ const Tensor<1, 2> &,
+ const double        ,
+ const Advection::OptionalScalarArguments<2> &);
+template
+double
+compute_density_rhs
+(const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const double        ,
+ const double        ,
+ const Tensor<1, 3> &,
+ const double        ,
+ const Advection::OptionalScalarArguments<3> &);
+
+template
+double
+compute_density_residual_linearization_matrix
+(const Tensor<1, 2> &,
+ const Tensor<1, 2> &,
+ const Tensor<1, 2> &,
+ const Tensor<1, 2> &,
+ const Tensor<1, 2> &,
+ const double        ,
+ const double        ,
+ const double        ,
+ const Advection::OptionalScalarArguments<2> &,
+ const bool           );
+template
+double
+compute_density_residual_linearization_matrix
+(const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const double        ,
+ const double        ,
+ const double        ,
+ const Advection::OptionalScalarArguments<3> &,
+ const bool           );
+
+}  // namespace BuoyantHydrodynamic
+
+
+
 namespace Advection {
 
 /*!
