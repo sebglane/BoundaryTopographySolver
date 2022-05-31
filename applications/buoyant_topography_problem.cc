@@ -151,9 +151,7 @@ front_bndry_id(numbers::invalid_boundary_id)
   const Advection::SolverParameters &advection_parameters
     = static_cast<const Advection::SolverParameters &>(parameters);
 
-  stabilization_evaluation_ptr->set_stabilization_parameters(hydrodynamic_parameters.c,
-                                                             hydrodynamic_parameters.mu,
-                                                             advection_parameters.c);
+  stabilization_evaluation_ptr->set_stabilization_parameters(hydrodynamic_parameters.c, hydrodynamic_parameters.mu, advection_parameters.c);
   stabilization_evaluation_ptr->set_gravity_field(gravity_field_ptr);
   stabilization_evaluation_ptr->set_reference_density(reference_density_ptr);
 }
@@ -193,14 +191,12 @@ front_bndry_id(numbers::invalid_boundary_id)
   Assert(reference_density_ptr->gradient(point) * gravity_field_ptr->value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 
-  const Hydrodynamic::SolverParameters &hydrodynamic_parameters
-    = static_cast<const Hydrodynamic::SolverParameters &>(parameters);
-  const Advection::SolverParameters &advection_parameters
-    = static_cast<const Advection::SolverParameters &>(parameters);
+  const Hydrodynamic::SolverParameters &hydrodynamic_parameters =
+  static_cast<const Hydrodynamic::SolverParameters &>(parameters);
+  const Advection::SolverParameters &advection_parameters =
+  static_cast<const Advection::SolverParameters &>(parameters);
 
-  stabilization_evaluation_ptr->set_stabilization_parameters(hydrodynamic_parameters.c,
-                                                             hydrodynamic_parameters.mu,
-                                                             advection_parameters.c);
+  stabilization_evaluation_ptr->set_stabilization_parameters(hydrodynamic_parameters.c, hydrodynamic_parameters.mu, advection_parameters.c);
   stabilization_evaluation_ptr->set_gravity_field(gravity_field_ptr);
   stabilization_evaluation_ptr->set_reference_density(reference_density_ptr);
 }

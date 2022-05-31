@@ -204,9 +204,11 @@ Solver<3>::
 apply_hanging_node_constraints();
 
 template void Solver<2>::apply_periodicity_constraints
-(std::vector<PeriodicBoundaryData<2>> &, const ComponentMask &);
+(std::vector<PeriodicBoundaryData<2>> &,
+ const ComponentMask                  &);
 template void Solver<3>::apply_periodicity_constraints
-(std::vector<PeriodicBoundaryData<3>> &, const ComponentMask &);
+(std::vector<PeriodicBoundaryData<3>> &,
+ const ComponentMask                  &);
 
 template void Solver<2>::apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<2>::BCMapping &, const ComponentMask &);

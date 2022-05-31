@@ -71,7 +71,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
 
     this->apply_periodicity_constraints(velocity_boundary_conditions.periodic_bcs,
                                         this->fe_system->component_mask(velocity));
-    this->apply_periodicity_constraints(velocity_boundary_conditions.periodic_bcs,
+    this->apply_periodicity_constraints(pressure_boundary_conditions.periodic_bcs,
                                         this->fe_system->component_mask(pressure));
   }
 
@@ -85,6 +85,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
       this->apply_normal_flux_constraints(velocity_boundary_conditions.normal_flux_bcs,
                                           this->fe_system->component_mask(velocity));
   }
+  // Dirichlet pressure boundary conditions
   {
     const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 

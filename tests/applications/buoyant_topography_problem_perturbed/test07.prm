@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 set Absolute tolerance               = 1e-12
-set Graphical output directory       = ./ResultsBuoyantTopographyProblem
+set Graphical output directory       = ./BuoyantTopographyProblemPerturbed
 set Mapping - Polynomial degree      = 1
 set Max. number of Newton iterations = 15
 set Print timings                    = false
@@ -10,11 +10,15 @@ set Spatial dimension                = 2
 set Verbose                          = false
 
 
+subsection Advection solver parameters
+  set Minimal viscosity              = 1.0e-4
+  set SUPG stabilization coefficient = 1.0
+end
+
+
 subsection Buoyant hydrodynamic solver parameters
-  set Froude number                        = 1.0e5
-  set Minimal viscosity (density)          = 1.0e-4
+  set Froude number                        = 1.0e3
   set Reynolds number                      = 100.0
-  set SUPG density stabilization parameter = 1.0
   set Stratification number                = 1.0e-2
 end
 
@@ -35,8 +39,8 @@ subsection Refinement control parameters
   set Maximum number of levels               = 10
   set Minimum number of levels               = 2
   set Number of initial boundary refinements = 0
-  set Number of initial refinements          = 4
-  set Number of refinement cycles            = 3
+  set Number of initial refinements          = 3
+  set Number of refinement cycles            = 4
 end
 
 

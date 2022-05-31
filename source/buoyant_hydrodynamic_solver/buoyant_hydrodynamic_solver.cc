@@ -46,6 +46,7 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 {
   stream << static_cast<const Hydrodynamic::SolverParameters &>(prm);
   stream << static_cast<const Advection::SolverParameters &>(prm);
+
   return (stream);
 }
 

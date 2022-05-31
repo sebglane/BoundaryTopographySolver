@@ -11,7 +11,9 @@
 #include <angular_velocity.h>
 #include <base.h>
 #include <boundary_conditions.h>
+#include <hydrodynamic_options.h>
 #include <hydrodynamic_assembly_data.h>
+#include <stabilization_flags.h>
 
 #include <memory>
 #include <optional>

@@ -5,7 +5,6 @@
  *      Author: sg
  */
 
-
 #include <deal.II/base/quadrature_lib.h>
 
 #include <deal.II/meshworker/mesh_loop.h>
@@ -111,6 +110,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
                          update_normal_vectors;
   if (!this->scalar_boundary_conditions.dirichlet_bcs.empty())
     face_update_flags |= update_normal_vectors;
+
   // initialize scratch and copy object
   ScratchData scratch(this->mapping,
                       *this->fe_system,
@@ -143,6 +143,9 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
   this->system_rhs.compress(VectorOperation::add);
 }
 
+
+
+// explicit instantiation
 template void Solver<2>::assemble_rhs(const bool);
 template void Solver<3>::assemble_rhs(const bool);
 
