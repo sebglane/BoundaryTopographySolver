@@ -986,8 +986,7 @@ template <int dim>
 double compute_matrix
 (const Tensor<1, dim>                &trial_function_gradient,
  const Tensor<1, dim>                &advection_field_value,
- const double                         test_function_value,
- const OptionalScalarArguments<dim>  &/* options */)
+ const double                         test_function_value)
 {
   return ((advection_field_value * trial_function_gradient) * test_function_value);
 }
@@ -1006,26 +1005,36 @@ double compute_matrix
  */
 template <int dim>
 double compute_rhs
-(const Tensor<1, dim>                &present_gradient,
- const Tensor<1, dim>                &advection_field_value,
- const double                         test_function_value,
- const OptionalScalarArguments<dim>  &options)
+(const double           test_function_value,
+ const Tensor<1, dim>  &test_function_gradient,
+ const Tensor<1, dim>  &present_gradient,
+ const Tensor<1, dim>  &advection_field_value,
+ const double           present_strong_residual,
+ const double           delta,
+ const OptionalScalarArguments<dim> &options)
 {
-  double residual{-(advection_field_value * present_gradient)};
+  double rhs{-(advection_field_value * present_gradient)};
 
   if (options.reference_gradient)
   {
-    Assert(options.gradient_scaling, ExcInternalError());
+    Assert(options.gradient_scaling,
+           ExcMessage("Gradient scaling number was not were not assigned in options."));
 
-    residual -= *options.gradient_scaling *
-                advection_field_value *
-                *options.reference_gradient;
+    rhs -= *options.gradient_scaling *
+            (advection_field_value * *options.reference_gradient);
   }
 
   if (options.source_term_value)
-    residual += *options.source_term_value;
+    rhs += *options.source_term_value;
 
-  return residual * test_function_value;
+  rhs *= test_function_value;
+
+  const double stabilization_test_function{advection_field_value *
+                                           test_function_gradient};
+
+  rhs -= delta * present_strong_residual * stabilization_test_function;
+
+  return (rhs);
 }
 
 
@@ -1044,23 +1053,48 @@ void compute_strong_residual
  std::vector<double>                 &strong_residuals,
  const OptionalVectorArguments<dim>  &options)
 {
-  for (std::size_t q=0; q<strong_residuals.size(); ++q)
+  const unsigned int n_q_points{(unsigned int)present_gradients.size()};
+
+  AssertDimension(advection_field_values.size(), n_q_points);
+  AssertDimension(strong_residuals.size(), n_q_points);
+
+  for (unsigned int q=0; q<n_q_points; ++q)
     strong_residuals[q] = advection_field_values[q] * present_gradients[q];
 
   if (options.reference_gradients)
   {
-    Assert(options.gradient_scaling, ExcInternalError());
+    Assert(options.gradient_scaling,
+           ExcMessage("Gradient scaling number was not were not assigned in options."));
+    AssertDimension(options.reference_gradients->size(), n_q_points);
 
-    for (std::size_t q=0; q<strong_residuals.size(); ++q)
+    for (unsigned int q=0; q<n_q_points; ++q)
       strong_residuals[q] += *options.gradient_scaling *
                               advection_field_values[q] *
                               options.reference_gradients->at(q);
   }
 
   if (options.source_term_values)
-    for (std::size_t q=0; q<strong_residuals.size(); ++q)
-      strong_residuals[q] -= options.source_term_values->at(q);
+  {
+    AssertDimension(options.source_term_values->size(), n_q_points);
 
+    for (unsigned int q=0; q<n_q_points; ++q)
+      strong_residuals[q] -= options.source_term_values->at(q);
+  }
+
+}
+
+
+
+template <int dim>
+double compute_residual_linearization_matrix
+(const Tensor<1, dim>  &trial_function_gradient,
+ const Tensor<1, dim>  &advection_field_value,
+ const Tensor<1, dim>  &test_function_gradient,
+ const double           delta)
+{
+  return (delta *
+          (advection_field_value * trial_function_gradient) *
+          (advection_field_value * test_function_gradient));
 }
 
 
@@ -1069,32 +1103,37 @@ void compute_strong_residual
 template
 double
 compute_matrix
-(const Tensor<1, 2>               &,
- const Tensor<1, 2>               &,
- const double                      ,
- const OptionalScalarArguments<2> &);
+(const Tensor<1, 2>   &,
+ const Tensor<1, 2>   &,
+ const double           );
 template
 double
 compute_matrix
-(const Tensor<1, 3>               &,
- const Tensor<1, 3>               &,
- const double                      ,
- const OptionalScalarArguments<3> &);
+(const Tensor<1, 3>   &,
+ const Tensor<1, 3>   &,
+ const double           );
 
 template
 double
 compute_rhs
-(const Tensor<1, 2>               &,
- const Tensor<1, 2>               &,
- const double                      ,
+(const double         ,
+ const Tensor<1, 2>  &,
+ const Tensor<1, 2>  &,
+ const Tensor<1, 2>  &,
+ const double         ,
+ const double         ,
  const OptionalScalarArguments<2> &);
 template
 double
 compute_rhs
-(const Tensor<1, 3>               &,
- const Tensor<1, 3>               &,
- const double                      ,
+(const double         ,
+ const Tensor<1, 3>  &,
+ const Tensor<1, 3>  &,
+ const Tensor<1, 3>  &,
+ const double         ,
+ const double         ,
  const OptionalScalarArguments<3> &);
+
 
 template
 void
@@ -1110,6 +1149,21 @@ compute_strong_residual
  const std::vector<Tensor<1, 3>>    &,
  std::vector<double>                &,
  const OptionalVectorArguments<3>   &);
+
+template
+double
+compute_residual_linearization_matrix
+(const Tensor<1,2>  &,
+ const Tensor<1,2>  &,
+ const Tensor<1,2>  &,
+ const double         );
+template
+double
+compute_residual_linearization_matrix
+(const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const Tensor<1, 3> &,
+ const double         );
 
 
 }  // namespace Advection

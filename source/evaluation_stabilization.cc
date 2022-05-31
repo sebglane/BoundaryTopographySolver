@@ -533,7 +533,7 @@ operator()
 
       if (this->stabilization & (apply_supg|apply_pspg))
       {
-        const double momentum_residual{scratch.present_strong_residuals[q].norm()};
+        const double momentum_residual{hydrodynamic_scratch.present_strong_residuals[q].norm()};
 
         max_momentum_residual[0] = std::max(momentum_residual,
                                             max_momentum_residual[0]);
