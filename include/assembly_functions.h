@@ -444,7 +444,7 @@ inline double compute_hydrodynamic_residual_linearization_matrix
     if (stabilization & apply_pspg)
       test_function += pressure_test_function_gradient;
 
-    matrix -= density_trial_function_value * *buoyancy_options.gravity_field_value *
+    matrix -= delta * density_trial_function_value * *buoyancy_options.gravity_field_value *
               test_function /
               (*options.froude_number * *options.froude_number);
   }
@@ -627,7 +627,7 @@ inline double compute_density_residual_linearization_matrix
  const Advection::OptionalScalarArguments<dim>    &advection_options,
  const bool            apply_newton_linearization = true)
 {
-  double matrix;
+  double matrix{0.0};
 
   if (present_velocity_value.norm() > 0.0)
   {

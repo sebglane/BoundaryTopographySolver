@@ -39,8 +39,8 @@ subsection Refinement control parameters
   set Maximum number of levels               = 10
   set Minimum number of levels               = 2
   set Number of initial boundary refinements = 0
-  set Number of initial refinements          = 4
-  set Number of refinement cycles            = 3
+  set Number of initial refinements          = 3
+  set Number of refinement cycles            = 4
 end
 
 
