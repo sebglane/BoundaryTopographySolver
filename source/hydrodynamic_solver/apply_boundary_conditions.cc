@@ -7,31 +7,14 @@
 
 #include <deal.II/base/exceptions.h>
 
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_vector.h>
-
 #include <hydrodynamic_solver.h>
 
 #include <set>
 
 namespace Hydrodynamic {
 
-using TrilinosContainer = typename
-                          SolverBase::
-                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
-
-
-
-template <int dim>
-using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
-
-
-
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_conditions()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::apply_boundary_conditions()
 {
   if (this->verbose)
     this->pcout << "    Apply boundary conditions..." << std::endl;
@@ -41,6 +24,10 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_cond
   AssertThrow(pressure_boundary_conditions.closed(),
               ExcMessage("The pressure boundary conditions have not been closed."));
 
+  const FEValuesExtractors::Vector  velocity(velocity_fe_index);
+  const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
+
+  // periodic boundary conditions
   if (!velocity_boundary_conditions.periodic_bcs.empty() ||
       !pressure_boundary_conditions.periodic_bcs.empty())
   {
@@ -82,11 +69,14 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_cond
                   ExcMessage("A matching periodic boundary could not be found."));
     }
 
-    this->apply_periodicity_constraints(velocity_boundary_conditions.periodic_bcs);
+    this->apply_periodicity_constraints(velocity_boundary_conditions.periodic_bcs,
+                                        this->fe_system->component_mask(velocity));
+    this->apply_periodicity_constraints(pressure_boundary_conditions.periodic_bcs,
+                                        this->fe_system->component_mask(pressure));
   }
-  {
-    const FEValuesExtractors::Vector  velocity(0);
 
+  // Dirichlet velocity boundary conditions
+  {
     if (!velocity_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(velocity_boundary_conditions.dirichlet_bcs,
                                         this->fe_system->component_mask(velocity));
@@ -95,8 +85,9 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_cond
       this->apply_normal_flux_constraints(velocity_boundary_conditions.normal_flux_bcs,
                                           this->fe_system->component_mask(velocity));
   }
+  // Dirichlet pressure boundary conditions
   {
-    const FEValuesExtractors::Scalar  pressure(dim);
+    const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 
     if (!pressure_boundary_conditions.dirichlet_bcs.empty())
       this->apply_dirichlet_constraints(pressure_boundary_conditions.dirichlet_bcs,
@@ -121,13 +112,5 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::apply_boundary_cond
 template void Solver<2>::apply_boundary_conditions();
 template void Solver<3>::apply_boundary_conditions();
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-apply_boundary_conditions();
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-apply_boundary_conditions();
 
 }  // namespace Hydrodynamic

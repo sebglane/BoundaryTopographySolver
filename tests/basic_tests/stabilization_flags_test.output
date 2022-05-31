@@ -1,0 +1,8 @@
+|                       Stabilization type |              GradDiv |
+|                       Stabilization type |                 none |
+|                       Stabilization type |                 PSPG |
+|                       Stabilization type |                 SUPG |
+|                       Stabilization type |         PSPG|GradDiv |
+|                       Stabilization type |         SUPG|GradDiv |
+|                       Stabilization type |            SUPG|PSPG |
+|                       Stabilization type |    SUPG|PSPG|GradDiv |

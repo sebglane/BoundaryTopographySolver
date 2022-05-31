@@ -1,5 +1,5 @@
 /*
- * cavity_problem.cc
+ * rotating_cavity_problem.cc
  *
  *  Created on: Sep 1, 2021
  *      Author: sg

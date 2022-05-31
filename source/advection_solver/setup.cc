@@ -11,27 +11,29 @@
 
 namespace Advection {
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_fe_system()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::setup_fe_system()
 {
   if (this->verbose)
     this->pcout << "    Setup FE system..." << std::endl;
 
-  this->fe_system = std::make_shared<FESystem<dim>>(FE_Q<dim>(fe_degree), 1);
+  scalar_fe_index = 0;
+
+  this->fe_system = std::make_shared<FESystem<dim>>(FE_Q<dim>(scalar_fe_degree), 1);
 
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::setup_dofs()
 {
   TimerOutput::Scope timer_section(this->computing_timer, "Setup dofs");
 
   if (this->verbose)
     this->pcout << "    Setup dofs..." << std::endl;
 
-  SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs();
+  Base::Solver<dim, TriangulationType>::setup_dofs();
 
   Table<2, DoFTools::Coupling>  coupling_table;
   coupling_table.reinit(this->fe_system->n_components(),
@@ -42,10 +44,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
     for (unsigned int c=0; c<coupling_table.n_cols(); ++c)
       coupling_table[r][c] = DoFTools::always;
 
-  this->container.setup(this->dof_handler,
-                        this->zero_constraints,
-                        coupling_table,
-                        this->fe_system->n_blocks());
+  this->setup_system_matrix(coupling_table);
+  this->setup_vectors();
 }
 
 // explicit instantiation

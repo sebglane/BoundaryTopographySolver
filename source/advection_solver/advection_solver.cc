@@ -18,26 +18,26 @@ namespace Advection {
 
 SolverParameters::SolverParameters()
 :
-SolverBase::Parameters(),
-c_max(0.1),
-c_entropy(0.1)
+Base::Parameters(),
+c(0.1),
+nu(1.0e-4)
 {}
 
 
 
 void SolverParameters::declare_parameters(ParameterHandler &prm)
 {
-  SolverBase::Parameters::declare_parameters(prm);
+  Base::Parameters::declare_parameters(prm);
 
-  prm.enter_subsection("Buoyant hydrodynamic solver parameters");
+  prm.enter_subsection("Advection solver parameters");
   {
-    prm.declare_entry("Entropy stabilization coefficients",
+    prm.declare_entry("SUPG stabilization coefficient",
                       "0.1",
                       Patterns::Double(0.0));
 
-    prm.declare_entry("Standard stabilization coefficient",
-                      "0.1",
-                      Patterns::Double(0.0));
+    prm.declare_entry("Minimal viscosity",
+                      "1.0e-4",
+                      Patterns::Double(std::numeric_limits<double>::epsilon()));
   }
   prm.leave_subsection();
 }
@@ -46,15 +46,16 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
 
 void SolverParameters::parse_parameters(ParameterHandler &prm)
 {
-  SolverBase::Parameters::parse_parameters(prm);
+  Base::Parameters::parse_parameters(prm);
 
-  prm.enter_subsection("Buoyant hydrodynamic solver parameters");
+  prm.enter_subsection("Advection solver parameters");
   {
-    c_entropy = prm.get_double("Entropy stabilization coefficients");
-    Assert(c_entropy > 0.0, ExcLowerRangeType<double>(0.0, c_entropy));
+    c = prm.get_double("SUPG stabilization coefficient");
+    AssertThrow(c > 0.0, ExcLowerRangeType<double>(0.0, c));
 
-    c_max = prm.get_double("Standard stabilization coefficient");
-    Assert(c_max > 0.0, ExcLowerRangeType<double>(0.0, c_max));
+    nu = prm.get_double("Minimal viscosity");
+    AssertIsFinite(nu);
+    Assert(nu > 0.0, ExcLowerRangeType<double>(nu, 0.0));
   }
   prm.leave_subsection();
 }
@@ -64,40 +65,44 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const SolverParameters &prm)
 {
-  stream << static_cast<const SolverBase::Parameters &>(prm);
+  stream << static_cast<const Base::Parameters &>(prm);
 
   Utility::add_header(stream);
   Utility::add_line(stream, "Advection solver parameters");
   Utility::add_header(stream);
 
-  Utility::add_line(stream, "Entropy stabilization coeff.", prm.c_entropy);
-  Utility::add_line(stream, "Standard stabilization coeff.", prm.c_max);
+  Utility::add_line(stream, "SUPG stabilization coeff.", prm.c);
+  Utility::add_line(stream, "Minimal viscosity", prm.nu);
 
   return (stream);
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
-(TriangulationType      &tria,
- Mapping<dim>           &mapping,
- const SolverParameters &parameters)
+template <int dim, typename TriangulationType>
+Solver<dim, TriangulationType>::Solver
+(TriangulationType       &tria,
+ Mapping<dim>            &mapping,
+ const SolverParameters  &parameters,
+ const double             gradient_scaling_number)
 :
-SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters),
-boundary_conditions(this->triangulation),
+Base::Solver<dim, TriangulationType>(tria, mapping, parameters),
+scalar_boundary_conditions(this->triangulation),
 advection_field_ptr(),
+reference_field_ptr(),
 source_term_ptr(),
-fe_degree(1),
-c_max(parameters.c_max),
-c_entropy(parameters.c_entropy),
-global_entropy_variation{0.0}
+gradient_scaling_number(gradient_scaling_number),
+scalar_fe_degree(1),
+c(parameters.c),
+nu(parameters.nu),
+scalar_fe_index(numbers::invalid_unsigned_int),
+scalar_block_index(numbers::invalid_unsigned_int)
 {}
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     this->pcout << "    Output results..." << std::endl;
@@ -105,9 +110,9 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(cons
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
   data_out.attach_dof_handler(this->dof_handler);
-  data_out.add_data_vector(this->container.present_solution, "field");
+  data_out.add_data_vector(this->present_solution, "field");
 
-  data_out.build_patches(fe_degree);
+  data_out.build_patches(scalar_fe_degree);
 
   // write output to disk
   const std::string filename = ("solution-" +
@@ -125,13 +130,15 @@ template std::ostream & operator<<(std::ostream &, const SolverParameters &);
 template ConditionalOStream & operator<<(ConditionalOStream &, const SolverParameters &);
 
 template Solver<2>::Solver
-(Triangulation<2>  &,
- Mapping<2>        &,
- const SolverParameters &);
+(Triangulation<2>       &,
+ Mapping<2>             &,
+ const SolverParameters &,
+ const double             );
 template Solver<3>::Solver
-(Triangulation<3>  &,
- Mapping<3>        &,
- const SolverParameters &);
+(Triangulation<3>       &,
+ Mapping<3>             &,
+ const SolverParameters &,
+ const double             );
 
 template void Solver<2>::output_results(const unsigned int ) const;
 template void Solver<3>::output_results(const unsigned int ) const;

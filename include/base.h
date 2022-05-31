@@ -20,16 +20,27 @@
 #include <deal.II/fe/fe_system.h>
 
 #include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/generic_linear_algebra.h>
+
+#include <deal.II/meshworker/copy_data.h>
 
 #include <boundary_conditions.h>
 #include <evaluation_base.h>
-#include <linear_algebra_container.h>
 #include <parameters.h>
 
 #include <memory>
 #include <vector>
 
-namespace SolverBase {
+
+
+namespace LA
+{
+  using namespace dealii::LinearAlgebraDealII;
+}
+
+
+
+namespace Base {
 
 using namespace dealii;
 
@@ -129,16 +140,17 @@ Stream& operator<<(Stream &stream, const Parameters &prm);
  *
  */
 template <int dim,
-          typename TriangulationType = Triangulation<dim>,
-          typename LinearAlgebraContainer = LinearAlgebraContainer<>>
+          typename TriangulationType = Triangulation<dim>>
 class Solver
 {
 public:
+  using VectorType = LA::BlockVector;
+
   Solver(TriangulationType  &tria,
          Mapping<dim>       &mapping,
          const Parameters   &parameters);
 
-  void add_postprocessor(const std::shared_ptr<EvaluationBase<dim>> &postprocessor);
+  void add_postprocessor(const std::shared_ptr<EvaluationBase<dim, VectorType>> &postprocessor);
 
   void solve();
 
@@ -146,6 +158,18 @@ public:
 
 protected:
   virtual void apply_boundary_conditions() = 0;
+
+  virtual void
+  copy_local_to_global_system
+  (const MeshWorker::CopyData<1,1,1> &data,
+   const bool                         use_homogeneous_constraints);
+
+  virtual void
+  copy_local_to_global_rhs
+  (const MeshWorker::CopyData<0,1,1> &data,
+   const bool                         use_homogeneous_constraints);
+
+  virtual void setup_dofs();
 
   void apply_dirichlet_constraints
   (const typename BoundaryConditionsBase<dim>::BCMapping &dirichlet_bcs,
@@ -158,28 +182,54 @@ protected:
    const ComponentMask                                   &mask);
 
   void apply_periodicity_constraints
-  (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs);
+  (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs,
+   const ComponentMask                    &mask);
 
+  void setup_system_matrix(const Table<2, DoFTools::Coupling> &coupling_table);
+
+  void setup_vectors();
+
+private:
   virtual void assemble_system(const bool use_homogenenous_constraints = false,
                                const bool use_newton_linearization = true) = 0;
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints = false) = 0;
 
-  virtual void setup_dofs();
-
   virtual void setup_fe_system() = 0;
+
+  virtual void output_results(const unsigned int cycle = 0) const = 0;
 
   virtual void preprocess_newton_iteration(const unsigned int iteration,
                                            const bool         is_initial_cycle);
 
+  virtual void postprocess_newton_iteration(const unsigned int iteration,
+                                            const bool         is_initial_cycle);
+
   virtual void preprocess_picard_iteration(const unsigned int iteration);
 
-  virtual void output_results(const unsigned int cycle = 0) const = 0;
+  virtual void refine_mesh();
 
-  ConditionalOStream          pcout;
+  void execute_mesh_refinement();
 
-  TriangulationType          &triangulation;
-  Mapping<dim>               &mapping;
+  std::vector<double> get_residual_components() const;
+
+  void newton_iteration(const bool is_initial_step);
+
+  void picard_iteration();
+
+  void postprocess_solution(const unsigned int cycle = 0) const;
+
+  void solve_linear_system(const bool initial_step);
+
+protected:
+  const std::string   graphical_output_directory;
+
+  const bool          verbose;
+
+  ConditionalOStream  pcout;
+
+  TriangulationType  &triangulation;
+  Mapping<dim>       &mapping;
 
   std::shared_ptr<FESystem<dim>> fe_system;
 
@@ -190,25 +240,20 @@ protected:
   AffineConstraints<double>   zero_constraints;
 
   // linear algebra
-  LinearAlgebraContainer      container;
+  BlockSparsityPattern            sparsity_pattern;
+  LA::BlockSparseMatrix  system_matrix;
+
+  VectorType  system_rhs;
+
+  VectorType  present_solution;
+  VectorType  evaluation_point;
+  VectorType  solution_update;
 
   // monitor of computing times
   TimerOutput                 computing_timer;
 
 private:
-  void newton_iteration(const bool is_initial_step);
-
-  void picard_iteration();
-
-  void postprocess_solution(const unsigned int cycle = 0) const;
-
-  virtual void refine_mesh();
-
-  void execute_mesh_refinement();
-
-  void solve_linear_system(const bool initial_step);
-
-  std::vector<std::shared_ptr<EvaluationBase<dim>>> postprocessor_ptrs;
+  std::vector<std::shared_ptr<EvaluationBase<dim, VectorType>>> postprocessor_ptrs;
 
   const Utility::RefinementParameters refinement_parameters;
 
@@ -223,34 +268,29 @@ private:
   const bool          print_timings;
 
   const bool          apply_picard_iteration;
-
-protected:
-  const std::string   graphical_output_directory;
-
-  const bool verbose;
 };
 
 // inline methods
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline ConditionalOStream&
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_conditional_output_stream()
+Solver<dim, TriangulationType>::get_conditional_output_stream()
 {
   return (pcout);
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::add_postprocessor
-(const std::shared_ptr<EvaluationBase<dim>> &postprocessor)
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::add_postprocessor
+(const std::shared_ptr<EvaluationBase<dim, VectorType>> &postprocessor)
 {
   postprocessor_ptrs.push_back(postprocessor);
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::
 preprocess_newton_iteration(const unsigned int, const bool)
 {
   return;
@@ -258,13 +298,34 @@ preprocess_newton_iteration(const unsigned int, const bool)
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::
+postprocess_newton_iteration(const unsigned int, const bool)
+{
+  return;
+}
+
+
+
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::
 preprocess_picard_iteration(const unsigned int)
 {
   return;
 }
 
-}  // namespace SolverBase
+template <int dim, typename TriangulationType>
+inline std::vector<double>
+Solver<dim, TriangulationType>::get_residual_components() const
+{
+  std::vector<double> residual;
+
+  for (unsigned int i=0; i<system_rhs.n_blocks(); ++i)
+    residual.push_back(system_rhs.block(i).l2_norm());
+
+  return (residual);
+}
+
+}  // namespace Base
 
 #endif /* INCLUDE_SOLVER_H_ */

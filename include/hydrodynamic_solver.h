@@ -9,10 +9,10 @@
 #define INCLUDE_HYDRODYNAMIC_SOLVER_H_
 
 #include <angular_velocity.h>
-#include <assembly_base_data.h>
+#include <base.h>
 #include <boundary_conditions.h>
 #include <hydrodynamic_options.h>
-#include <solver_base.h>
+#include <hydrodynamic_assembly_data.h>
 #include <stabilization_flags.h>
 
 #include <memory>
@@ -121,7 +121,7 @@ enum ViscousTermWeakForm
  * @brief A structure containing all the parameters of the Navier-Stokes
  * solver.
  */
-struct SolverParameters: SolverBase::Parameters
+struct SolverParameters: virtual Base::Parameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
@@ -196,160 +196,9 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 
-namespace AssemblyData {
-
-namespace Matrix {
-
-template <int dim>
-struct Scratch : AssemblyBaseData::Matrix::Scratch<dim>
-{
-  Scratch(const Mapping<dim>        &mapping,
-          const Quadrature<dim>     &quadrature_formula,
-          const FiniteElement<dim>  &fe,
-          const UpdateFlags         update_flags,
-          const Quadrature<dim-1>  &face_quadrature_formula,
-          const UpdateFlags         face_update_flags,
-          const StabilizationFlags  stabilization_flags,
-          const bool                use_stress_form = false,
-          const bool                allocate_background_velocity = false,
-          const bool                allocate_body_force = false,
-          const bool                allocate_face_normal = false,
-          const bool                allocate_face_stresses = false,
-          const bool                allocate_traction = false);
-
-  Scratch(const Scratch<dim>  &data);
-
-  FEFaceValues<dim>   fe_face_values;
-
-  OptionalArgumentsStrongForm<dim>  optional_arguments_strong_from;
-
-  OptionalArgumentsWeakForm<dim>    optional_arguments_weak_from;
-
-  const unsigned int  n_face_q_points;
-
-  // shape functions
-  std::vector<Tensor<1, dim>> phi_velocity;
-  std::vector<Tensor<2, dim>> grad_phi_velocity;
-  std::vector<double>         div_phi_velocity;
-  std::vector<double>         phi_pressure;
-
-  // stress tensor related shape functions
-  std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
-
-  // stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_phi_pressure;
-  std::vector<Tensor<1, dim>> laplace_phi_velocity;
-
-  // stress tensor and stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_div_phi_velocity;
-
-  // solution values
-  std::vector<Tensor<1, dim>> present_velocity_values;
-  std::vector<Tensor<2, dim>> present_velocity_gradients;
-  std::vector<double>         present_pressure_values;
-
-  // stress tensor related solution values
-  std::vector<SymmetricTensor<2, dim>>  present_sym_velocity_gradients;
-
-  // stabilization related solution values
-  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
-  std::vector<Tensor<1, dim>> present_pressure_gradients;
-
-  // stabilization related quantities
-  std::vector<Tensor<1, dim>> present_strong_residuals;
-
-  // face normal vectors
-  std::vector<Tensor<1, dim>> face_normal_vectors;
-
-  // solution face values
-  std::vector<double>                   present_pressure_face_values;
-  std::vector<Tensor<2, dim>>           present_velocity_face_gradients;
-  std::vector<SymmetricTensor<2, dim>>  present_velocity_sym_face_gradients;
-
-  // source term face values
-  std::vector<Tensor<1, dim>> boundary_traction_values;
-};
-
-} // namespace Matrix
-
-namespace RightHandSide
-{
-
-template <int dim>
-struct Scratch : AssemblyBaseData::RightHandSide::Scratch<dim>
-{
-  Scratch(const Mapping<dim>        &mapping,
-          const Quadrature<dim>     &quadrature_formula,
-          const FiniteElement<dim>  &fe,
-          const UpdateFlags         update_flags,
-          const Quadrature<dim-1>  &face_quadrature_formula,
-          const UpdateFlags         face_update_flags,
-          const StabilizationFlags  stabilization_flags,
-          const bool                use_stress_form = false,
-          const bool                allocate_background_velocity = false,
-          const bool                allocate_body_force = false,
-          const bool                allocate_face_normal = false,
-          const bool                allocate_face_stresses = false,
-          const bool                allocate_traction = false);
-
-  Scratch(const Scratch<dim>  &data);
-
-  FEFaceValues<dim>   fe_face_values;
-
-  OptionalArgumentsStrongForm<dim>  optional_arguments_strong_from;
-
-  OptionalArgumentsWeakForm<dim>    optional_arguments_weak_from;
-
-  const unsigned int  n_face_q_points;
-
-  // shape functions
-  std::vector<Tensor<1, dim>> phi_velocity;
-  std::vector<Tensor<2, dim>> grad_phi_velocity;
-  std::vector<double>         div_phi_velocity;
-  std::vector<double>         phi_pressure;
-
-  // stress tensor related shape functions
-  std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
-
-  // stabilization related shape functions
-  std::vector<Tensor<1, dim>> grad_phi_pressure;
-
-  // solution values
-  std::vector<Tensor<1, dim>> present_velocity_values;
-  std::vector<Tensor<2, dim>> present_velocity_gradients;
-  std::vector<double>         present_pressure_values;
-
-  // stress tensor related solution values
-  std::vector<SymmetricTensor<2, dim>>  present_sym_velocity_gradients;
-
-  // stabilization related solution values
-  std::vector<Tensor<1, dim>> present_velocity_laplaceans;
-  std::vector<Tensor<1, dim>> present_pressure_gradients;
-
-  // stabilization related quantities
-  std::vector<Tensor<1, dim>> present_strong_residuals;
-
-  // face normal vectors
-  std::vector<Tensor<1, dim>> face_normal_vectors;
-
-  // solution face values
-  std::vector<double>                   present_pressure_face_values;
-  std::vector<Tensor<2, dim>>           present_velocity_face_gradients;
-  std::vector<SymmetricTensor<2, dim>>  present_velocity_sym_face_gradients;
-
-  // source term face values
-  std::vector<Tensor<1, dim>> boundary_traction_values;
-};
-
-} // namespace RightHandSide
-
-} // namespace AssemblyData
-
-
 template <int dim,
-          typename TriangulationType = Triangulation<dim>,
-          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
-class Solver: public SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>
+          typename TriangulationType = Triangulation<dim>>
+class Solver: virtual public Base::Solver<dim, TriangulationType>
 {
 public:
   Solver(TriangulationType   &tria,
@@ -375,42 +224,49 @@ public:
 
   double get_froude_number() const;
 
-private:
-  virtual void setup_fe_system();
-
-  virtual void setup_dofs();
-
+protected:
   virtual void apply_boundary_conditions();
 
+private:
   virtual void assemble_system(const bool use_homogenenous_constraints,
                                const bool use_newton_linearization);
 
   virtual void assemble_rhs(const bool use_homogenenous_constraints);
 
-  void assemble_local_system
-  (const typename DoFHandler<dim>::active_cell_iterator &cell,
-   AssemblyData::Matrix::Scratch<dim> &scratch,
-   AssemblyBaseData::Matrix::Copy     &data,
-   const bool use_newton_linearization,
-   const bool use_stress_form) const;
+  virtual void setup_dofs();
 
-  void assemble_local_rhs
-  (const typename DoFHandler<dim>::active_cell_iterator &cell,
-   AssemblyData::RightHandSide::Scratch<dim> &scratch,
-   AssemblyBaseData::RightHandSide::Copy     &data,
-   const bool use_stress_form) const;
+  virtual void setup_fe_system();
 
   virtual void output_results(const unsigned int cycle = 0) const;
 
+  void assemble_system_local_cell
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<1,1,1>                           &data,
+   const bool                                             use_newton_linearization,
+   const bool                                             use_stress_form) const;
+
+  void assemble_system_local_boundary
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   const unsigned int                                     face_number,
+   AssemblyData::Matrix::ScratchData<dim>                &scratch,
+   MeshWorker::CopyData<1,1,1>                           &data,
+   const bool                                             use_stress_form) const;
+
+  void assemble_rhs_local_cell
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
+   MeshWorker::CopyData<0,1,1>                           &data,
+   const bool                                             use_stress_form) const;
+
+  void assemble_rhs_local_boundary
+  (const typename DoFHandler<dim>::active_cell_iterator  &cell,
+   const unsigned int                                     face_number,
+   AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
+   MeshWorker::CopyData<0,1,1>                           &data,
+   const bool                                             use_stress_form) const;
+
 protected:
-  void copy_local_to_global_system
-  (const AssemblyBaseData::Matrix::Copy     &data,
-   const bool use_homogeneous_constraints);
-
-  void copy_local_to_global_rhs
-  (const AssemblyBaseData::RightHandSide::Copy     &data,
-   const bool use_homogeneous_constraints);
-
   VectorBoundaryConditions<dim> velocity_boundary_conditions;
 
   ScalarBoundaryConditions<dim> pressure_boundary_conditions;
@@ -442,12 +298,21 @@ protected:
   const double        mu;
 
   const bool          include_boundary_stress_terms;
+
+  unsigned int        velocity_fe_index;
+
+  unsigned int        pressure_fe_index;
+
+  unsigned int        velocity_block_index;
+
+  unsigned int        pressure_block_index;
+
 };
 
 
 // inline functions
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_angular_velocity
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_angular_velocity
 (const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity)
 {
   angular_velocity_ptr = angular_velocity;
@@ -455,8 +320,8 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_angular_
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_body_force
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_body_force
 (const std::shared_ptr<const TensorFunction<1, dim>> &body_force)
 {
   body_force_ptr = body_force;
@@ -464,8 +329,8 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_body_for
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_background_velocity
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_background_velocity
 (const std::shared_ptr<const TensorFunction<1, dim>> &velocity)
 {
   background_velocity_ptr = velocity;
@@ -473,51 +338,51 @@ inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::set_backgrou
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline VectorBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_velocity_bcs()
+Solver<dim, TriangulationType>::get_velocity_bcs()
 {
   return velocity_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline const VectorBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_velocity_bcs() const
+Solver<dim, TriangulationType>::get_velocity_bcs() const
 {
   return velocity_boundary_conditions;
 }
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_pressure_bcs()
+Solver<dim, TriangulationType>::get_pressure_bcs()
 {
   return pressure_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
+template <int dim, typename TriangulationType>
 inline const ScalarBoundaryConditions<dim> &
-Solver<dim, TriangulationType, LinearAlgebraContainer>::get_pressure_bcs() const
+Solver<dim, TriangulationType>::get_pressure_bcs() const
 {
   return pressure_boundary_conditions;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline double Solver<dim, TriangulationType, LinearAlgebraContainer>::get_reynolds_number() const
+template <int dim, typename TriangulationType>
+inline double Solver<dim, TriangulationType>::get_reynolds_number() const
 {
   return reynolds_number;
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline double Solver<dim, TriangulationType, LinearAlgebraContainer>::get_froude_number() const
+template <int dim, typename TriangulationType>
+inline double Solver<dim, TriangulationType>::get_froude_number() const
 {
   return froude_number;
 }

@@ -25,14 +25,35 @@
 | Convective term weak form                | standard             |
 | Viscous term weak form                   | Laplacean            |
 | Include_boundary_stress_terms            | false                |
-| Stabilization type                       |                      |
+| Stabilization type                       | none                 |
 | SUPG/PSPG stab. parameter                | 1                    |
 | Grad-Div stab. parameter                 | 1                    |
 +------------------------------------------+----------------------+
-| Buoyant hydrodynamic solver parameters                          |
-| SUPG density stab. parameter             | 1                    |
-| Minimal viscosity (density)              | 0.0001               |
+| Problem parameters                                              |
 +------------------------------------------+----------------------+
+| Spatial dimension                        | 2                    |
+| Max. number of Newton iterations         | 15                   |
+| Absolute tolerance                       | 1e-12                |
+| Relative tolerance                       | 1e-09                |
+| Verbose                                  | false                |
+| Print timings                            | false                |
+| Graphical output directory               | ./ResultsBuoyantTopographyProblem |
++------------------------------------------+----------------------+
+| Refinement control parameters                                   |
++------------------------------------------+----------------------+
+| Adaptive mesh refinement                 | True                 |
+| Initial refinements                      | 4                    |
+| Initial boundary refinements             | 0                    |
+| Fraction of cells set to coarsen         | 0                    |
+| Fraction of cells set to refine          | 0.8                  |
+| Maximum number of levels                 | 10                   |
+| Minimum number of levels                 | 2                    |
+| Number of refinement cycles              | 3                    |
++------------------------------------------+----------------------+
+| Advection solver parameters                                     |
++------------------------------------------+----------------------+
+| SUPG stabilization coeff.                | 1                    |
+| Minimal viscosity                        | 0.0001               |
 | Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 100                  |
 | Froude number                            | 100000               |
@@ -47,16 +68,14 @@ Solving buoyant topography problem
     Number of active cells: 256
     Number of total degrees of freedom: 2756
 Cycle 0:
-Reseting density solution...
 Initial residual: 8.073271e-02
 Reseting density solution...
-Iteration:   0, Current residual: 7.2034e-03 (Tolerance: 8.0733e-11), Residual components: 7.2034e-03, 1.0779e-16, 0.0000e+00, 
-Reseting density solution...
-Iteration:   1, Current residual: 9.5461e-04 (Tolerance: 8.0733e-11), Residual components: 1.4624e-04, 5.2695e-17, 9.4334e-04, 
-Iteration:   2, Current residual: 1.6641e-04 (Tolerance: 8.0733e-11), Residual components: 7.3255e-05, 4.5000e-17, 1.4942e-04, 
-Iteration:   3, Current residual: 1.3136e-04 (Tolerance: 8.0733e-11), Residual components: 2.0374e-07, 5.1886e-17, 1.3136e-04, 
-Iteration:   4, Current residual: 1.3324e-06 (Tolerance: 8.0733e-11), Residual components: 1.3521e-12, 5.4582e-17, 1.3324e-06, 
-Iteration:   5, Current residual: 1.9832e-14 (Tolerance: 8.0733e-11), Residual components: 2.6033e-16, 5.1503e-17, 1.9830e-14, 
+Iteration:   0, Current residual: 7.2035e-03 (Tolerance: 8.0733e-11), Residual components: 7.2034e-03, 1.1305e-16, 3.3087e-05, 
+Iteration:   1, Current residual: 9.5461e-04 (Tolerance: 8.0733e-11), Residual components: 1.4624e-04, 5.3987e-17, 9.4334e-04, 
+Iteration:   2, Current residual: 1.6641e-04 (Tolerance: 8.0733e-11), Residual components: 7.3255e-05, 5.0135e-17, 1.4942e-04, 
+Iteration:   3, Current residual: 1.3136e-04 (Tolerance: 8.0733e-11), Residual components: 2.0374e-07, 4.8828e-17, 1.3136e-04, 
+Iteration:   4, Current residual: 1.3324e-06 (Tolerance: 8.0733e-11), Residual components: 1.3521e-12, 5.5439e-17, 1.3324e-06, 
+Iteration:   5, Current residual: 1.9833e-14 (Tolerance: 8.0733e-11), Residual components: 2.6946e-16, 5.6436e-17, 1.9831e-14, 
 End cycle 0
 Mesh refinement...
     Number of cells set for refinement: 59
@@ -65,9 +84,9 @@ Mesh refinement...
     Number of total degrees of freedom: 4714
 Cycle 1:
 Initial residual: 1.5779e-03
-Iteration:   0, Current residual: 9.1571e-06 (Tolerance: 1.5779e-12), Residual components: 9.1429e-06, 5.3340e-17, 5.0958e-07, 
-Iteration:   1, Current residual: 6.8533e-09 (Tolerance: 1.5779e-12), Residual components: 4.3540e-09, 5.1251e-17, 5.2924e-09, 
-Iteration:   2, Current residual: 6.8933e-13 (Tolerance: 1.5779e-12), Residual components: 1.1580e-15, 5.5046e-17, 6.8933e-13, 
+Iteration:   0, Current residual: 9.1571e-06 (Tolerance: 1.5779e-12), Residual components: 9.1429e-06, 5.6180e-17, 5.0958e-07, 
+Iteration:   1, Current residual: 6.8533e-09 (Tolerance: 1.5779e-12), Residual components: 4.3540e-09, 5.6994e-17, 5.2924e-09, 
+Iteration:   2, Current residual: 6.8933e-13 (Tolerance: 1.5779e-12), Residual components: 1.1586e-15, 6.1755e-17, 6.8933e-13, 
 End cycle 1
 Mesh refinement...
     Number of cells set for refinement: 212
@@ -76,8 +95,8 @@ Mesh refinement...
     Number of total degrees of freedom: 11634
 Cycle 2:
 Initial residual: 2.4481e-04
-Iteration:   0, Current residual: 1.2490e-07 (Tolerance: 1.0000e-12), Residual components: 1.2420e-07, 5.3424e-17, 1.3220e-08, 
-Iteration:   1, Current residual: 9.3733e-13 (Tolerance: 1.0000e-12), Residual components: 1.6822e-14, 5.1828e-17, 9.3718e-13, 
+Iteration:   0, Current residual: 1.2490e-07 (Tolerance: 1.0000e-12), Residual components: 1.2420e-07, 5.4568e-17, 1.3220e-08, 
+Iteration:   1, Current residual: 9.3733e-13 (Tolerance: 1.0000e-12), Residual components: 1.6823e-14, 5.6782e-17, 9.3718e-13, 
 End cycle 2
 Mesh refinement...
     Number of cells set for refinement: 631

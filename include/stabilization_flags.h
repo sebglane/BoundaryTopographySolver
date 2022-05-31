@@ -8,6 +8,9 @@
 #ifndef INCLUDE_STABILIZATION_FLAGS_H_
 #define INCLUDE_STABILIZATION_FLAGS_H_
 
+#include <sstream>
+#include <string>
+
 /*!
  * @brief Enumeration for the stabilization terms.
  */
@@ -27,14 +30,24 @@ template <class StreamType>
 inline StreamType &
 operator<<(StreamType &s, const StabilizationFlags u)
 {
-  if (u & apply_none)
-    s << "apply_none|";
+  if (u == apply_none)
+  {
+    s << "none";
+    return s;
+  }
+
+  std::stringstream ss;
+
   if (u & apply_supg)
-    s << "apply_supg|";
+    ss << "SUPG|";
   if (u & apply_pspg)
-    s << "apply_pspg|";
+    ss << "PSPG|";
   if (u & apply_grad_div)
-    s << "apply_grad_div|";
+    ss << "GradDiv|";
+
+  std::string string{ss.str()};
+  string.pop_back();
+  s << string.c_str();
 
   return s;
 }

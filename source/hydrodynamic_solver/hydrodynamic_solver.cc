@@ -4,10 +4,6 @@
  *  Created on: Aug 31, 2021
  *      Author: sg
  */
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_vector.h>
-
 #include <deal.II/numerics/data_out.h>
 
 #include <hydrodynamic_solver.h>
@@ -19,22 +15,9 @@
 
 namespace Hydrodynamic {
 
-using TrilinosContainer = typename
-                          SolverBase::
-                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
-
-
-
-template <int dim>
-using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
-
-
-
 SolverParameters::SolverParameters()
 :
-SolverBase::Parameters(),
+Base::Parameters(),
 convective_term_weak_form(ConvectiveTermWeakForm::standard),
 viscous_term_weak_form(ViscousTermWeakForm::laplacean),
 stabilization(apply_none),
@@ -47,7 +30,7 @@ mu(1.0)
 
 void SolverParameters::declare_parameters(ParameterHandler &prm)
 {
-  SolverBase::Parameters::declare_parameters(prm);
+  Base::Parameters::declare_parameters(prm);
 
   prm.enter_subsection("Hydrodynamic solver parameters");
   {
@@ -88,7 +71,7 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
 
 void SolverParameters::parse_parameters(ParameterHandler &prm)
 {
-  SolverBase::Parameters::parse_parameters(prm);
+  Base::Parameters::parse_parameters(prm);
 
   prm.enter_subsection("Hydrodynamic solver parameters");
   {
@@ -149,7 +132,7 @@ void SolverParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const SolverParameters &prm)
 {
-  stream << static_cast<const SolverBase::Parameters &>(prm);
+  stream << static_cast<const Base::Parameters &>(prm);
 
   Utility::add_header(stream);
   Utility::add_line(stream, "Hydrodynamic solver parameters");
@@ -204,8 +187,8 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
+template <int dim, typename TriangulationType>
+Solver<dim, TriangulationType>::Solver
 (TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters,
@@ -213,7 +196,7 @@ Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
  const double           froude,
  const double           rossby)
 :
-SolverBase::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters),
+Base::Solver<dim, TriangulationType>(tria, mapping, parameters),
 velocity_boundary_conditions(this->triangulation),
 pressure_boundary_conditions(this->triangulation),
 boundary_stress_ids(),
@@ -229,78 +212,23 @@ froude_number(froude),
 rossby_number(rossby),
 c(1.0),
 mu(1.0),
-include_boundary_stress_terms(parameters.include_boundary_stress_terms)
+include_boundary_stress_terms(parameters.include_boundary_stress_terms),
+velocity_fe_index(numbers::invalid_unsigned_int),
+pressure_fe_index(numbers::invalid_unsigned_int),
+velocity_block_index(numbers::invalid_unsigned_int),
+pressure_block_index(numbers::invalid_unsigned_int)
 {}
 
 
 
-template <>
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::Solver
-(ParallelTriangulation<2> &tria,
- Mapping<2>             &mapping,
- const SolverParameters &parameters,
- const double           reynolds,
- const double           froude,
- const double           rossby)
-:
-SolverBase::Solver<2, ParallelTriangulation<2>, TrilinosContainer>(tria, mapping, parameters),
-velocity_boundary_conditions(this->triangulation),
-pressure_boundary_conditions(this->triangulation),
-boundary_stress_ids(),
-angular_velocity_ptr(),
-body_force_ptr(),
-background_velocity_ptr(),
-convective_term_weak_form(parameters.convective_term_weak_form),
-viscous_term_weak_form(parameters.viscous_term_weak_form),
-stabilization(parameters.stabilization),
-velocity_fe_degree(2),
-reynolds_number(reynolds),
-froude_number(froude),
-rossby_number(rossby),
-c(1.0),
-mu(1.0),
-include_boundary_stress_terms(parameters.include_boundary_stress_terms)
-{}
-
-
-
-template <>
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::Solver
-(ParallelTriangulation<3> &tria,
- Mapping<3>             &mapping,
- const SolverParameters &parameters,
- const double           reynolds,
- const double           froude,
- const double           rossby)
-:
-SolverBase::Solver<3, ParallelTriangulation<3>, TrilinosContainer>(tria, mapping, parameters),
-velocity_boundary_conditions(this->triangulation),
-pressure_boundary_conditions(this->triangulation),
-boundary_stress_ids(),
-angular_velocity_ptr(),
-body_force_ptr(),
-background_velocity_ptr(),
-convective_term_weak_form(parameters.convective_term_weak_form),
-viscous_term_weak_form(parameters.viscous_term_weak_form),
-stabilization(parameters.stabilization),
-velocity_fe_degree(2),
-reynolds_number(reynolds),
-froude_number(froude),
-rossby_number(rossby),
-c(1.0),
-mu(1.0),
-include_boundary_stress_terms(parameters.include_boundary_stress_terms)
-{}
-
-
-
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     this->pcout << "    Output results..." << std::endl;
 
-  Postprocessor<dim>  postprocessor(0, dim);
+  Postprocessor<dim>  postprocessor(velocity_fe_index,
+                                    pressure_fe_index);
 
   if (background_velocity_ptr)
     postprocessor.set_background_velocity(background_velocity_ptr);
@@ -308,7 +236,7 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(cons
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
   data_out.attach_dof_handler(this->dof_handler);
-  data_out.add_data_vector(this->container.present_solution,
+  data_out.add_data_vector(this->present_solution,
                            postprocessor);
 
   data_out.build_patches(velocity_fe_degree);
@@ -346,19 +274,9 @@ template Solver<3>::Solver
 template void Solver<2>::output_results(const unsigned int ) const;
 template void Solver<3>::output_results(const unsigned int ) const;
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-output_results(const unsigned int ) const;
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-output_results(const unsigned int ) const;
-
 template class Solver<2>;
 template class Solver<3>;
 
-template class Solver<2, ParallelTriangulation<2>, TrilinosContainer>;
-template class Solver<3, ParallelTriangulation<3>, TrilinosContainer>;
+
 
 }  // namespace Hydrodynamic

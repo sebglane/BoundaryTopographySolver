@@ -13,15 +13,13 @@
 #include <deal.II/fe/mapping.h>
 #include <deal.II/fe/fe.h>
 
-#include <deal.II/lac/vector.h>
 #include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/trilinos_vector.h>
 
-namespace SolverBase {
+namespace Base {
 
 using namespace dealii;
 
-template <int dim>
+template <int dim, typename VectorType = BlockVector<double> >
 class EvaluationBase
 {
 public:
@@ -32,25 +30,15 @@ public:
   virtual void operator()(const Mapping<dim>        &mapping,
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
-                          const Vector<double>      &solution) = 0;
-
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const BlockVector<double> &solution) = 0;
-
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const TrilinosWrappers::MPI::Vector &solution) = 0;
+                          const VectorType          &solution) = 0;
 
 protected:
   unsigned int cycle;
 };
 
 // inline functions
-template <int dim>
-void EvaluationBase<dim>::set_cycle(const unsigned int current_cycle)
+template <int dim, typename VectorType>
+void EvaluationBase<dim, VectorType>::set_cycle(const unsigned int current_cycle)
 {
   cycle = current_cycle;
 }

@@ -1,0 +1,60 @@
+Make grid
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Solved the linear system for 
+	- pressure mean value constraint: false
+	- Re: 100
+Make grid
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Solved the linear system for 
+	- pressure mean value constraint: true
+	- Re: 100
+Make grid
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Solved the linear system for 
+	- pressure mean value constraint: false
+	- Re: 1000
+Make grid
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Solved the linear system for 
+	- pressure mean value constraint: true
+	- Re: 1000
+Make grid
+    Number of active cells: 256
+    Number of total degrees of freedom: 2467
+Solved the linear system for 
+	- pressure mean value constraint: false
+	- Re: 10000
+Make grid
+    Number of active cells: 1024
+    Number of total degrees of freedom: 9539
+Solved the linear system for 
+	- pressure mean value constraint: false
+	- Re: 100
+Make grid
+    Number of active cells: 1024
+    Number of total degrees of freedom: 9539
+Solved the linear system for 
+	- pressure mean value constraint: true
+	- Re: 100
+Make grid
+    Number of active cells: 1024
+    Number of total degrees of freedom: 9539
+Solved the linear system for 
+	- pressure mean value constraint: false
+	- Re: 1000
+Make grid
+    Number of active cells: 1024
+    Number of total degrees of freedom: 9539
+Solved the linear system for 
+	- pressure mean value constraint: true
+	- Re: 1000
+Make grid
+    Number of active cells: 1024
+    Number of total degrees of freedom: 9539
+Solved the linear system for 
+	- pressure mean value constraint: false
+	- Re: 10000
