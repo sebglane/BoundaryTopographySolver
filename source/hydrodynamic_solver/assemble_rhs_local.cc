@@ -31,9 +31,11 @@ assemble_rhs_local_cell
   const FEValuesExtractors::Vector  velocity(velocity_fe_index);
   const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 
+  // viscosity
   const double nu{1.0 / reynolds_number};
+
+  // stabilization parameter
   const double delta{c * std::pow(cell->diameter(), 2)};
-  Assert(delta > 0.0, ExcLowerRangeType<double>(0.0, delta));
 
   // solution values
   auto &present_velocity_values = scratch.present_velocity_values;
@@ -186,6 +188,7 @@ assemble_rhs_local_boundary
                                                    nu,
                                                    nullptr,
                                                    background_velocity_ptr);
+      scratch.adjust_velocity_field_local_boundary();
 
       // boundary traction
       const auto &boundary_tractions{scratch.vector_options.boundary_traction_values};
