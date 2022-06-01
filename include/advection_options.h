@@ -16,11 +16,11 @@ namespace Advection {
 
 using namespace dealii;
 
-struct OptionalArguments
+struct OptionsBase
 {
-  OptionalArguments();
+  OptionsBase();
 
-  OptionalArguments(const OptionalArguments &other);
+  OptionsBase(const OptionsBase &other);
 
   // scale factor of the gradient of the reference field
   std::optional<double> gradient_scaling;
@@ -29,11 +29,11 @@ struct OptionalArguments
 
 
 template<int dim>
-struct OptionalScalarArguments : OptionalArguments
+struct ScalarOptions : OptionsBase
 {
-  OptionalScalarArguments();
+  ScalarOptions();
 
-  OptionalScalarArguments(const OptionalScalarArguments<dim> &other);
+  ScalarOptions(const ScalarOptions<dim> &other);
 
   // source term
   std::optional<double>           source_term_value;
@@ -45,9 +45,9 @@ struct OptionalScalarArguments : OptionalArguments
 
 
 template<int dim>
-struct OptionalVectorArguments : OptionalArguments
+struct VectorOptions : OptionsBase
 {
-  OptionalVectorArguments(
+  VectorOptions(
       const unsigned int n_q_points,
       const unsigned int n_face_q_points,
       const bool         allocate_source_term = false,
@@ -55,7 +55,7 @@ struct OptionalVectorArguments : OptionalArguments
       const bool         allocate_background_velocity = false,
       const bool         allocate_reference_gradient = false);
 
-  OptionalVectorArguments(const OptionalVectorArguments<dim> &other);
+  VectorOptions(const VectorOptions<dim> &other);
 
   // source term
   std::optional<std::vector<double>>          source_term_values;

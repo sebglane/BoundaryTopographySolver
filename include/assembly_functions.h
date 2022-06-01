@@ -170,7 +170,7 @@ void compute_strong_density_residual
 (const std::vector<Tensor<1, dim>>             &present_density_gradients,
  const std::vector<Tensor<1, dim>>             &present_velocity_values,
  std::vector<double>                           &strong_residuals,
- const Advection::OptionalVectorArguments<dim> &advection_options);
+ const Advection::VectorOptions<dim> &advection_options);
 
 
 
@@ -181,7 +181,7 @@ double compute_density_matrix
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
- const Advection::OptionalScalarArguments<dim>      &advection_options,
+ const Advection::ScalarOptions<dim>      &advection_options,
  const bool            apply_newton_linearization = true);
 
 
@@ -194,7 +194,7 @@ double compute_density_rhs
  const double          density_test_function_value,
  const Tensor<1, dim> &density_test_function_gradient,
  const double          delta,
- const Advection::OptionalScalarArguments<dim>  &advection_options);
+ const Advection::ScalarOptions<dim>  &advection_options);
 
 
 
@@ -208,7 +208,7 @@ double compute_density_residual_linearization_matrix
  const double          present_strong_residual,
  const double          delta,
  const double          nu,
- const Advection::OptionalScalarArguments<dim>    &advection_options,
+ const Advection::ScalarOptions<dim>    &advection_options,
  const bool            apply_newton_linearization = true);
 
 
@@ -250,7 +250,7 @@ double compute_rhs
  const Tensor<1, dim>  &advection_field_value,
  const double           present_strong_residual,
  const double           delta,
- const OptionalScalarArguments<dim> &options);
+ const ScalarOptions<dim> &options);
 
 
 
@@ -267,7 +267,7 @@ void compute_strong_residual
 (const std::vector<Tensor<1, dim>>   &present_gradients,
  const std::vector<Tensor<1, dim>>   &advection_field_values,
  std::vector<double>                 &strong_residuals,
- const OptionalVectorArguments<dim>  &options);
+ const VectorOptions<dim>  &options);
 
 
 /*!

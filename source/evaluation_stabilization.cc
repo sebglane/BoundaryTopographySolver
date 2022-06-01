@@ -395,7 +395,7 @@ operator()
   ScratchData<dim> &advection_scratch
     = static_cast<Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
 
-  Advection::OptionalVectorArguments<dim> &advection_vector_options
+  Advection::VectorOptions<dim> &advection_vector_options
     = advection_scratch.vector_options;
   Hydrodynamic::OptionalVectorArguments<dim> &hydrodynamic_vector_options
     = hydrodynamic_scratch.vector_options;

@@ -629,7 +629,7 @@ void compute_strong_density_residual
 (const std::vector<Tensor<1, dim>>             &present_density_gradients,
  const std::vector<Tensor<1, dim>>             &present_velocity_values,
  std::vector<double>                           &strong_residuals,
- const Advection::OptionalVectorArguments<dim> &advection_options)
+ const Advection::VectorOptions<dim> &advection_options)
 {
   Advection::compute_strong_residual(present_density_gradients,
                                      present_velocity_values,
@@ -646,7 +646,7 @@ double compute_density_matrix
  const Tensor<1, dim> &present_density_gradient,
  const Tensor<1, dim> &present_velocity_value,
  const double          density_test_function_value,
- const Advection::OptionalScalarArguments<dim>      &advection_options,
+ const Advection::ScalarOptions<dim>      &advection_options,
  const bool            apply_newton_linearization)
 {
   double linearized_residual =
@@ -677,7 +677,7 @@ double compute_density_rhs
  const double          density_test_function_value,
  const Tensor<1, dim> &density_test_function_gradient,
  const double          delta,
- const Advection::OptionalScalarArguments<dim>  &advection_options)
+ const Advection::ScalarOptions<dim>  &advection_options)
 {
   double residual = -(present_velocity_value * present_density_gradient);
 
@@ -714,7 +714,7 @@ double compute_density_residual_linearization_matrix
  const double          present_strong_residual,
  const double          delta,
  const double          nu,
- const Advection::OptionalScalarArguments<dim>    &advection_options,
+ const Advection::ScalarOptions<dim>    &advection_options,
  const bool            apply_newton_linearization)
 {
   double matrix{0.0};
@@ -888,14 +888,14 @@ compute_strong_density_residual
 (const std::vector<Tensor<1, 2>>             &,
  const std::vector<Tensor<1, 2>>             &,
  std::vector<double>                         &,
- const Advection::OptionalVectorArguments<2> &);
+ const Advection::VectorOptions<2> &);
 template
 void
 compute_strong_density_residual
 (const std::vector<Tensor<1, 3>>             &,
  const std::vector<Tensor<1, 3>>             &,
  std::vector<double>                         &,
- const Advection::OptionalVectorArguments<3> &);
+ const Advection::VectorOptions<3> &);
 
 template
 double
@@ -905,7 +905,7 @@ compute_density_matrix
  const Tensor<1, 2> &,
  const Tensor<1, 2> &,
  const double        ,
- const Advection::OptionalScalarArguments<2>  &,
+ const Advection::ScalarOptions<2>  &,
  const bool                                     );
 template
 double
@@ -915,7 +915,7 @@ compute_density_matrix
  const Tensor<1, 3> &,
  const Tensor<1, 3> &,
  const double        ,
- const Advection::OptionalScalarArguments<3>  &,
+ const Advection::ScalarOptions<3>  &,
  const bool                                     );
 
 template
@@ -927,7 +927,7 @@ compute_density_rhs
  const double        ,
  const Tensor<1, 2> &,
  const double        ,
- const Advection::OptionalScalarArguments<2> &);
+ const Advection::ScalarOptions<2> &);
 template
 double
 compute_density_rhs
@@ -937,7 +937,7 @@ compute_density_rhs
  const double        ,
  const Tensor<1, 3> &,
  const double        ,
- const Advection::OptionalScalarArguments<3> &);
+ const Advection::ScalarOptions<3> &);
 
 template
 double
@@ -950,7 +950,7 @@ compute_density_residual_linearization_matrix
  const double        ,
  const double        ,
  const double        ,
- const Advection::OptionalScalarArguments<2> &,
+ const Advection::ScalarOptions<2> &,
  const bool           );
 template
 double
@@ -963,7 +963,7 @@ compute_density_residual_linearization_matrix
  const double        ,
  const double        ,
  const double        ,
- const Advection::OptionalScalarArguments<3> &,
+ const Advection::ScalarOptions<3> &,
  const bool           );
 
 }  // namespace BuoyantHydrodynamic
@@ -1011,7 +1011,7 @@ double compute_rhs
  const Tensor<1, dim>  &advection_field_value,
  const double           present_strong_residual,
  const double           delta,
- const OptionalScalarArguments<dim> &options)
+ const ScalarOptions<dim> &options)
 {
   double rhs{-(advection_field_value * present_gradient)};
 
@@ -1051,7 +1051,7 @@ void compute_strong_residual
 (const std::vector<Tensor<1, dim>>   &present_gradients,
  const std::vector<Tensor<1, dim>>   &advection_field_values,
  std::vector<double>                 &strong_residuals,
- const OptionalVectorArguments<dim>  &options)
+ const VectorOptions<dim>  &options)
 {
   const unsigned int n_q_points{(unsigned int)present_gradients.size()};
 
@@ -1122,7 +1122,7 @@ compute_rhs
  const Tensor<1, 2>  &,
  const double         ,
  const double         ,
- const OptionalScalarArguments<2> &);
+ const ScalarOptions<2> &);
 template
 double
 compute_rhs
@@ -1132,7 +1132,7 @@ compute_rhs
  const Tensor<1, 3>  &,
  const double         ,
  const double         ,
- const OptionalScalarArguments<3> &);
+ const ScalarOptions<3> &);
 
 
 template
@@ -1141,14 +1141,14 @@ compute_strong_residual
 (const std::vector<Tensor<1, 2>>    &,
  const std::vector<Tensor<1, 2>>    &,
  std::vector<double>                &,
- const OptionalVectorArguments<2>   &);
+ const VectorOptions<2>   &);
 template
 void
 compute_strong_residual
 (const std::vector<Tensor<1, 3>>    &,
  const std::vector<Tensor<1, 3>>    &,
  std::vector<double>                &,
- const OptionalVectorArguments<3>   &);
+ const VectorOptions<3>   &);
 
 template
 double
