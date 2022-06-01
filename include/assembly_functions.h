@@ -11,6 +11,7 @@
 #include <deal.II/base/tensor.h>
 
 #include <advection_assembly_data.h>
+#include <hydrodynamic_assembly_data.h>
 #include <angular_velocity.h>
 #include <buoyant_hydrodynamic_options.h>
 #include <hydrodynamic_options.h>
@@ -23,35 +24,42 @@ using namespace dealii;
 
 template <int dim>
 double compute_matrix
-(const Tensor<1, dim> &velocity_trial_function_value,
- const Tensor<2, dim> &velocity_trial_function_gradient,
- const Tensor<1, dim> &velocity_test_function_value,
- const Tensor<2, dim> &velocity_test_function_gradient,
- const Tensor<1, dim> &present_velocity_value,
- const Tensor<2, dim> &present_velocity_gradient,
- const double          pressure_trial_function,
- const double          pressure_test_function,
- const double          nu,
- const ScalarOptions<dim> &options,
- const bool            apply_newton_linearization = true);
+(const StabilizationFlags  &stabilization,
+ const AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const unsigned int test_function_index,
+ const unsigned int trial_function_index,
+ const unsigned int quadrature_point_index,
+ const double       nu,
+ const double       delta,
+ const double       mu,
+ const bool         apply_newton_linearization = true);
 
 
 
 template <int dim>
 double compute_rhs
 (const StabilizationFlags  &stabilization,
- const Tensor<1, dim>      &velocity_test_function_value,
- const Tensor<2, dim>      &velocity_test_function_gradient,
- const Tensor<1, dim>      &present_velocity_value,
- const Tensor<2, dim>      &present_velocity_gradient,
- const Tensor<1, dim>      &present_strong_residual,
- const double               present_pressure_value,
- const double               pressure_test_function,
- const Tensor<1, dim>      &pressure_test_function_gradient,
- const double               nu,
- const double               mu,
- const double               delta,
- const ScalarOptions<dim> &options);
+ const AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const double       present_pressure_value,
+ const unsigned int test_function_index,
+ const unsigned int quadrature_point_index,
+ const double       nu,
+ const double       mu,
+ const double       delta);
+
+
+
+template <int dim>
+double compute_rhs
+(const StabilizationFlags  &stabilization,
+ const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+ const double       present_pressure_value,
+ const unsigned int test_function_index,
+ const unsigned int quadrature_point_index,
+ const double       nu,
+ const double       mu,
+ const double       delta);
+
 
 
 
@@ -64,23 +72,18 @@ void compute_strong_residual
  std::vector<Tensor<1,dim>>          &strong_residuals);
 
 
+
 template <int dim>
 double compute_residual_linearization_matrix
 (const StabilizationFlags  &stabilization,
- const Tensor<1, dim>      &velocity_trial_function_value,
- const Tensor<2, dim>      &velocity_trial_function_gradient,
- const Tensor<1, dim>      &velocity_trial_function_laplacean,
- const Tensor<1, dim>      &pressure_trial_function_gradient,
- const Tensor<1, dim>      &present_velocity_value,
- const Tensor<2, dim>      &present_velocity_gradient,
- const Tensor<1, dim>      &present_strong_residual,
- const Tensor<2, dim>      &velocity_test_function_gradient,
- const Tensor<1, dim>      &pressure_test_function_gradient,
- const double               nu,
- const double               delta,
- const double               mu,
- const ScalarOptions<dim> &options,
- const bool                 apply_newton_linearization = true);
+ const AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const unsigned int test_function_index,
+ const unsigned int trial_function_index,
+ const unsigned int quadrature_point_index,
+ const double       nu,
+ const double       delta,
+ const double       mu,
+ const bool         apply_newton_linearization = true);
 
 }  // namespace Hydrodynamic
 
@@ -284,5 +287,75 @@ double compute_residual_linearization_matrix
  const double       delta);
 
 }  // namespace Advection
+
+
+
+namespace LegacyHydrodynamic {
+
+using namespace dealii;
+
+template <int dim>
+double compute_matrix
+(const Tensor<1, dim> &velocity_trial_function_value,
+ const Tensor<2, dim> &velocity_trial_function_gradient,
+ const Tensor<1, dim> &velocity_test_function_value,
+ const Tensor<2, dim> &velocity_test_function_gradient,
+ const Tensor<1, dim> &present_velocity_value,
+ const Tensor<2, dim> &present_velocity_gradient,
+ const double          pressure_trial_function,
+ const double          pressure_test_function,
+ const double          nu,
+ const Hydrodynamic::ScalarOptions<dim> &options,
+ const bool            apply_newton_linearization = true);
+
+
+
+template <int dim>
+double compute_rhs
+(const StabilizationFlags  &stabilization,
+ const Tensor<1, dim>      &velocity_test_function_value,
+ const Tensor<2, dim>      &velocity_test_function_gradient,
+ const Tensor<1, dim>      &present_velocity_value,
+ const Tensor<2, dim>      &present_velocity_gradient,
+ const Tensor<1, dim>      &present_strong_residual,
+ const double               present_pressure_value,
+ const double               pressure_test_function,
+ const Tensor<1, dim>      &pressure_test_function_gradient,
+ const double               nu,
+ const double               mu,
+ const double               delta,
+ const Hydrodynamic::ScalarOptions<dim> &options);
+
+
+
+template <int dim>
+void compute_strong_residual
+(const std::vector<Tensor<1, dim>>   &present_velocity_values,
+ const std::vector<Tensor<2, dim>>   &present_velocity_gradients,
+ const Hydrodynamic::VectorOptions<dim>  &options,
+ const double                         nu,
+ std::vector<Tensor<1,dim>>          &strong_residuals);
+
+
+template <int dim>
+double compute_residual_linearization_matrix
+(const StabilizationFlags  &stabilization,
+ const Tensor<1, dim>      &velocity_trial_function_value,
+ const Tensor<2, dim>      &velocity_trial_function_gradient,
+ const Tensor<1, dim>      &velocity_trial_function_laplacean,
+ const Tensor<1, dim>      &pressure_trial_function_gradient,
+ const Tensor<1, dim>      &present_velocity_value,
+ const Tensor<2, dim>      &present_velocity_gradient,
+ const Tensor<1, dim>      &present_strong_residual,
+ const Tensor<2, dim>      &velocity_test_function_gradient,
+ const Tensor<1, dim>      &pressure_test_function_gradient,
+ const double               nu,
+ const double               delta,
+ const double               mu,
+ const Hydrodynamic::ScalarOptions<dim> &options,
+ const bool                 apply_newton_linearization = true);
+
+}  // namespace LegacyHydrodynamic
+
 
 #endif /* INCLUDE_ASSEMBLY_FUNCTIONS_H_ */
