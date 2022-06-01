@@ -4,31 +4,17 @@
  *  Created on: Aug 30, 2021
  *      Author: sg
  */
+#include <base.h>
 #include <deal.II/dofs/dof_renumbering.h>
 
 #include <deal.II/fe/mapping_q_cache.h>
 
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_vector.h>
-
-#include <solver_base.h>
-
-namespace SolverBase {
-
-using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
+namespace Base {
 
 
-
-template <int dim>
-using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
-
-
-
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::
+setup_dofs()
 {
   // distribute and renumber block-wise
   dof_handler.distribute_dofs(*fe_system);
@@ -72,17 +58,55 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::setup_dofs()
 }
 
 
+
+
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::
+setup_system_matrix(const Table<2, DoFTools::Coupling>  &coupling_table)
+{
+  system_matrix.clear();
+
+  const std::vector<types::global_dof_index>
+  dofs_per_block{DoFTools::count_dofs_per_fe_block(dof_handler)};
+
+  BlockDynamicSparsityPattern dsp(dofs_per_block,
+                                  dofs_per_block);
+
+  DoFTools::make_sparsity_pattern(dof_handler,
+                                  coupling_table,
+                                  dsp,
+                                  nonzero_constraints);
+  sparsity_pattern.copy_from(dsp);
+
+  system_matrix.reinit(sparsity_pattern);
+}
+
+
+
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::
+setup_vectors()
+{
+  const std::vector<types::global_dof_index>
+  dofs_per_block{DoFTools::count_dofs_per_fe_block(dof_handler)};
+
+  system_rhs.reinit(dofs_per_block);
+  present_solution.reinit(dofs_per_block);
+  evaluation_point.reinit(dofs_per_block);
+  solution_update.reinit(dofs_per_block);
+}
+
+
+
 // explicit instantiations
 template void Solver<2>::setup_dofs();
 template void Solver<3>::setup_dofs();
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-setup_dofs();
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-setup_dofs();
+template void Solver<2>::setup_system_matrix(const Table<2, DoFTools::Coupling> &);
+template void Solver<3>::setup_system_matrix(const Table<2, DoFTools::Coupling> &);
 
-}  // namespace SolverBase
+template void Solver<2>::setup_vectors();
+template void Solver<3>::setup_vectors();
+
+
+}  // namespace Base

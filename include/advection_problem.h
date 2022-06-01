@@ -58,6 +58,10 @@ struct ProblemParameters: SolverParameters
    */
   unsigned int  mapping_degree;
 
+  /*!
+   * @brief The stratification number of the problem.
+   */
+  double        stratification_number;
 };
 
 
@@ -71,8 +75,7 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
 template <int dim,
-          typename TriangulationType = Triangulation<dim>,
-          typename LinearAlgebraContainer = SolverBase::LinearAlgebraContainer<>>
+          typename TriangulationType = Triangulation<dim>>
 class AdvectionProblem
 {
 public:
@@ -95,7 +98,7 @@ protected:
 
   MappingQCache<dim>      mapping;
 
-  Solver<dim, TriangulationType, LinearAlgebraContainer>  solver;
+  Solver<dim, TriangulationType>  solver;
 
   const unsigned int      n_initial_refinements;
 
@@ -103,8 +106,8 @@ protected:
 };
 
 // inline functions
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void AdvectionProblem<dim, TriangulationType, LinearAlgebraContainer>::set_source_term()
+template <int dim, typename TriangulationType>
+void AdvectionProblem<dim, TriangulationType>::set_source_term()
 {
   return;
 }

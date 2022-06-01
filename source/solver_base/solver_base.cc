@@ -4,30 +4,15 @@
  *  Created on: Aug 30, 2021
  *      Author: sg
  */
+#include <base.h>
+
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
-
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_vector.h>
-
-#include <deal.II/numerics/vector_tools.h>
-
-#include <solver_base.h>
 
 #include <iostream>
 #include <filesystem>
 
-namespace SolverBase {
-
-using TrilinosContainer = LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
-
-
-
-template <int dim>
-using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
+namespace Base {
 
 
 
@@ -174,19 +159,21 @@ Stream& operator<<(Stream &stream, const Parameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
+template <int dim, typename TriangulationType>
+Solver<dim, TriangulationType>::
+Solver
 (TriangulationType   &tria,
  Mapping<dim>        &mapping,
  const Parameters    &parameters)
 :
+graphical_output_directory(parameters.graphical_output_directory),
+verbose(parameters.verbose),
 pcout(std::cout,
       (Utilities::MPI::this_mpi_process(tria.get_communicator()) == 0)),
 triangulation(tria),
 mapping(mapping),
 fe_system(),
 dof_handler(triangulation),
-container(triangulation.get_communicator()),
 computing_timer(triangulation.get_communicator(),
                 pcout,
                 TimerOutput::summary,
@@ -197,9 +184,7 @@ n_picard_iterations(parameters.n_picard_iterations),
 absolute_tolerance(parameters.absolute_tolerance),
 relative_tolerance(parameters.relative_tolerance),
 print_timings(parameters.print_timings),
-apply_picard_iteration(parameters.apply_picard_iteration),
-graphical_output_directory(parameters.graphical_output_directory),
-verbose(parameters.verbose)
+apply_picard_iteration(parameters.apply_picard_iteration)
 {
   if (print_timings == false)
     computing_timer.disable_output();
@@ -240,140 +225,8 @@ verbose(parameters.verbose)
 
 
 
-template <>
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::Solver
-(ParallelTriangulation<2> &tria,
- Mapping<2>               &mapping,
- const Parameters         &parameters)
-:
-pcout(std::cout,
-      (Utilities::MPI::this_mpi_process(tria.get_communicator()) == 0)),
-triangulation(tria),
-mapping(mapping),
-fe_system(),
-dof_handler(triangulation),
-container(triangulation.get_communicator()),
-computing_timer(triangulation.get_communicator(),
-                pcout,
-                TimerOutput::summary,
-                TimerOutput::wall_times),
-refinement_parameters(parameters.refinement_parameters),
-n_maximum_iterations(parameters.n_iterations),
-n_picard_iterations(parameters.n_picard_iterations),
-absolute_tolerance(parameters.absolute_tolerance),
-relative_tolerance(parameters.relative_tolerance),
-print_timings(parameters.print_timings),
-apply_picard_iteration(parameters.apply_picard_iteration),
-graphical_output_directory(parameters.graphical_output_directory),
-verbose(parameters.verbose)
-{
-  if (print_timings == false)
-    computing_timer.disable_output();
-
-  if (!std::filesystem::exists(graphical_output_directory))
-  {
-    try
-    {
-      std::filesystem::create_directories(graphical_output_directory);
-    }
-    catch (std::exception &exc)
-    {
-      std::cerr << std::endl << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception in the creation of the output directory: "
-                << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-    }
-    catch (...)
-    {
-      std::cerr << std::endl << std::endl
-                << "----------------------------------------------------"
-                  << std::endl;
-      std::cerr << "Unknown exception in the creation of the output directory!"
-                << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-    }
-  }
-}
-
-
-
-template <>
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::Solver
-(ParallelTriangulation<3> &tria,
- Mapping<3>               &mapping,
- const Parameters         &parameters)
-:
-pcout(std::cout,
-      (Utilities::MPI::this_mpi_process(tria.get_communicator()) == 0)),
-triangulation(tria),
-mapping(mapping),
-fe_system(),
-dof_handler(triangulation),
-container(triangulation.get_communicator()),
-computing_timer(triangulation.get_communicator(),
-                pcout,
-                TimerOutput::summary,
-                TimerOutput::wall_times),
-refinement_parameters(parameters.refinement_parameters),
-n_maximum_iterations(parameters.n_iterations),
-n_picard_iterations(parameters.n_picard_iterations),
-absolute_tolerance(parameters.absolute_tolerance),
-relative_tolerance(parameters.relative_tolerance),
-print_timings(parameters.print_timings),
-apply_picard_iteration(parameters.apply_picard_iteration),
-graphical_output_directory(parameters.graphical_output_directory),
-verbose(parameters.verbose)
-{
-  if (print_timings == false)
-    computing_timer.disable_output();
-
-  if (!std::filesystem::exists(graphical_output_directory))
-  {
-    try
-    {
-      std::filesystem::create_directories(graphical_output_directory);
-    }
-    catch (std::exception &exc)
-    {
-      std::cerr << std::endl << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception in the creation of the output directory: "
-                << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-    }
-    catch (...)
-    {
-      std::cerr << std::endl << std::endl
-                << "----------------------------------------------------"
-                  << std::endl;
-      std::cerr << "Unknown exception in the creation of the output directory!"
-                << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-    }
-  }
-}
-
-
-
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::solve()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::solve()
 {
   this->setup_fe_system();
 
@@ -403,8 +256,8 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::solve()
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::postprocess_solution(const unsigned int cycle) const
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::postprocess_solution(const unsigned int cycle) const
 {
   if (postprocessor_ptrs.empty())
     return;
@@ -424,26 +277,22 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::postprocess_solutio
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::
 newton_iteration(const bool is_initial_cycle)
 {
-  using VectorType = typename LinearAlgebraContainer::vector_type;
-  VectorType  &system_rhs = container.system_rhs;
-
   auto compute_residual = [&, this]
                            (const double alpha = 0.0,
                             const bool use_homogeneous_constraints = true)
       {
-        this->container.set_vector(present_solution, evaluation_point);
+        this->evaluation_point = this->present_solution;
         if (alpha != 0.0)
-          this->container.add(alpha, solution_update, evaluation_point);
-        this->container.distribute_constraints(this->nonzero_constraints,
-                                               evaluation_point);
-        this->enforce_mean_value_constraints(evaluation_point);
+          this->evaluation_point.add(alpha, this->solution_update);
+        this->nonzero_constraints.distribute(this->evaluation_point);
+
         this->assemble_rhs(use_homogeneous_constraints);
 
-        std::vector<double> residual_components = this->container.get_residual_components();
+        std::vector<double> residual_components = this->get_residual_components();
 
         return (std::make_tuple(system_rhs.l2_norm(), residual_components));
       };
@@ -476,16 +325,14 @@ newton_iteration(const bool is_initial_cycle)
     if (first_step)
     {
       // solve problem
-      container.set_vector(present_solution, evaluation_point);
-
+      evaluation_point = present_solution;
       this->assemble_system(/* use_homogeneous_constraints ? */ false);
-
       solve_linear_system(/* use_homogeneous_constraints ? */ false);
-      container.set_vector(solution_update, present_solution);
-      container.distribute_constraints(nonzero_constraints,
-                                       present_solution);
-      enforce_mean_value_constraints(present_solution);
+      present_solution = solution_update;
+      nonzero_constraints.distribute(present_solution);
 
+      // postprocess result of the Newton iteration
+      this->postprocess_newton_iteration(iteration, is_initial_cycle);
       first_step = false;
 
       // compute residual
@@ -494,7 +341,7 @@ newton_iteration(const bool is_initial_cycle)
     else
     {
       // solve problem
-      container.set_vector(present_solution, evaluation_point);
+      evaluation_point = present_solution;
       this->assemble_system(/* use_homogeneous_constraints ? */ true);
       solve_linear_system(/* use_homogeneous_constraints ? */ true);
       // line search
@@ -512,7 +359,10 @@ newton_iteration(const bool is_initial_cycle)
         if (current_residual < last_residual)
           break;
       }
-      container.set_vector(evaluation_point, present_solution);
+      present_solution = evaluation_point;
+
+      // postprocess result of the Newton iteration
+      this->postprocess_newton_iteration(iteration, is_initial_cycle);
     }
 
 
@@ -539,22 +389,18 @@ newton_iteration(const bool is_initial_cycle)
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::picard_iteration()
 {
-  using VectorType = typename LinearAlgebraContainer::vector_type;
-  VectorType  &system_rhs = container.system_rhs;
-
   auto compute_residual = [&, this](const bool use_homogeneous_constraints = true)
       {
-        container.set_vector(present_solution, evaluation_point);
-        this->container.distribute_constraints(this->nonzero_constraints,
-                                               evaluation_point);
+        this->evaluation_point = this->present_solution;
+        this->nonzero_constraints.distribute(this->evaluation_point);
         this->assemble_rhs(use_homogeneous_constraints);
 
-        const std::vector<double> residual_components = this->container.get_residual_components();
+        const std::vector<double> residual_components = this->get_residual_components();
 
-        return (std::make_tuple(system_rhs.l2_norm(), residual_components));
+        return (std::make_tuple(this->system_rhs.l2_norm(), residual_components));
       };
 
   this->preprocess_picard_iteration(0);
@@ -582,25 +428,23 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
     if (iteration == 0)
     {
       // solve problem
-      container.set_vector(present_solution, evaluation_point);
+      evaluation_point = present_solution;
       this->assemble_system(/* use_homogeneous_constraints ? */ false,
                             /* use_newton_linearization ? */ false);
       solve_linear_system(/* use_homogeneous_constraints ? */ false);
-      container.set_vector(solution_update, present_solution);
+      present_solution = solution_update;
     }
     else
     {
       // solve problem
-      container.set_vector(present_solution, evaluation_point);
+      evaluation_point = present_solution;
       this->assemble_system(/* use_homogeneous_constraints ? */ true,
                             /* use_newton_linearization ? */ false);
       solve_linear_system(/* use_homogeneous_constraints ? */ true);
-      container.add(solution_update, present_solution);
+      present_solution += solution_update;
     }
 
-    container.distribute_constraints(nonzero_constraints,
-                                     present_solution);
-    this->enforce_mean_value_constraints(present_solution);
+    nonzero_constraints.distribute(present_solution);
 
     // compute residual
     std::tie(current_residual, current_residual_components) = compute_residual(true);
@@ -624,70 +468,6 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::picard_iteration()
 }
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::
-enforce_mean_value_constraints(typename LinearAlgebraContainer::vector_type &solution)
-{
-  if (component_mean_values.empty())
-    return;
-
-  pcout << "    Enforce mean value constraints..." << std::endl;
-
-  for (const auto [component, value]: component_mean_values)
-  {
-    ComponentMask mask(this->fe_system->n_components(), false);
-    mask.set(component, true);
-
-    const double mean_value{VectorTools::compute_mean_value(dof_handler,
-                                                            QGauss<dim>(this->fe_system->degree + 1),
-                                                            present_solution,
-                                                            component)};
-
-    if (BlockVector<double> *ptr = dynamic_cast<BlockVector<double> *>(&solution);
-        ptr != nullptr)
-    {
-      const unsigned int block_idx{this->fe_system->component_to_block_index(component)};
-
-      ptr->block(block_idx).add(value - mean_value);
-    }
-    else if (Vector<double> *ptr = dynamic_cast<Vector<double> *>(&solution);
-             ptr != nullptr)
-    {
-      const double correction_factor{value - mean_value};
-
-      const IndexSet  component_dofs = DoFTools::extract_dofs(dof_handler,
-                                                              mask);
-      IndexSet::ElementIterator idx = component_dofs.begin();
-      IndexSet::ElementIterator endidx = component_dofs.end();
-      for(; idx != endidx; ++idx)
-        (*ptr)[*idx] += correction_factor;
-    }
-    else if (TrilinosWrappers::MPI::Vector *ptr =
-             dynamic_cast<TrilinosWrappers::MPI::Vector *>(&solution);
-             ptr != nullptr)
-    {
-      TrilinosWrappers::MPI::Vector distributed_vector(ptr->locally_owned_elements(),
-                                                       MPI_COMM_WORLD);
-      distributed_vector = *ptr;
-
-      const double correction_factor{value - mean_value};
-
-      const std::vector<IndexSet>  locally_owned_dofs_per_component =
-          DoFTools::locally_owned_dofs_per_component(dof_handler, mask);
-      const IndexSet &locally_owned_component_dofs{locally_owned_dofs_per_component[component]};
-
-      IndexSet::ElementIterator idx = locally_owned_component_dofs.begin();
-      IndexSet::ElementIterator endidx = locally_owned_component_dofs.end();
-      for(; idx != endidx; ++idx)
-        distributed_vector[*idx] += correction_factor;
-
-      distributed_vector.compress(VectorOperation::add);
-
-      *ptr = distributed_vector;
-    }
-  }
-}
-
 
 // explicit instantiations
 template std::ostream & operator<<(std::ostream &, const Parameters &);
@@ -701,50 +481,15 @@ template Solver<3>::Solver
 template void Solver<2>::postprocess_solution(const unsigned int) const;
 template void Solver<3>::postprocess_solution(const unsigned int) const;
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-postprocess_solution(const unsigned int) const;
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-postprocess_solution(const unsigned int) const;
-
 template void Solver<2>::newton_iteration(const bool);
 template void Solver<3>::newton_iteration(const bool);
-
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-newton_iteration(const bool);
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-newton_iteration(const bool);
-
 
 template void Solver<2>::picard_iteration();
 template void Solver<3>::picard_iteration();
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-picard_iteration();
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-picard_iteration();
-
 template void Solver<2>::solve();
 template void Solver<3>::solve();
 
-template
-void
-Solver<2, ParallelTriangulation<2>, TrilinosContainer>::
-solve();
-template
-void
-Solver<3, ParallelTriangulation<3>, TrilinosContainer>::
-solve();
+
 
 }  // namespace SolverBase

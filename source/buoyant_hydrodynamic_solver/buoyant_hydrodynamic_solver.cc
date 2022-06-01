@@ -20,8 +20,7 @@ namespace BuoyantHydrodynamic {
 SolverParameters::SolverParameters()
 :
 Hydrodynamic::SolverParameters(),
-c_density(1.0),
-nu_density(1e-4)
+Advection::SolverParameters()
 {}
 
 
@@ -29,18 +28,7 @@ nu_density(1e-4)
 void SolverParameters::declare_parameters(ParameterHandler &prm)
 {
   Hydrodynamic::SolverParameters::declare_parameters(prm);
-
-  prm.enter_subsection("Buoyant hydrodynamic solver parameters");
-  {
-    prm.declare_entry("SUPG density stabilization parameter",
-                      "1.0",
-                      Patterns::Double(std::numeric_limits<double>::epsilon()));
-
-    prm.declare_entry("Minimal viscosity (density)",
-                      "1.0e-4",
-                      Patterns::Double(std::numeric_limits<double>::epsilon()));
-  }
-  prm.leave_subsection();
+  Advection::SolverParameters::declare_parameters(prm);
 }
 
 
@@ -48,20 +36,7 @@ void SolverParameters::declare_parameters(ParameterHandler &prm)
 void SolverParameters::parse_parameters(ParameterHandler &prm)
 {
   Hydrodynamic::SolverParameters::parse_parameters(prm);
-
-  prm.enter_subsection("Buoyant hydrodynamic solver parameters");
-  {
-    c_density = prm.get_double("SUPG density stabilization parameter");
-    AssertIsFinite(c_density);
-    Assert(c_density > 0.0, ExcLowerRangeType<double>(c_density, 0.0));
-
-    nu_density = prm.get_double("Minimal viscosity (density)");
-    AssertIsFinite(nu_density);
-    Assert(nu_density > 0.0, ExcLowerRangeType<double>(nu_density, 0.0));
-
-
-  }
-  prm.leave_subsection();
+  Advection::SolverParameters::parse_parameters(prm);
 }
 
 
@@ -70,20 +45,15 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const SolverParameters &prm)
 {
   stream << static_cast<const Hydrodynamic::SolverParameters &>(prm);
-
-  Utility::add_header(stream);
-  Utility::add_line(stream, "Buoyant hydrodynamic solver parameters");
-  Utility::add_line(stream, "SUPG density stab. parameter", prm.c_density);
-  Utility::add_line(stream, "Minimal viscosity (density)", prm.nu_density);
-  Utility::add_header(stream);
+  stream << static_cast<const Advection::SolverParameters &>(prm);
 
   return (stream);
 }
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
+template <int dim, typename TriangulationType>
+Solver<dim, TriangulationType>::Solver
 (TriangulationType      &tria,
  Mapping<dim>           &mapping,
  const SolverParameters &parameters,
@@ -92,27 +62,24 @@ Solver<dim, TriangulationType, LinearAlgebraContainer>::Solver
  const double           stratification,
  const double           rossby)
 :
-Hydrodynamic::Solver<dim, TriangulationType, LinearAlgebraContainer>(tria, mapping, parameters, reynolds, froude, rossby),
-density_boundary_conditions(this->triangulation),
-reference_density_ptr(),
-gravity_field_ptr(),
-stratification_number(stratification),
-density_fe_degree(1),
-c_density(parameters.c_density),
-nu_density(parameters.nu_density)
+Base::Solver<dim, TriangulationType>(tria, mapping, parameters),
+Hydrodynamic::Solver<dim, TriangulationType>(tria, mapping, parameters, reynolds, froude, rossby),
+Advection::Solver<dim, TriangulationType>(tria, mapping, parameters, stratification),
+gravity_field_ptr()
 {}
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(const unsigned int cycle) const
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::output_results(const unsigned int cycle) const
 {
   if (this->verbose)
     this->pcout << "    Output results..." << std::endl;
 
-  Hydrodynamic::Postprocessor<dim>  postprocessor(0, dim);
+  Hydrodynamic::Postprocessor<dim>  postprocessor(this->velocity_fe_index,
+                                                  this->pressure_fe_index);
 
-  Utility::PostprocessorScalarField<dim>  density_postprocessor("density", dim+1);
+  Utility::PostprocessorScalarField<dim>  density_postprocessor("density", this->scalar_fe_index);
 
   // prepare data out object
   DataOut<dim, DoFHandler<dim>>    data_out;
@@ -137,17 +104,19 @@ void Solver<dim, TriangulationType, LinearAlgebraContainer>::output_results(cons
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-inline void Solver<dim, TriangulationType, LinearAlgebraContainer>::preprocess_newton_iteration
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::
+postprocess_newton_iteration
 (const unsigned int iteration,
  const bool         is_initial_cycle)
 {
-  if (iteration < 2 && is_initial_cycle)
+  if (iteration < 1 && is_initial_cycle)
   {
     this->pcout << "Reseting density solution..." << std::endl;
 
-    this->container.set_block(2, 0.0, this->present_solution);
-    this->container.set_block(2, 0.0, this->solution_update);
+    this->evaluation_point.block(2) = 0.0;
+    this->present_solution.block(2) = 0.0;
+    this->solution_update.block(2) = 0.0;
   }
   return;
 }

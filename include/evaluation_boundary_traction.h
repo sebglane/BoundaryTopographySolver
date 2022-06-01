@@ -16,8 +16,8 @@ namespace Hydrodynamic {
 
 using namespace dealii;
 
-template <int dim>
-class EvaluationBoundaryTraction : public SolverBase::EvaluationBase<dim>
+template <int dim, typename VectorType = BlockVector<double> >
+class EvaluationBoundaryTraction : public Base::EvaluationBase<dim, VectorType>
 {
 public:
   EvaluationBoundaryTraction(const unsigned int velocity_start_index,
@@ -30,42 +30,26 @@ public:
   virtual void operator()(const Mapping<dim>        &mapping,
                           const FiniteElement<dim>  &fe,
                           const DoFHandler<dim>     &dof_handler,
-                          const Vector<double>      &solution) override;
-
-  virtual void operator()(const Mapping<dim>        &mapping,
-                          const FiniteElement<dim>  &fe,
-                          const DoFHandler<dim>     &dof_handler,
-                          const BlockVector<double> &solution) override;
-
-  virtual  void operator()(const Mapping<dim>        &mapping,
-                           const FiniteElement<dim>  &fe,
-                           const DoFHandler<dim>     &dof_handler,
-                           const TrilinosWrappers::MPI::Vector  &solution);
+                          const VectorType          &solution) override;
 
 private:
-
-  template<typename VectorType>
-  void evaluate(const Mapping<dim>        &mapping,
-                const FiniteElement<dim>  &fe,
-                const DoFHandler<dim>     &dof_handler,
-                const VectorType          &solution);
-
   TableHandler  traction_table;
   TableHandler  pressure_table;
   TableHandler  viscous_table;
 
   types::boundary_id  boundary_id;
 
-  const unsigned int velocity_start_index;
+  const unsigned int velocity_fe_index;
 
-  const unsigned int pressure_index;
+  const unsigned int pressure_fe_index;
 
   const double       reynolds_number;
 };
 
 // inline functions
-template <int dim>
-inline void EvaluationBoundaryTraction<dim>::set_boundary_id(const types::boundary_id bndry_id)
+template <int dim, typename VectorType>
+inline void EvaluationBoundaryTraction<dim, VectorType>::
+set_boundary_id(const types::boundary_id bndry_id)
 {
   boundary_id = bndry_id;
 }

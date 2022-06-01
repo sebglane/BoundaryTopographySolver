@@ -4,28 +4,11 @@
  *  Created on: Sep 1, 2021
  *      Author: sg
  */
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <deal.II/lac/trilinos_vector.h>
-
 #include <hydrodynamic_problem.h>
 
 #include <fstream>
 
 namespace Hydrodynamic {
-
-using TrilinosContainer = typename
-                          SolverBase::
-                          LinearAlgebraContainer<TrilinosWrappers::MPI::Vector,
-                                                 TrilinosWrappers::SparseMatrix,
-                                                 TrilinosWrappers::SparsityPattern>;
-
-
-
-template <int dim>
-using ParallelTriangulation =  parallel::distributed::Triangulation<dim>;
-
-
 
 ProblemParameters::ProblemParameters()
 :
@@ -156,8 +139,8 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::
+template <int dim, typename TriangulationType>
+HydrodynamicProblem<dim, TriangulationType>::
 HydrodynamicProblem
 (const ProblemParameters &parameters)
 :
@@ -172,43 +155,8 @@ n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_ref
 
 
 
-template <>
-HydrodynamicProblem<2, ParallelTriangulation<2>, TrilinosContainer>::
-HydrodynamicProblem
-(const ProblemParameters &parameters)
-:
-triangulation(MPI_COMM_WORLD),
-mapping(parameters.mapping_degree),
-solver(triangulation, mapping, parameters,
-       parameters.reynolds_number, parameters.froude_number, parameters.rossby_number),
-n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
-n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
-{
-  solver.get_conditional_output_stream() << parameters << std::endl;
-}
-
-
-
-template <>
-HydrodynamicProblem<3, ParallelTriangulation<3>, TrilinosContainer>::
-HydrodynamicProblem
-(const ProblemParameters &parameters)
-:
-triangulation(MPI_COMM_WORLD),
-mapping(parameters.mapping_degree),
-solver(triangulation, mapping, parameters,
-       parameters.reynolds_number, parameters.froude_number, parameters.rossby_number),
-n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
-n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
-{
-  solver.get_conditional_output_stream() << parameters << std::endl;
-}
-
-
-
-
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::initialize_mapping()
+template <int dim, typename TriangulationType>
+void HydrodynamicProblem<dim, TriangulationType>::initialize_mapping()
 {
   solver.get_conditional_output_stream() << "    Initialize mapping..." << std::endl;
 
@@ -217,8 +165,8 @@ void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::initia
 
 
 
-template <int dim, typename TriangulationType, typename LinearAlgebraContainer>
-void HydrodynamicProblem<dim, TriangulationType, LinearAlgebraContainer>::run()
+template <int dim, typename TriangulationType>
+void HydrodynamicProblem<dim, TriangulationType>::run()
 {
   this->make_grid();
 
@@ -259,15 +207,6 @@ void
 HydrodynamicProblem<3>::
 initialize_mapping();
 
-template
-void
-HydrodynamicProblem<2, ParallelTriangulation<2>, TrilinosContainer>::
-initialize_mapping();
-template
-void
-HydrodynamicProblem<3, ParallelTriangulation<3>, TrilinosContainer>::
-initialize_mapping();
-
 
 template
 void
@@ -278,22 +217,8 @@ void
 HydrodynamicProblem<3>::
 run();
 
-template
-void
-HydrodynamicProblem<2, ParallelTriangulation<2>, TrilinosContainer>::
-run();
-template
-void
-HydrodynamicProblem<3, ParallelTriangulation<3>, TrilinosContainer>::
-run();
-
 template class HydrodynamicProblem<2>;
 template class HydrodynamicProblem<3>;
-
-
-template class HydrodynamicProblem<2, ParallelTriangulation<2>, TrilinosContainer>;
-template class HydrodynamicProblem<3, ParallelTriangulation<3>, TrilinosContainer>;
-
 
 
 }  // namespace Hydrodynamic

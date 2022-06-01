@@ -16,15 +16,16 @@ namespace Hydrodynamic {
 
 using namespace dealii;
 
-template <int dim>
-EvaluationBoundaryTraction<dim>::EvaluationBoundaryTraction
-(const unsigned int velocity_start_index,
- const unsigned int pressure_index,
+template <int dim, typename VectorType>
+EvaluationBoundaryTraction<dim, VectorType>::
+EvaluationBoundaryTraction
+(const unsigned int velocity_fe_index,
+ const unsigned int pressure_fe_index,
  const double reynolds_number)
 :
 boundary_id(numbers::invalid_boundary_id),
-velocity_start_index(velocity_start_index),
-pressure_index(pressure_index),
+velocity_fe_index(velocity_fe_index),
+pressure_fe_index(pressure_fe_index),
 reynolds_number(reynolds_number)
 {
   traction_table.declare_column("cycle");
@@ -70,8 +71,8 @@ reynolds_number(reynolds_number)
 
 
 
-template <int dim>
-EvaluationBoundaryTraction<dim>::~EvaluationBoundaryTraction()
+template <int dim, typename VectorType>
+EvaluationBoundaryTraction<dim, VectorType>::~EvaluationBoundaryTraction()
 {
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
@@ -88,45 +89,8 @@ EvaluationBoundaryTraction<dim>::~EvaluationBoundaryTraction()
 
 
 
-template <int dim>
-void EvaluationBoundaryTraction<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const Vector<double>      &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-void EvaluationBoundaryTraction<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const BlockVector<double> &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-void EvaluationBoundaryTraction<dim>::operator()
-(const Mapping<dim>        &mapping,
- const FiniteElement<dim>  &fe,
- const DoFHandler<dim>     &dof_handler,
- const TrilinosWrappers::MPI::Vector  &solution)
-{
-  evaluate(mapping, fe, dof_handler, solution);
-}
-
-
-
-template <int dim>
-template <typename VectorType>
-void EvaluationBoundaryTraction<dim>::evaluate
+template <int dim, typename VectorType>
+void EvaluationBoundaryTraction<dim, VectorType>::operator()
 (const Mapping<dim>        &mapping,
  const FiniteElement<dim>  &fe,
  const DoFHandler<dim>     &dof_handler,
@@ -150,8 +114,8 @@ void EvaluationBoundaryTraction<dim>::evaluate
                                    update_normal_vectors|
                                    update_JxW_values);
 
-  const FEValuesExtractors::Vector  velocity(velocity_start_index);
-  const FEValuesExtractors::Scalar  pressure(pressure_index);
+  const FEValuesExtractors::Vector  velocity(velocity_fe_index);
+  const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 
   const unsigned int n_face_q_points{face_quadrature.size()};
   std::vector<Tensor<1, dim>> face_normal_vectors(n_face_q_points);
