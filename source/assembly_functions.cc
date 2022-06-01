@@ -20,7 +20,7 @@ double compute_matrix
  const double          pressure_trial_function,
  const double          pressure_test_function,
  const double          nu,
- const OptionalScalarArguments<dim> &options,
+ const ScalarOptions<dim> &options,
  const bool            apply_newton_linearization)
 {
   const double velocity_trial_function_divergence{trace(velocity_trial_function_gradient)};
@@ -87,7 +87,7 @@ double compute_rhs
  const double               nu,
  const double               mu,
  const double               delta,
- const OptionalScalarArguments<dim> &options)
+ const ScalarOptions<dim> &options)
 {
   const double present_velocity_divergence{trace(present_velocity_gradient)};
   const double velocity_test_function_divergence{trace(velocity_test_function_gradient)};
@@ -163,7 +163,7 @@ template <int dim>
 void compute_strong_residual
 (const std::vector<Tensor<1, dim>>   &present_velocity_values,
  const std::vector<Tensor<2, dim>>   &present_velocity_gradients,
- const OptionalVectorArguments<dim>  &options,
+ const VectorOptions<dim>  &options,
  const double                         nu,
  std::vector<Tensor<1,dim>>          &strong_residuals)
 {
@@ -248,7 +248,7 @@ double compute_residual_linearization_matrix
  const double               nu,
  const double               delta,
  const double               mu,
- const OptionalScalarArguments<dim> &options,
+ const ScalarOptions<dim> &options,
  const bool                 apply_newton_linearization)
 {
   if (!(stabilization & (apply_supg|apply_pspg|apply_grad_div)))
@@ -332,7 +332,7 @@ double compute_matrix
  const double        ,
  const double        ,
  const double        ,
- const OptionalScalarArguments<2> &,
+ const ScalarOptions<2> &,
  const bool           );
 template
 double compute_matrix
@@ -345,7 +345,7 @@ double compute_matrix
  const double        ,
  const double        ,
  const double        ,
- const OptionalScalarArguments<3> &,
+ const ScalarOptions<3> &,
  const bool           );
 
 template
@@ -363,7 +363,7 @@ compute_rhs
  const double              ,
  const double              ,
  const double              ,
- const OptionalScalarArguments<2> &);
+ const ScalarOptions<2> &);
 template
 double
 compute_rhs
@@ -379,21 +379,21 @@ compute_rhs
  const double              ,
  const double              ,
  const double              ,
- const OptionalScalarArguments<3> &);
+ const ScalarOptions<3> &);
 
 template
 void
 compute_strong_residual
 (const std::vector<Tensor<1, 2>>  &,
  const std::vector<Tensor<2, 2>>  &,
- const OptionalVectorArguments<2> &,
+ const VectorOptions<2> &,
  const double                      ,
  std::vector<Tensor<1,2>>         &);
 template
 void compute_strong_residual
 (const std::vector<Tensor<1, 3>>   &,
  const std::vector<Tensor<2, 3>>   &,
- const OptionalVectorArguments<3>  &,
+ const VectorOptions<3>  &,
  const double                       ,
  std::vector<Tensor<1, 3>>          &);
 
@@ -413,7 +413,7 @@ compute_residual_linearization_matrix
  const double              ,
  const double              ,
  const double              ,
- const OptionalScalarArguments<2> &,
+ const ScalarOptions<2> &,
  const bool                 );
 template
 double
@@ -431,7 +431,7 @@ compute_residual_linearization_matrix
  const double              ,
  const double              ,
  const double              ,
- const OptionalScalarArguments<3> &,
+ const ScalarOptions<3> &,
  const bool                 );
 
 
@@ -455,7 +455,7 @@ double compute_hydrodynamic_matrix
  const double          density_trial_function_value,
  const double          pressure_test_function,
  const double          nu,
- const Hydrodynamic::OptionalScalarArguments<dim>        &options,
+ const Hydrodynamic::ScalarOptions<dim>        &options,
  const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
  const bool            apply_newton_linearization)
 {
@@ -502,7 +502,7 @@ double compute_hydrodynamic_residual_linearization_matrix
  const double               nu,
  const double               delta,
  const double               mu,
- const Hydrodynamic::OptionalScalarArguments<dim>        &options,
+ const Hydrodynamic::ScalarOptions<dim>        &options,
  const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
  const bool                 apply_newton_linearization)
 {
@@ -562,7 +562,7 @@ double compute_hydrodynamic_rhs
  const double          nu,
  const double          mu,
  const double          delta,
- const Hydrodynamic::OptionalScalarArguments<dim>        &options,
+ const Hydrodynamic::ScalarOptions<dim>        &options,
  const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options)
 {
   double rhs = Hydrodynamic::
@@ -601,7 +601,7 @@ void compute_strong_hydrodynamic_residual
  const std::vector<double>         &present_density_values,
  std::vector<Tensor<1, dim>>       &strong_residuals,
  const double                       nu,
- const Hydrodynamic::OptionalVectorArguments<dim>        &options,
+ const Hydrodynamic::VectorOptions<dim>        &options,
  const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options)
 {
   Hydrodynamic::
@@ -763,7 +763,7 @@ double compute_hydrodynamic_matrix
  const double        ,
  const double        ,
  const double        ,
- const Hydrodynamic::OptionalScalarArguments<2> &,
+ const Hydrodynamic::ScalarOptions<2> &,
  const OptionalScalarArguments<2> &,
  const bool           );
 template
@@ -778,7 +778,7 @@ double compute_hydrodynamic_matrix
  const double        ,
  const double        ,
  const double        ,
- const Hydrodynamic::OptionalScalarArguments<3> &,
+ const Hydrodynamic::ScalarOptions<3> &,
  const OptionalScalarArguments<3> &,
  const bool           );
 
@@ -799,7 +799,7 @@ compute_hydrodynamic_residual_linearization_matrix
  const double              ,
  const double              ,
  const double              ,
- const Hydrodynamic::OptionalScalarArguments<2>        &,
+ const Hydrodynamic::ScalarOptions<2>        &,
  const BuoyantHydrodynamic::OptionalScalarArguments<2> &,
  const bool                 );
 template
@@ -819,7 +819,7 @@ compute_hydrodynamic_residual_linearization_matrix
  const double              ,
  const double              ,
  const double              ,
- const Hydrodynamic::OptionalScalarArguments<3>        &,
+ const Hydrodynamic::ScalarOptions<3>        &,
  const BuoyantHydrodynamic::OptionalScalarArguments<3> &,
  const bool                 );
 
@@ -840,7 +840,7 @@ compute_hydrodynamic_rhs
  const double              ,
  const double              ,
  const double              ,
- const Hydrodynamic::OptionalScalarArguments<2>        &,
+ const Hydrodynamic::ScalarOptions<2>        &,
  const BuoyantHydrodynamic::OptionalScalarArguments<2> & );
 template
 double
@@ -858,7 +858,7 @@ compute_hydrodynamic_rhs
  const double              ,
  const double              ,
  const double              ,
- const Hydrodynamic::OptionalScalarArguments<3>        &,
+ const Hydrodynamic::ScalarOptions<3>        &,
  const BuoyantHydrodynamic::OptionalScalarArguments<3> & );
 
 template
@@ -869,7 +869,7 @@ compute_strong_hydrodynamic_residual
  const std::vector<double>        &,
  std::vector<Tensor<1, 2>>        &,
  const double                      ,
- const Hydrodynamic::OptionalVectorArguments<2>        &,
+ const Hydrodynamic::VectorOptions<2>        &,
  const BuoyantHydrodynamic::OptionalVectorArguments<2> & );
 template
 void
@@ -879,7 +879,7 @@ compute_strong_hydrodynamic_residual
  const std::vector<double>        &,
  std::vector<Tensor<1, 3>>        &,
  const double                      ,
- const Hydrodynamic::OptionalVectorArguments<3>        &,
+ const Hydrodynamic::VectorOptions<3>        &,
  const BuoyantHydrodynamic::OptionalVectorArguments<3> & );
 
 template

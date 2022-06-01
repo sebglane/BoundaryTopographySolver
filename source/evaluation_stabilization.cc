@@ -397,7 +397,7 @@ operator()
 
   Advection::VectorOptions<dim> &advection_vector_options
     = advection_scratch.vector_options;
-  Hydrodynamic::OptionalVectorArguments<dim> &hydrodynamic_vector_options
+  Hydrodynamic::VectorOptions<dim> &hydrodynamic_vector_options
     = hydrodynamic_scratch.vector_options;
   BuoyantHydrodynamic::OptionalVectorArguments<dim> &vector_options
     = scratch.vector_options;

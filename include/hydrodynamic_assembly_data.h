@@ -92,8 +92,8 @@ public:
 
   const StabilizationFlags  &stabilization_flags;
 
-  OptionalVectorArguments<dim>  vector_options;
-  OptionalScalarArguments<dim>  scalar_options;
+  VectorOptions<dim>  vector_options;
+  ScalarOptions<dim>  scalar_options;
 
   // shape functions
   std::vector<Tensor<1, dim>> phi_velocity;
@@ -191,8 +191,8 @@ public:
 
   const StabilizationFlags  &stabilization_flags;
 
-  OptionalVectorArguments<dim>  vector_options;
-  OptionalScalarArguments<dim>  scalar_options;
+  VectorOptions<dim>  vector_options;
+  ScalarOptions<dim>  scalar_options;
 
   // shape functions
   std::vector<Tensor<1, dim>> phi_velocity;
