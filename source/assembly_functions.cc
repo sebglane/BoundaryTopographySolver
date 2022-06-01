@@ -984,11 +984,17 @@ namespace Advection {
  */
 template <int dim>
 double compute_matrix
-(const Tensor<1, dim>                &trial_function_gradient,
- const Tensor<1, dim>                &advection_field_value,
- const double                         test_function_value)
+(const AssemblyData::ScratchData<dim> &scratch,
+ const unsigned int i,
+ const unsigned int j,
+ const unsigned int q,
+ const double       delta)
 {
-  return ((advection_field_value * trial_function_gradient) * test_function_value);
+  double matrix{(scratch.advection_field_values[q] * scratch.grad_phi[j]) * scratch.phi[i]};
+
+  matrix += compute_residual_linearization_matrix(scratch, i, j, q, delta);
+
+  return (matrix);
 }
 
 
@@ -1005,34 +1011,33 @@ double compute_matrix
  */
 template <int dim>
 double compute_rhs
-(const double           test_function_value,
- const Tensor<1, dim>  &test_function_gradient,
+(const AssemblyData::ScratchData<dim> &scratch,
  const Tensor<1, dim>  &present_gradient,
- const Tensor<1, dim>  &advection_field_value,
- const double           present_strong_residual,
- const double           delta,
- const ScalarOptions<dim> &options)
+ const unsigned int     i,
+ const unsigned int     q,
+ const double           delta)
 {
+  const Tensor<1, dim> &advection_field_value{scratch.advection_field_values[q]};
+
   double rhs{-(advection_field_value * present_gradient)};
 
-  if (options.reference_gradient)
+  if (scratch.scalar_options.reference_gradient)
   {
-    Assert(options.gradient_scaling,
+    Assert(scratch.scalar_options.gradient_scaling,
            ExcMessage("Gradient scaling number was not were not assigned in options."));
 
-    rhs -= *options.gradient_scaling *
-            (advection_field_value * *options.reference_gradient);
+    rhs -= *scratch.scalar_options.gradient_scaling *
+            (advection_field_value * *scratch.scalar_options.reference_gradient);
   }
 
-  if (options.source_term_value)
-    rhs += *options.source_term_value;
+  if (scratch.scalar_options.source_term_value)
+    rhs += *scratch.scalar_options.source_term_value;
 
-  rhs *= test_function_value;
+  rhs *= scratch.phi[i];
 
-  const double stabilization_test_function{advection_field_value *
-                                           test_function_gradient};
+  const double stabilization_test_function{advection_field_value * scratch.grad_phi[i]};
 
-  rhs -= delta * present_strong_residual * stabilization_test_function;
+  rhs -= delta * scratch.present_strong_residuals[q] * stabilization_test_function;
 
   return (rhs);
 }
@@ -1087,14 +1092,17 @@ void compute_strong_residual
 
 template <int dim>
 double compute_residual_linearization_matrix
-(const Tensor<1, dim>  &trial_function_gradient,
- const Tensor<1, dim>  &advection_field_value,
- const Tensor<1, dim>  &test_function_gradient,
- const double           delta)
+(const AssemblyData::ScratchData<dim> &scratch,
+ const unsigned int j,
+ const unsigned int i,
+ const unsigned int q,
+ const double       delta)
 {
+  const Tensor<1, dim> &advection_field_value{scratch.advection_field_values[q]};
+
   return (delta *
-          (advection_field_value * trial_function_gradient) *
-          (advection_field_value * test_function_gradient));
+          (advection_field_value * scratch.grad_phi[i]) *
+          (advection_field_value * scratch.grad_phi[j]));
 }
 
 
@@ -1103,37 +1111,36 @@ double compute_residual_linearization_matrix
 template
 double
 compute_matrix
-(const Tensor<1, 2>   &,
- const Tensor<1, 2>   &,
- const double           );
+(const AssemblyData::ScratchData<2> &,
+ const unsigned int ,
+ const unsigned int ,
+ const unsigned int ,
+ const double        );
 template
 double
 compute_matrix
-(const Tensor<1, 3>   &,
- const Tensor<1, 3>   &,
- const double           );
+(const AssemblyData::ScratchData<3> &,
+ const unsigned int ,
+ const unsigned int ,
+ const unsigned int ,
+ const double        );
 
 template
 double
 compute_rhs
-(const double         ,
+(const AssemblyData::ScratchData<2> &,
  const Tensor<1, 2>  &,
- const Tensor<1, 2>  &,
- const Tensor<1, 2>  &,
- const double         ,
- const double         ,
- const ScalarOptions<2> &);
+ const unsigned int   ,
+ const unsigned int   ,
+ const double          );
 template
 double
 compute_rhs
-(const double         ,
+(const AssemblyData::ScratchData<3> &,
  const Tensor<1, 3>  &,
- const Tensor<1, 3>  &,
- const Tensor<1, 3>  &,
- const double         ,
- const double         ,
- const ScalarOptions<3> &);
-
+ const unsigned int   ,
+ const unsigned int   ,
+ const double          );
 
 template
 void
@@ -1153,17 +1160,18 @@ compute_strong_residual
 template
 double
 compute_residual_linearization_matrix
-(const Tensor<1,2>  &,
- const Tensor<1,2>  &,
- const Tensor<1,2>  &,
- const double         );
+(const AssemblyData::ScratchData<2> &,
+ const unsigned int ,
+ const unsigned int ,
+ const unsigned int ,
+ const double       );
 template
 double
 compute_residual_linearization_matrix
-(const Tensor<1, 3> &,
- const Tensor<1, 3> &,
- const Tensor<1, 3> &,
- const double         );
-
+(const AssemblyData::ScratchData<3> &,
+ const unsigned int ,
+ const unsigned int ,
+ const unsigned int ,
+ const double       );
 
 }  // namespace Advection

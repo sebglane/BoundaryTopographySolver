@@ -10,7 +10,7 @@
 
 #include <deal.II/base/tensor.h>
 
-#include <advection_options.h>
+#include <advection_assembly_data.h>
 #include <angular_velocity.h>
 #include <buoyant_hydrodynamic_options.h>
 #include <hydrodynamic_options.h>
@@ -230,9 +230,11 @@ using namespace dealii;
  */
 template <int dim>
 double compute_matrix
-(const Tensor<1, dim>                &trial_function_gradient,
- const Tensor<1, dim>                &advection_field_value,
- const double                         test_function_value);
+(const AssemblyData::ScratchData<dim> &scratch,
+ const unsigned int test_function_index,
+ const unsigned int trial_function_index,
+ const unsigned int quadrature_point_index,
+ const double       delta);
 
 
 /*!
@@ -244,13 +246,11 @@ double compute_matrix
  */
 template <int dim>
 double compute_rhs
-(const double           test_function_value,
- const Tensor<1, dim>  &test_function_gradient,
+(const AssemblyData::ScratchData<dim> &scratch,
  const Tensor<1, dim>  &present_gradient,
- const Tensor<1, dim>  &advection_field_value,
- const double           present_strong_residual,
- const double           delta,
- const ScalarOptions<dim> &options);
+ const unsigned int     test_function_index,
+ const unsigned int     quadrature_point_index,
+ const double           delta);
 
 
 
@@ -277,10 +277,11 @@ void compute_strong_residual
  */
 template <int dim>
 double compute_residual_linearization_matrix
-(const Tensor<1, dim>                &trial_function_gradient,
- const Tensor<1, dim>                &advection_field_value,
- const Tensor<1, dim>                &test_function_gradient,
- const double                         delta);
+(const AssemblyData::ScratchData<dim> &scratch,
+ const unsigned int test_function_index,
+ const unsigned int trial_function_index,
+ const unsigned int quadrature_point_index,
+ const double       delta);
 
 }  // namespace Advection
 

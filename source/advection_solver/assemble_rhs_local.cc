@@ -65,13 +65,11 @@ assemble_rhs_local_cell
       const double test_function_value{scratch.phi[i]};
       const Tensor<1,dim> &test_function_gradient{scratch.grad_phi[i]};
 
-      const double rhs{compute_rhs(test_function_value,
-                                   test_function_gradient,
+      const double rhs{compute_rhs(scratch,
                                    present_gradients[q],
-                                   scratch.advection_field_values[q],
-                                   scratch.present_strong_residuals[q],
-                                   delta,
-                                   scratch.scalar_options)};
+                                   i,
+                                   q,
+                                   delta)};
 
       data.vectors[0](i) += rhs * JxW[q];
     }
