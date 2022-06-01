@@ -185,6 +185,10 @@ protected:
   (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs,
    const ComponentMask                    &mask);
 
+  void apply_mean_value_constraint
+  (const ComponentMask &mask,
+   const double         mean_value = 0);
+
   void setup_system_matrix(const Table<2, DoFTools::Coupling> &coupling_table);
 
   void setup_vectors();
@@ -238,6 +242,7 @@ protected:
   // constraints
   AffineConstraints<double>   nonzero_constraints;
   AffineConstraints<double>   zero_constraints;
+  std::map<unsigned int, double>  component_mean_values;
 
   // linear algebra
   BlockSparsityPattern            sparsity_pattern;

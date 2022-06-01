@@ -75,9 +75,11 @@ enum class BCType
 
 /*!
  * @struct BoundaryConditionsBase
+ *
  * @brief A structure containing all instances related to the
  * boundary conditions which are independent
  * of the rank of the tensor field.
+ *
  */
 template <int dim>
 class BoundaryConditionsBase
@@ -132,6 +134,7 @@ public:
    * homogeneous boundary condition should be applied on the given boundary.
    * It calls the @ref check_boundary_id method before adding the entry and marks
    * the boundary as time dependent according to the boolean passed.
+   *
    */
   void set_dirichlet_bc(const types::boundary_id             boundary_id,
                          const std::shared_ptr<Function<dim>> &function
@@ -163,18 +166,18 @@ public:
   /*!
    * @brief A method returning the value of @ref flag_regularity_guaranteed.
    */
-  bool                            regularity_guaranteed() const;
+  bool regularity_guaranteed() const;
 
   /*!
    * @brief A method returning the value of @ref flag_boundary_conditions_closed.
    */
-  bool                            closed() const;
+  bool closed() const;
 
   /*!
    * @todo Sets the boundary condition by setting @ref flag_boundary_conditions_closed
    * to true.
    */
-  void                            close();
+  void close();
 
   /*!
    * @brief This method clears all boundary conditions.
@@ -182,7 +185,7 @@ public:
    * @details This is a pure virtual method. Its implementation is
    * overriden in the child structs
    */
-  virtual void                    clear();
+  virtual void clear();
 
   /*!
    * @brief This method copies the content of another @ref ScalarBoundaryConditions
@@ -340,12 +343,12 @@ public:
    * @brief Sets an admissible local degree of freedom at the boundary
    * to zero
    */
-  void  set_datum_at_boundary();
+  void set_datum_at_boundary();
 
   /*!
    * @brief A method returning the value of @ref flag_datum_at_boundary.
    */
-  bool  datum_at_boundary() const;
+  bool datum_at_boundary() const;
 
   /*!
    * @brief This method sets the time of the functions by calling their
@@ -385,7 +388,7 @@ private:
    * at the boundary. This is required to obtain a regular system matrix
    * in case of a pure Neumann problem.
    */
-  bool  flag_datum_at_boundary;
+  bool flag_datum_at_boundary;
 
 };
 

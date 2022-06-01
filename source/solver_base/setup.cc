@@ -37,6 +37,8 @@ setup_dofs()
   zero_constraints.clear();
   zero_constraints.reinit(locally_relevant_dofs);
 
+  component_mean_values.clear();
+
   // possibly initialize the mapping
   MappingQCache<dim> *mapping_q_cache_ptr = dynamic_cast<MappingQCache<dim>*>(&mapping);
   if (mapping_q_cache_ptr != nullptr)
