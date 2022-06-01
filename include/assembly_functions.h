@@ -106,7 +106,7 @@ double compute_hydrodynamic_matrix
  const double          pressure_test_function,
  const double          nu,
  const Hydrodynamic::ScalarOptions<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
+ const BuoyantHydrodynamic::ScalarOptions<dim> &buoyancy_options,
  const bool            apply_newton_linearization = true);
 
 
@@ -128,7 +128,7 @@ double compute_hydrodynamic_residual_linearization_matrix
  const double               delta,
  const double               mu,
  const Hydrodynamic::ScalarOptions<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
+ const BuoyantHydrodynamic::ScalarOptions<dim> &buoyancy_options,
  const bool                 apply_newton_linearization = true);
 
 
@@ -149,7 +149,7 @@ double compute_hydrodynamic_rhs
  const double          mu,
  const double          delta,
  const Hydrodynamic::ScalarOptions<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options);
+ const BuoyantHydrodynamic::ScalarOptions<dim> &buoyancy_options);
 
 
 
@@ -161,7 +161,7 @@ void compute_strong_hydrodynamic_residual
  std::vector<Tensor<1, dim>>       &strong_residuals,
  const double                       nu,
  const Hydrodynamic::VectorOptions<dim>        &options,
- const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options);
+ const BuoyantHydrodynamic::VectorOptions<dim> &buoyancy_options);
 
 
 

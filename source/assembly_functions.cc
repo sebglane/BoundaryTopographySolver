@@ -456,7 +456,7 @@ double compute_hydrodynamic_matrix
  const double          pressure_test_function,
  const double          nu,
  const Hydrodynamic::ScalarOptions<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
+ const BuoyantHydrodynamic::ScalarOptions<dim> &buoyancy_options,
  const bool            apply_newton_linearization)
 {
   double matrix = Hydrodynamic::
@@ -503,7 +503,7 @@ double compute_hydrodynamic_residual_linearization_matrix
  const double               delta,
  const double               mu,
  const Hydrodynamic::ScalarOptions<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options,
+ const BuoyantHydrodynamic::ScalarOptions<dim> &buoyancy_options,
  const bool                 apply_newton_linearization)
 {
   if (!(stabilization & (apply_supg|apply_pspg|apply_grad_div)))
@@ -563,7 +563,7 @@ double compute_hydrodynamic_rhs
  const double          mu,
  const double          delta,
  const Hydrodynamic::ScalarOptions<dim>        &options,
- const BuoyantHydrodynamic::OptionalScalarArguments<dim> &buoyancy_options)
+ const BuoyantHydrodynamic::ScalarOptions<dim> &buoyancy_options)
 {
   double rhs = Hydrodynamic::
                compute_rhs(stabilization,
@@ -602,7 +602,7 @@ void compute_strong_hydrodynamic_residual
  std::vector<Tensor<1, dim>>       &strong_residuals,
  const double                       nu,
  const Hydrodynamic::VectorOptions<dim>        &options,
- const BuoyantHydrodynamic::OptionalVectorArguments<dim> &buoyancy_options)
+ const BuoyantHydrodynamic::VectorOptions<dim> &buoyancy_options)
 {
   Hydrodynamic::
   compute_strong_residual(present_velocity_values,
@@ -764,7 +764,7 @@ double compute_hydrodynamic_matrix
  const double        ,
  const double        ,
  const Hydrodynamic::ScalarOptions<2> &,
- const OptionalScalarArguments<2> &,
+ const ScalarOptions<2> &,
  const bool           );
 template
 double compute_hydrodynamic_matrix
@@ -779,7 +779,7 @@ double compute_hydrodynamic_matrix
  const double        ,
  const double        ,
  const Hydrodynamic::ScalarOptions<3> &,
- const OptionalScalarArguments<3> &,
+ const ScalarOptions<3> &,
  const bool           );
 
 template
@@ -800,7 +800,7 @@ compute_hydrodynamic_residual_linearization_matrix
  const double              ,
  const double              ,
  const Hydrodynamic::ScalarOptions<2>        &,
- const BuoyantHydrodynamic::OptionalScalarArguments<2> &,
+ const BuoyantHydrodynamic::ScalarOptions<2> &,
  const bool                 );
 template
 double
@@ -820,7 +820,7 @@ compute_hydrodynamic_residual_linearization_matrix
  const double              ,
  const double              ,
  const Hydrodynamic::ScalarOptions<3>        &,
- const BuoyantHydrodynamic::OptionalScalarArguments<3> &,
+ const BuoyantHydrodynamic::ScalarOptions<3> &,
  const bool                 );
 
 
@@ -841,7 +841,7 @@ compute_hydrodynamic_rhs
  const double              ,
  const double              ,
  const Hydrodynamic::ScalarOptions<2>        &,
- const BuoyantHydrodynamic::OptionalScalarArguments<2> & );
+ const BuoyantHydrodynamic::ScalarOptions<2> & );
 template
 double
 compute_hydrodynamic_rhs
@@ -859,7 +859,7 @@ compute_hydrodynamic_rhs
  const double              ,
  const double              ,
  const Hydrodynamic::ScalarOptions<3>        &,
- const BuoyantHydrodynamic::OptionalScalarArguments<3> & );
+ const BuoyantHydrodynamic::ScalarOptions<3> & );
 
 template
 void
@@ -870,7 +870,7 @@ compute_strong_hydrodynamic_residual
  std::vector<Tensor<1, 2>>        &,
  const double                      ,
  const Hydrodynamic::VectorOptions<2>        &,
- const BuoyantHydrodynamic::OptionalVectorArguments<2> & );
+ const BuoyantHydrodynamic::VectorOptions<2> & );
 template
 void
 compute_strong_hydrodynamic_residual
@@ -880,7 +880,7 @@ compute_strong_hydrodynamic_residual
  std::vector<Tensor<1, 3>>        &,
  const double                      ,
  const Hydrodynamic::VectorOptions<3>        &,
- const BuoyantHydrodynamic::OptionalVectorArguments<3> & );
+ const BuoyantHydrodynamic::VectorOptions<3> & );
 
 template
 void
