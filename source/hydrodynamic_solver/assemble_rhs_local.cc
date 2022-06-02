@@ -59,8 +59,7 @@ assemble_rhs_local_cell
   scratch.adjust_velocity_field_local_cell();
 
   // stabilization
-  if (stabilization & (apply_supg|apply_pspg))
-    compute_strong_residual(scratch, nu);
+  compute_strong_residual(scratch, nu);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
@@ -85,8 +84,7 @@ assemble_rhs_local_cell
         scratch.scalar_options.velocity_test_function_symmetric_gradient =
             scratch.sym_grad_phi_velocity[i];
 
-      const double rhs{compute_rhs(stabilization,
-                                   scratch,
+      const double rhs{compute_rhs(scratch,
                                    present_pressure_values[q],
                                    i,
                                    q,

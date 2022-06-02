@@ -131,8 +131,7 @@ assemble_rhs_local_cell
         hydrodynamic_scratch.scalar_options.velocity_test_function_symmetric_gradient =
             hydrodynamic_scratch.sym_grad_phi_velocity[i];
 
-      const double rhs{compute_rhs(this->stabilization,
-                                   scratch,
+      const double rhs{compute_rhs(scratch,
                                    present_density_gradients[q],
                                    present_density_values[q],
                                    present_pressure_values[q],

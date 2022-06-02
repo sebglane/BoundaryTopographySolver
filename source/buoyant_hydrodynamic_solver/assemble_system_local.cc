@@ -147,8 +147,7 @@ assemble_system_local_cell
           hydrodynamic_scratch.scalar_options.velocity_trial_function_grad_divergence =
               hydrodynamic_scratch.grad_div_phi_velocity[j];
 
-        const double matrix{compute_matrix(this->stabilization,
-                                           scratch,
+        const double matrix{compute_matrix(scratch,
                                            present_density_gradients[q],
                                            i,
                                            j,
@@ -163,8 +162,7 @@ assemble_system_local_cell
         data.matrices[0](i, j) += matrix * JxW[q];
       }
 
-      const double rhs{compute_rhs(this->stabilization,
-                                   scratch,
+      const double rhs{compute_rhs(scratch,
                                    present_density_gradients[q],
                                    present_density_values[q],
                                    present_pressure_values[q],

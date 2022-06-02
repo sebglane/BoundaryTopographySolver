@@ -9,10 +9,105 @@
 
 namespace Hydrodynamic {
 
+namespace internal {
+
+template <int dim>
+double compute_residual_linearization_matrix
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const unsigned int i,
+ const unsigned int j,
+ const unsigned int q,
+ const double       nu,
+ const double       delta,
+ const double       mu,
+ const bool         apply_newton_linearization)
+{
+  if (!(scratch.stabilization_flags & (apply_supg|apply_pspg|apply_grad_div)))
+    return (0.0);
+
+  Assert(nu > 0.0, ExcMessage("The viscosity must be positive."));
+  Assert(delta > 0.0, ExcMessage("The SUPG stabilization parameter must be positive."));
+  Assert(mu > 0.0, ExcMessage("The GradDiv stabilization parameter must be positive."));
+
+  const Tensor<2, dim> &velocity_trial_function_gradient{scratch.grad_phi_velocity[j]};
+  const Tensor<1, dim> &velocity_trial_function_value{scratch.phi_velocity[j]};
+  const Tensor<1, dim> &velocity_trial_function_laplacean{scratch.laplace_phi_velocity[j]};
+
+  const Tensor<2, dim> &velocity_test_function_gradient{scratch.grad_phi_velocity[i]};
+
+  const Tensor<1, dim> &pressure_trial_function_gradient{scratch.grad_phi_pressure[j]};
+  const Tensor<1, dim> &pressure_test_function_gradient{scratch.grad_phi_pressure[i]};
+
+  const Tensor<2, dim> &present_velocity_gradient{scratch.present_velocity_gradients[q]};
+  const Tensor<1, dim> &present_velocity_value{scratch.present_velocity_values[q]};
+  const Tensor<1, dim> &present_strong_residual{scratch.present_strong_residuals[q]};
+
+  double matrix{0.0};
+
+  if (scratch.stabilization_flags & (apply_supg|apply_pspg))
+  {
+    // linearized residual
+    Tensor<1, dim> linearized_residual
+    {velocity_trial_function_gradient * present_velocity_value +
+     pressure_trial_function_gradient};
+
+    if (apply_newton_linearization)
+      linearized_residual += present_velocity_gradient * velocity_trial_function_value;
+
+    if (scratch.scalar_options.use_stress_form)
+    {
+      Assert(scratch.scalar_options.velocity_trial_function_grad_divergence,
+             ExcMessage("Gradient of velocity trial function divergence was not "
+                        "specified in options."));
+
+      linearized_residual -= nu * (velocity_trial_function_laplacean +
+                                   *scratch.scalar_options.velocity_trial_function_grad_divergence);
+    }
+    else
+      linearized_residual -= nu * velocity_trial_function_laplacean;
+
+    if (scratch.scalar_options.angular_velocity)
+    {
+      Assert(scratch.scalar_options.rossby_number,
+             ExcMessage("Rossby number was not assigned in options."));
+
+      if constexpr(dim == 2)
+        linearized_residual += 2.0 / *scratch.scalar_options.rossby_number * scratch.scalar_options.angular_velocity.value()[0] *
+                              cross_product_2d(-velocity_trial_function_value);
+      else if constexpr(dim == 3)
+        linearized_residual += 2.0 / *scratch.scalar_options.rossby_number *
+                               cross_product_3d(*scratch.scalar_options.angular_velocity, velocity_trial_function_value);
+    }
+
+    Tensor<1, dim> test_function;
+    if (scratch.stabilization_flags & apply_supg)
+      test_function += velocity_test_function_gradient *
+                       present_velocity_value;
+
+    if (scratch.stabilization_flags & apply_pspg)
+      test_function += pressure_test_function_gradient;
+
+    matrix += delta * (linearized_residual * test_function);
+
+    if (scratch.stabilization_flags & apply_supg)
+      matrix += delta * present_strong_residual *
+                (velocity_test_function_gradient * velocity_trial_function_value);
+  }
+
+  if (scratch.stabilization_flags & apply_grad_div)
+    matrix += mu * trace(velocity_trial_function_gradient) *
+                   trace(velocity_test_function_gradient);
+
+  return (matrix);
+}
+
+}  // namespace internal
+
+
+
 template <int dim>
 double compute_matrix
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const unsigned int i,
  const unsigned int j,
  const unsigned int q,
@@ -78,8 +173,8 @@ double compute_matrix
                 velocity_test_function_value;
   }
 
-  matrix += compute_residual_linearization_matrix(stabilization,
-                                                  scratch,
+  matrix += internal::
+            compute_residual_linearization_matrix(scratch,
                                                   i,
                                                   j,
                                                   q,
@@ -95,8 +190,7 @@ double compute_matrix
 
 template <int dim>
 double compute_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const double       present_pressure_value,
  const unsigned int i,
  const unsigned int q,
@@ -161,21 +255,21 @@ double compute_rhs
              velocity_test_function_value;
   }
 
-  if (stabilization & (apply_supg|apply_pspg))
+  if (scratch.stabilization_flags & (apply_supg|apply_pspg))
   {
     Tensor<1, dim> stabilization_test_function;
 
-    if (stabilization & apply_supg)
+    if (scratch.stabilization_flags & apply_supg)
       stabilization_test_function += velocity_test_function_gradient *
                                      present_velocity_value;
 
-    if (stabilization & apply_pspg)
+    if (scratch.stabilization_flags & apply_pspg)
       stabilization_test_function += pressure_test_function_gradient;
 
     rhs -= delta * present_strong_residual * stabilization_test_function;
   }
 
-  if (stabilization & apply_grad_div)
+  if (scratch.stabilization_flags & apply_grad_div)
     rhs -= mu * trace(present_velocity_gradient) *
                 trace(velocity_test_function_gradient);
 
@@ -187,8 +281,7 @@ double compute_rhs
 
 template <int dim>
 double compute_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
  const double       present_pressure_value,
  const unsigned int i,
  const unsigned int q,
@@ -253,21 +346,21 @@ double compute_rhs
              velocity_test_function_value;
   }
 
-  if (stabilization & (apply_supg|apply_pspg))
+  if (scratch.stabilization_flags & (apply_supg|apply_pspg))
   {
     Tensor<1, dim> stabilization_test_function;
 
-    if (stabilization & apply_supg)
+    if (scratch.stabilization_flags & apply_supg)
       stabilization_test_function += velocity_test_function_gradient *
                                      present_velocity_value;
 
-    if (stabilization & apply_pspg)
+    if (scratch.stabilization_flags & apply_pspg)
       stabilization_test_function += pressure_test_function_gradient;
 
     rhs -= delta * present_strong_residual * stabilization_test_function;
   }
 
-  if (stabilization & apply_grad_div)
+  if (scratch.stabilization_flags & apply_grad_div)
     rhs -= mu * trace(present_velocity_gradient) *
                 trace(velocity_test_function_gradient);
 
@@ -281,6 +374,9 @@ void compute_strong_residual
 (AssemblyData::Matrix::ScratchData<dim> &scratch,
  const double nu)
 {
+  if (!(scratch.stabilization_flags & (apply_supg|apply_pspg)))
+    return;
+
   const auto &present_velocity_values{scratch.present_velocity_values};
   const auto &present_velocity_gradients{scratch.present_velocity_gradients};
   auto &strong_residuals{scratch.present_strong_residuals};
@@ -357,6 +453,9 @@ void compute_strong_residual
 (AssemblyData::RightHandSide::ScratchData<dim> &scratch,
  const double nu)
 {
+  if (!(scratch.stabilization_flags & (apply_supg|apply_pspg)))
+    return;
+
   const auto &present_velocity_values{scratch.present_velocity_values};
   const auto &present_velocity_gradients{scratch.present_velocity_gradients};
   auto &strong_residuals{scratch.present_strong_residuals};
@@ -428,105 +527,10 @@ void compute_strong_residual
 
 
 
-template <int dim>
-double compute_residual_linearization_matrix
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const unsigned int i,
- const unsigned int j,
- const unsigned int q,
- const double       nu,
- const double       delta,
- const double       mu,
- const bool         apply_newton_linearization)
-{
-  if (!(stabilization & (apply_supg|apply_pspg|apply_grad_div)))
-    return (0.0);
-
-  Assert(nu > 0.0, ExcMessage("The viscosity must be positive."));
-  Assert(delta > 0.0, ExcMessage("The SUPG stabilization parameter must be positive."));
-  Assert(mu > 0.0, ExcMessage("The GradDiv stabilization parameter must be positive."));
-
-  const Tensor<2, dim> &velocity_trial_function_gradient{scratch.grad_phi_velocity[j]};
-  const Tensor<1, dim> &velocity_trial_function_value{scratch.phi_velocity[j]};
-  const Tensor<1, dim> &velocity_trial_function_laplacean{scratch.laplace_phi_velocity[j]};
-
-  const Tensor<2, dim> &velocity_test_function_gradient{scratch.grad_phi_velocity[i]};
-
-  const Tensor<1, dim> &pressure_trial_function_gradient{scratch.grad_phi_pressure[j]};
-  const Tensor<1, dim> &pressure_test_function_gradient{scratch.grad_phi_pressure[i]};
-
-  const Tensor<2, dim> &present_velocity_gradient{scratch.present_velocity_gradients[q]};
-  const Tensor<1, dim> &present_velocity_value{scratch.present_velocity_values[q]};
-  const Tensor<1, dim> &present_strong_residual{scratch.present_strong_residuals[q]};
-
-  double matrix{0.0};
-
-  if (stabilization & (apply_supg|apply_pspg))
-  {
-    // linearized residual
-    Tensor<1, dim> linearized_residual
-    {velocity_trial_function_gradient * present_velocity_value +
-     pressure_trial_function_gradient};
-
-    if (apply_newton_linearization)
-      linearized_residual += present_velocity_gradient * velocity_trial_function_value;
-
-    if (scratch.scalar_options.use_stress_form)
-    {
-      Assert(scratch.scalar_options.velocity_trial_function_grad_divergence,
-             ExcMessage("Gradient of velocity trial function divergence was not "
-                        "specified in options."));
-
-      linearized_residual -= nu * (velocity_trial_function_laplacean +
-                                   *scratch.scalar_options.velocity_trial_function_grad_divergence);
-    }
-    else
-      linearized_residual -= nu * velocity_trial_function_laplacean;
-
-    if (scratch.scalar_options.angular_velocity)
-    {
-      Assert(scratch.scalar_options.rossby_number,
-             ExcMessage("Rossby number was not assigned in options."));
-
-      if constexpr(dim == 2)
-        linearized_residual += 2.0 / *scratch.scalar_options.rossby_number * scratch.scalar_options.angular_velocity.value()[0] *
-                              cross_product_2d(-velocity_trial_function_value);
-      else if constexpr(dim == 3)
-        linearized_residual += 2.0 / *scratch.scalar_options.rossby_number *
-                               cross_product_3d(*scratch.scalar_options.angular_velocity, velocity_trial_function_value);
-    }
-
-    Tensor<1, dim> test_function;
-    if (stabilization & apply_supg)
-      test_function += velocity_test_function_gradient *
-                       present_velocity_value;
-
-    if (stabilization & apply_pspg)
-      test_function += pressure_test_function_gradient;
-
-    matrix += delta * (linearized_residual * test_function);
-
-    if (stabilization & apply_supg)
-      matrix += delta * present_strong_residual *
-                (velocity_test_function_gradient * velocity_trial_function_value);
-  }
-
-  if (stabilization & apply_grad_div)
-    matrix += mu * trace(velocity_trial_function_gradient) *
-                   trace(velocity_test_function_gradient);
-
-  return (matrix);
-
-}
-
-
-
 // explicit instantiations
 template
 double compute_matrix
-(const StabilizationFlags  &,
- const AssemblyData::Matrix::ScratchData<2> &,
+(const AssemblyData::Matrix::ScratchData<2> &,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
@@ -536,8 +540,7 @@ double compute_matrix
  const bool         );
 template
 double compute_matrix
-(const StabilizationFlags  &,
- const AssemblyData::Matrix::ScratchData<3> &,
+(const AssemblyData::Matrix::ScratchData<3> &,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
@@ -549,8 +552,7 @@ double compute_matrix
 template
 double
 compute_rhs
-(const StabilizationFlags  &,
- const AssemblyData::Matrix::ScratchData<2> &,
+(const AssemblyData::Matrix::ScratchData<2> &,
  const double       ,
  const unsigned int ,
  const unsigned int ,
@@ -560,8 +562,7 @@ compute_rhs
 template
 double
 compute_rhs
-(const StabilizationFlags  &,
- const AssemblyData::Matrix::ScratchData<3> &,
+(const AssemblyData::Matrix::ScratchData<3> &,
  const double       ,
  const unsigned int ,
  const unsigned int ,
@@ -572,8 +573,7 @@ compute_rhs
 template
 double
 compute_rhs
-(const StabilizationFlags  &,
- const AssemblyData::RightHandSide::ScratchData<2> &,
+(const AssemblyData::RightHandSide::ScratchData<2> &,
  const double       ,
  const unsigned int ,
  const unsigned int ,
@@ -583,8 +583,7 @@ compute_rhs
 template
 double
 compute_rhs
-(const StabilizationFlags  &,
- const AssemblyData::RightHandSide::ScratchData<3> &,
+(const AssemblyData::RightHandSide::ScratchData<3> &,
  const double       ,
  const unsigned int ,
  const unsigned int ,
@@ -613,31 +612,6 @@ compute_strong_residual
 (AssemblyData::RightHandSide::ScratchData<3> &,
  const double );
 
-template
-double
-compute_residual_linearization_matrix
-(const StabilizationFlags  &,
- const AssemblyData::Matrix::ScratchData<2> &,
- const unsigned int ,
- const unsigned int ,
- const unsigned int ,
- const double       ,
- const double       ,
- const double       ,
- const bool         );
-template
-double
-compute_residual_linearization_matrix
-(const StabilizationFlags  &,
- const AssemblyData::Matrix::ScratchData<3> &,
- const unsigned int ,
- const unsigned int ,
- const unsigned int ,
- const double       ,
- const double       ,
- const double       ,
- const bool         );
-
 
 
 }  // namespace Hydrodynamic
@@ -651,8 +625,7 @@ namespace internal {
 
 template <int dim>
 double compute_hydrodynamic_matrix
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const unsigned int i,
  const unsigned int j,
  const unsigned int q,
@@ -664,8 +637,7 @@ double compute_hydrodynamic_matrix
   const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &hydrodynamic_scratch
   {static_cast<const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
 
-  double matrix = Hydrodynamic::compute_matrix(stabilization,
-                                               hydrodynamic_scratch,
+  double matrix = Hydrodynamic::compute_matrix(hydrodynamic_scratch,
                                                i,
                                                j,
                                                q,
@@ -686,7 +658,7 @@ double compute_hydrodynamic_matrix
               (*hydrodynamic_scratch.scalar_options.froude_number *
                *hydrodynamic_scratch.scalar_options.froude_number);
 
-    if (!(stabilization & (apply_supg|apply_pspg)))
+    if (!(hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg)))
     {
       const Tensor<2, dim> &velocity_test_function_gradient{hydrodynamic_scratch.grad_phi_velocity[i]};
 
@@ -697,9 +669,9 @@ double compute_hydrodynamic_matrix
       const double density_trial_function_value{advection_scratch.phi[i]};
 
       Tensor<1, dim> test_function;
-      if (stabilization & apply_supg)
+      if (hydrodynamic_scratch.stabilization_flags & apply_supg)
         test_function += velocity_test_function_gradient * present_velocity_value;
-      if (stabilization & apply_pspg)
+      if (hydrodynamic_scratch.stabilization_flags & apply_pspg)
         test_function += pressure_test_function_gradient;
 
       matrix -= delta * density_trial_function_value *
@@ -716,8 +688,7 @@ double compute_hydrodynamic_matrix
 
 template <int dim>
 double compute_hydrodynamic_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const double       present_density_value,
  const double       present_pressure_value,
  const unsigned int i,
@@ -729,8 +700,7 @@ double compute_hydrodynamic_rhs
   const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &hydrodynamic_scratch
   {static_cast<const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
 
-  double rhs{Hydrodynamic::compute_rhs(stabilization,
-                                       hydrodynamic_scratch,
+  double rhs{Hydrodynamic::compute_rhs(hydrodynamic_scratch,
                                        present_pressure_value,
                                        i,
                                        q,
@@ -755,8 +725,7 @@ double compute_hydrodynamic_rhs
 
 template <int dim>
 double compute_hydrodynamic_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
  const double       present_density_value,
  const double       present_pressure_value,
  const unsigned int i,
@@ -768,8 +737,7 @@ double compute_hydrodynamic_rhs
   const Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &hydrodynamic_scratch
   {static_cast<const Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch)};
 
-  double rhs{Hydrodynamic::compute_rhs(stabilization,
-                                       hydrodynamic_scratch,
+  double rhs{Hydrodynamic::compute_rhs(hydrodynamic_scratch,
                                        present_pressure_value,
                                        i,
                                        q,
@@ -915,8 +883,7 @@ double compute_density_rhs
 
 template <int dim>
 double compute_matrix
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const Tensor<1, dim>  &present_density_gradient,
  const unsigned int i,
  const unsigned int j,
@@ -929,8 +896,7 @@ double compute_matrix
  const bool         apply_newton_linearization)
 {
   double matrix{internal::
-                compute_hydrodynamic_matrix(stabilization,
-                                            scratch,
+                compute_hydrodynamic_matrix(scratch,
                                             i,
                                             j,
                                             q,
@@ -957,8 +923,7 @@ double compute_matrix
 
 template <int dim>
 double compute_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const Tensor<1,dim> &present_density_gradient,
  const double       present_density_value,
  const double       present_pressure_value,
@@ -970,8 +935,7 @@ double compute_rhs
  const double       delta_density)
 {
   double rhs{internal::
-             compute_hydrodynamic_rhs(stabilization,
-                                      scratch,
+             compute_hydrodynamic_rhs(scratch,
                                       present_density_value,
                                       present_pressure_value,
                                       i,
@@ -990,8 +954,7 @@ double compute_rhs
 }
 template <int dim>
 double compute_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
  const Tensor<1,dim> &present_density_gradient,
  const double       present_density_value,
  const double       present_pressure_value,
@@ -1003,8 +966,7 @@ double compute_rhs
  const double       delta_density)
 {
   double rhs{internal::
-             compute_hydrodynamic_rhs(stabilization,
-                                      scratch,
+             compute_hydrodynamic_rhs(scratch,
                                       present_density_value,
                                       present_pressure_value,
                                       i,
@@ -1111,8 +1073,7 @@ void compute_strong_residuals
 // explicit instantiations
 template
 double compute_matrix
-(const StabilizationFlags                   &,
- const AssemblyData::Matrix::ScratchData<2> &,
+(const AssemblyData::Matrix::ScratchData<2> &,
  const Tensor<1, 2>&,
  const unsigned int ,
  const unsigned int ,
@@ -1125,8 +1086,7 @@ double compute_matrix
  const bool          );
 template
 double compute_matrix
-(const StabilizationFlags                   &,
- const AssemblyData::Matrix::ScratchData<3> &,
+(const AssemblyData::Matrix::ScratchData<3> &,
  const Tensor<1, 3>&,
  const unsigned int ,
  const unsigned int ,
@@ -1141,8 +1101,7 @@ double compute_matrix
 template
 double
 compute_rhs
-(const StabilizationFlags &,
- const AssemblyData::Matrix::ScratchData<2> &,
+(const AssemblyData::Matrix::ScratchData<2> &,
  const Tensor<1, 2>  &,
  const double         ,
  const double         ,
@@ -1155,8 +1114,7 @@ compute_rhs
 template
 double
 compute_rhs
-(const StabilizationFlags &,
- const AssemblyData::Matrix::ScratchData<3> &,
+(const AssemblyData::Matrix::ScratchData<3> &,
  const Tensor<1, 3>  &,
  const double         ,
  const double         ,
@@ -1169,8 +1127,7 @@ compute_rhs
 template
 double
 compute_rhs
-(const StabilizationFlags &,
- const AssemblyData::RightHandSide::ScratchData<2> &,
+(const AssemblyData::RightHandSide::ScratchData<2> &,
  const Tensor<1, 2>  &,
  const double         ,
  const double         ,
@@ -1183,8 +1140,7 @@ compute_rhs
 template
 double
 compute_rhs
-(const StabilizationFlags &,
- const AssemblyData::RightHandSide::ScratchData<3> &,
+(const AssemblyData::RightHandSide::ScratchData<3> &,
  const Tensor<1, 3>  &,
  const double         ,
  const double         ,

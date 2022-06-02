@@ -63,8 +63,7 @@ assemble_system_local_cell
   scratch.adjust_velocity_field_local_cell();
 
   // stabilization
-  if (stabilization & (apply_supg|apply_pspg))
-    compute_strong_residual(scratch, nu);
+  compute_strong_residual(scratch, nu);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
@@ -101,8 +100,7 @@ assemble_system_local_cell
               scratch.grad_div_phi_velocity[j];
         }
 
-        const double matrix{compute_matrix(stabilization,
-                                           scratch,
+        const double matrix{compute_matrix(scratch,
                                            i,
                                            j,
                                            q,
@@ -115,8 +113,7 @@ assemble_system_local_cell
       }
 
 
-      const double rhs{compute_rhs(stabilization,
-                                   scratch,
+      const double rhs{compute_rhs(scratch,
                                    present_pressure_values[q],
                                    i,
                                    q,

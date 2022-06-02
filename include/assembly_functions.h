@@ -25,8 +25,7 @@ using namespace dealii;
 
 template <int dim>
 double compute_matrix
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const unsigned int test_function_index,
  const unsigned int trial_function_index,
  const unsigned int quadrature_point_index,
@@ -39,8 +38,7 @@ double compute_matrix
 
 template <int dim>
 double compute_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const double       present_pressure_value,
  const unsigned int test_function_index,
  const unsigned int quadrature_point_index,
@@ -52,8 +50,7 @@ double compute_rhs
 
 template <int dim>
 double compute_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
  const double       present_pressure_value,
  const unsigned int test_function_index,
  const unsigned int quadrature_point_index,
@@ -72,20 +69,6 @@ void compute_strong_residual
 (AssemblyData::RightHandSide::ScratchData<dim> &scratch,
  const double nu);
 
-
-
-template <int dim>
-double compute_residual_linearization_matrix
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const unsigned int test_function_index,
- const unsigned int trial_function_index,
- const unsigned int quadrature_point_index,
- const double       nu,
- const double       delta,
- const double       mu,
- const bool         apply_newton_linearization = true);
-
 }  // namespace Hydrodynamic
 
 
@@ -97,8 +80,7 @@ using namespace dealii;
 
 template <int dim>
 double compute_matrix
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const Tensor<1, dim>  &present_density_gradient,
  const unsigned int test_function_index,
  const unsigned int trial_function_index,
@@ -114,8 +96,7 @@ double compute_matrix
 
 template <int dim>
 double compute_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const Tensor<1,dim> &present_density_gradient,
  const double       present_density_value,
  const double       present_pressure_value,
@@ -127,8 +108,7 @@ double compute_rhs
  const double       delta_density);
 template <int dim>
 double compute_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
  const Tensor<1,dim> &present_density_gradient,
  const double       present_density_value,
  const double       present_pressure_value,
