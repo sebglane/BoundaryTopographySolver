@@ -1025,40 +1025,79 @@ double compute_rhs
 
 
 template <int dim>
-void compute_strong_hydrodynamic_residual
-(const std::vector<Tensor<1, dim>> &present_velocity_values,
- const std::vector<Tensor<2, dim>> &present_velocity_gradients,
+void compute_strong_residuals
+(AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const std::vector<Tensor<1, dim>> &present_density_gradients,
  const std::vector<double>         &present_density_values,
- std::vector<Tensor<1, dim>>       &strong_residuals,
- const double                       nu,
- const Hydrodynamic::VectorOptions<dim>        &options,
- const BuoyantHydrodynamic::VectorOptions<dim> &buoyancy_options)
+ const double nu)
 {
-  LegacyHydrodynamic::
-  compute_strong_residual(present_velocity_values,
-                          present_velocity_gradients,
-                          options,
-                          nu,
-                          strong_residuals);
+  Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &hydrodynamic_scratch =
+  static_cast<Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
 
-  if (buoyancy_options.gravity_field_values)
+  if (hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg))
   {
-    Assert(options.froude_number, ExcInternalError());
+    Hydrodynamic::
+    compute_strong_residual(hydrodynamic_scratch,
+                            nu);
 
-    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-      strong_residuals[q] -= present_density_values[q] *
-                             buoyancy_options.gravity_field_values->at(q) /
-                             (*options.froude_number * *options.froude_number);
+    if (scratch.vector_options.gravity_field_values)
+    {
+      Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
+      AssertDimension(present_density_values.size(),
+                      scratch.vector_options.gravity_field_values->size());
+
+      auto &strong_residuals{hydrodynamic_scratch.present_strong_residuals};
+      AssertDimension(present_density_values.size(),
+                      strong_residuals.size());
+
+      for (std::size_t q=0; q<present_density_values.size(); ++q)
+        strong_residuals[q] -= present_density_values[q] *
+                               scratch.vector_options.gravity_field_values->at(q) /
+                               (*hydrodynamic_scratch.vector_options.froude_number *
+                                *hydrodynamic_scratch.vector_options.froude_number);
+    }
   }
+
+  Advection::AssemblyData::ScratchData<dim> &advection_scratch
+  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
+
+  Advection::compute_strong_residual(present_density_gradients,
+                                     advection_scratch);
 }
-
-
-
 template <int dim>
-void compute_strong_density_residual
-(const std::vector<Tensor<1, dim>>      &present_density_gradients,
- AssemblyData::RightHandSide::ScratchData<dim> &scratch)
+void compute_strong_residuals
+(AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+ const std::vector<Tensor<1, dim>> &present_density_gradients,
+ const std::vector<double>         &present_density_values,
+ const double nu)
 {
+  Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &hydrodynamic_scratch =
+  static_cast<Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
+
+  if (hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg))
+  {
+    Hydrodynamic::
+    compute_strong_residual(hydrodynamic_scratch,
+                            nu);
+
+    if (scratch.vector_options.gravity_field_values)
+    {
+      Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
+      AssertDimension(present_density_values.size(),
+                      scratch.vector_options.gravity_field_values->size());
+
+      auto &strong_residuals{hydrodynamic_scratch.present_strong_residuals};
+      AssertDimension(present_density_values.size(),
+                      strong_residuals.size());
+
+      for (std::size_t q=0; q<present_density_values.size(); ++q)
+        strong_residuals[q] -= present_density_values[q] *
+                               scratch.vector_options.gravity_field_values->at(q) /
+                               (*hydrodynamic_scratch.vector_options.froude_number *
+                                *hydrodynamic_scratch.vector_options.froude_number);
+    }
+  }
+
   Advection::AssemblyData::ScratchData<dim> &advection_scratch
   {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
 
@@ -1066,19 +1105,6 @@ void compute_strong_density_residual
                                      advection_scratch);
 }
 
-
-
-template <int dim>
-void compute_strong_density_residual
-(const std::vector<Tensor<1, dim>>      &present_density_gradients,
- AssemblyData::Matrix::ScratchData<dim> &scratch)
-{
-  Advection::AssemblyData::ScratchData<dim> &advection_scratch
-  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
-
-  Advection::compute_strong_residual(present_density_gradients,
-                                     advection_scratch);
-}
 
 
 
@@ -1169,48 +1195,37 @@ compute_rhs
  const double         ,
  const double          );
 
-template
-void
-compute_strong_hydrodynamic_residual
-(const std::vector<Tensor<1, 2>>  &,
- const std::vector<Tensor<2, 2>>  &,
- const std::vector<double>        &,
- std::vector<Tensor<1, 2>>        &,
- const double                      ,
- const Hydrodynamic::VectorOptions<2>        &,
- const BuoyantHydrodynamic::VectorOptions<2> & );
-template
-void
-compute_strong_hydrodynamic_residual
-(const std::vector<Tensor<1, 3>>  &,
- const std::vector<Tensor<2, 3>>  &,
- const std::vector<double>        &,
- std::vector<Tensor<1, 3>>        &,
- const double                      ,
- const Hydrodynamic::VectorOptions<3>        &,
- const BuoyantHydrodynamic::VectorOptions<3> & );
 
 template
 void
-compute_strong_density_residual
-(const std::vector<Tensor<1, 2>>      &,
- AssemblyData::RightHandSide::ScratchData<2> &);
+compute_strong_residuals
+(AssemblyData::Matrix::ScratchData<2> &,
+ const std::vector<Tensor<1, 2>>  &,
+ const std::vector<double>        &,
+ const double                       );
 template
 void
-compute_strong_density_residual
-(const std::vector<Tensor<1, 3>>      &,
- AssemblyData::RightHandSide::ScratchData<3> &);
+compute_strong_residuals
+(AssemblyData::Matrix::ScratchData<3> &,
+ const std::vector<Tensor<1, 3>>  &,
+ const std::vector<double>        &,
+ const double                       );
 
 template
 void
-compute_strong_density_residual
-(const std::vector<Tensor<1, 2>>      &,
- AssemblyData::Matrix::ScratchData<2> &);
+compute_strong_residuals
+(AssemblyData::RightHandSide::ScratchData<2> &,
+ const std::vector<Tensor<1, 2>>  &,
+ const std::vector<double>        &,
+ const double                       );
 template
 void
-compute_strong_density_residual
-(const std::vector<Tensor<1, 3>>      &,
- AssemblyData::Matrix::ScratchData<3> &);
+compute_strong_residuals
+(AssemblyData::RightHandSide::ScratchData<3> &,
+ const std::vector<Tensor<1, 3>>  &,
+ const std::vector<double>        &,
+ const double                       );
+
 
 }  // namespace BuoyantHydrodynamic
 

@@ -142,24 +142,18 @@ double compute_rhs
 
 
 template <int dim>
-void compute_strong_hydrodynamic_residual
-(const std::vector<Tensor<1, dim>> &present_velocity_values,
- const std::vector<Tensor<2, dim>> &present_velocity_gradients,
+void compute_strong_residuals
+(AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const std::vector<Tensor<1, dim>> &present_density_gradients,
  const std::vector<double>         &present_density_values,
- std::vector<Tensor<1, dim>>       &strong_residuals,
- const double                       nu,
- const Hydrodynamic::VectorOptions<dim>        &options,
- const BuoyantHydrodynamic::VectorOptions<dim> &buoyancy_options);
-
-
-
+ const double nu);
 template <int dim>
-void compute_strong_density_residual
-(const std::vector<Tensor<1, dim>>      &present_density_gradients,
- AssemblyData::Matrix::ScratchData<dim> &advection_options);template <int dim>
-void compute_strong_density_residual
-(const std::vector<Tensor<1, dim>>      &present_density_gradients,
- AssemblyData::RightHandSide::ScratchData<dim> &advection_options);
+void compute_strong_residuals
+(AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+ const std::vector<Tensor<1, dim>> &present_density_gradients,
+ const std::vector<double>         &present_density_values,
+ const double nu);
+
 
 }  // namespace BuoyantHydrodynamic
 

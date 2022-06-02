@@ -490,17 +490,10 @@ operator()
     }
 
     // stabilization
-    if (this->stabilization & (apply_supg|apply_pspg))
-      compute_strong_hydrodynamic_residual(present_velocity_values,
-                                           present_velocity_gradients,
-                                           present_density_values,
-                                           hydrodynamic_scratch.present_strong_residuals,
-                                           nu,
-                                           hydrodynamic_vector_options,
-                                           vector_options);
-    compute_strong_density_residual(present_density_gradients,
-                                    scratch);
-
+    compute_strong_residuals(scratch,
+                             present_density_gradients,
+                             present_density_values,
+                             nu);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;

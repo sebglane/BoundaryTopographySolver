@@ -91,20 +91,10 @@ assemble_rhs_local_cell
   }
 
   // stabilization
-  if (this->stabilization & (apply_supg|apply_pspg))
-    BuoyantHydrodynamic::
-    compute_strong_hydrodynamic_residual(present_velocity_values,
-                                         present_velocity_gradients,
-                                         present_density_values,
-                                         hydrodynamic_scratch.present_strong_residuals,
-                                         nu,
-                                         hydrodynamic_scratch.vector_options,
-                                         scratch.vector_options);
-
-  compute_strong_density_residual(present_density_gradients,
-                                  scratch);
-
-
+  compute_strong_residuals(scratch,
+                           present_density_gradients,
+                           present_density_values,
+                           nu);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
