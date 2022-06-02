@@ -143,7 +143,6 @@ assemble_system_local_cell
         hydrodynamic_scratch.scalar_options.velocity_test_function_symmetric_gradient =
             hydrodynamic_scratch.sym_grad_phi_velocity[i];
 
-
       for (const auto j: fe_values.dof_indices())
       {
         // stress form
@@ -155,50 +154,35 @@ assemble_system_local_cell
           hydrodynamic_scratch.scalar_options.velocity_trial_function_grad_divergence =
               hydrodynamic_scratch.grad_div_phi_velocity[j];
 
-        // matrix step 1: hydrodynamic part
-        double matrix = compute_hydrodynamic_matrix(this->stabilization,
-                                                    scratch,
-                                                    i,
-                                                    j,
-                                                    q,
-                                                    nu,
-                                                    delta,
-                                                    this->mu,
-                                                    use_newton_linearization);
-
-        // matrix step 2: density part
-        matrix += compute_density_matrix(scratch,
-                                         present_density_gradients[q],
-                                         i,
-                                         j,
-                                         q,
-                                         delta_density,
-                                         nu_density,
-                                         use_newton_linearization);
+        const double matrix{compute_matrix(this->stabilization,
+                                           scratch,
+                                           present_density_gradients[q],
+                                           i,
+                                           j,
+                                           q,
+                                           nu,
+                                           delta,
+                                           this->mu,
+                                           delta_density,
+                                           nu_density,
+                                           use_newton_linearization)};
 
         data.matrices[0](i, j) += matrix * JxW[q];
       }
 
-      // rhs step 1: hydrodynamic part
-      double rhs = compute_hydrodynamic_rhs(this->stabilization,
-                                            scratch,
-                                            present_density_values[q],
-                                            present_pressure_values[q],
-                                            i,
-                                            q,
-                                            nu,
-                                            this->mu,
-                                            delta);
-
-      // rhs step 2: density part
-      rhs += compute_density_rhs(scratch,
-                                 present_density_gradients[q],
-                                 i,
-                                 q,
-                                 delta_density);
+      const double rhs{compute_rhs(this->stabilization,
+                                   scratch,
+                                   present_density_gradients[q],
+                                   present_density_values[q],
+                                   present_pressure_values[q],
+                                   i,
+                                   q,
+                                   nu,
+                                   this->mu,
+                                   delta,
+                                   delta_density)};
 
       data.vectors[0](i) += rhs * JxW[q];
-
     }
 
   } // end loop over cell quadrature points

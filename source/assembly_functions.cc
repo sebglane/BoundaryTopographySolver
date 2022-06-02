@@ -647,6 +647,8 @@ compute_residual_linearization_matrix
 
 namespace BuoyantHydrodynamic {
 
+namespace internal {
+
 template <int dim>
 double compute_hydrodynamic_matrix
 (const StabilizationFlags  &stabilization,
@@ -791,64 +793,6 @@ double compute_hydrodynamic_rhs
 
 
 template <int dim>
-void compute_strong_hydrodynamic_residual
-(const std::vector<Tensor<1, dim>> &present_velocity_values,
- const std::vector<Tensor<2, dim>> &present_velocity_gradients,
- const std::vector<double>         &present_density_values,
- std::vector<Tensor<1, dim>>       &strong_residuals,
- const double                       nu,
- const Hydrodynamic::VectorOptions<dim>        &options,
- const BuoyantHydrodynamic::VectorOptions<dim> &buoyancy_options)
-{
-  LegacyHydrodynamic::
-  compute_strong_residual(present_velocity_values,
-                          present_velocity_gradients,
-                          options,
-                          nu,
-                          strong_residuals);
-
-  if (buoyancy_options.gravity_field_values)
-  {
-    Assert(options.froude_number, ExcInternalError());
-
-    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
-      strong_residuals[q] -= present_density_values[q] *
-                             buoyancy_options.gravity_field_values->at(q) /
-                             (*options.froude_number * *options.froude_number);
-  }
-}
-
-
-
-template <int dim>
-void compute_strong_density_residual
-(const std::vector<Tensor<1, dim>>      &present_density_gradients,
- AssemblyData::RightHandSide::ScratchData<dim> &scratch)
-{
-  Advection::AssemblyData::ScratchData<dim> &advection_scratch
-  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
-
-  Advection::compute_strong_residual(present_density_gradients,
-                                     advection_scratch);
-}
-
-
-
-template <int dim>
-void compute_strong_density_residual
-(const std::vector<Tensor<1, dim>>      &present_density_gradients,
- AssemblyData::Matrix::ScratchData<dim> &scratch)
-{
-  Advection::AssemblyData::ScratchData<dim> &advection_scratch
-  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
-
-  Advection::compute_strong_residual(present_density_gradients,
-                                     advection_scratch);
-}
-
-
-
-template <int dim>
 double compute_density_matrix
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const Tensor<1, dim>  &present_density_gradient,
@@ -966,25 +910,203 @@ double compute_density_rhs
 }
 
 
+
+}  // namespace internal
+
+template <int dim>
+double compute_matrix
+(const StabilizationFlags  &stabilization,
+ const AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const Tensor<1, dim>  &present_density_gradient,
+ const unsigned int i,
+ const unsigned int j,
+ const unsigned int q,
+ const double       nu,
+ const double       delta,
+ const double       mu,
+ const double       delta_density,
+ const double       nu_density,
+ const bool         apply_newton_linearization)
+{
+  double matrix{internal::
+                compute_hydrodynamic_matrix(stabilization,
+                                            scratch,
+                                            i,
+                                            j,
+                                            q,
+                                            nu,
+                                            delta,
+                                            mu,
+                                            apply_newton_linearization)};
+
+  matrix += internal::
+            compute_density_matrix(scratch,
+                                   present_density_gradient,
+                                   i,
+                                   j,
+                                   q,
+                                   delta_density,
+                                   nu_density,
+                                   apply_newton_linearization);
+
+  return (matrix);
+
+}
+
+
+
+template <int dim>
+double compute_rhs
+(const StabilizationFlags  &stabilization,
+ const AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const Tensor<1,dim> &present_density_gradient,
+ const double       present_density_value,
+ const double       present_pressure_value,
+ const unsigned int i,
+ const unsigned int q,
+ const double       nu,
+ const double       mu,
+ const double       delta,
+ const double       delta_density)
+{
+  double rhs{internal::
+             compute_hydrodynamic_rhs(stabilization,
+                                      scratch,
+                                      present_density_value,
+                                      present_pressure_value,
+                                      i,
+                                      q,
+                                      nu,
+                                      mu,
+                                      delta)};
+  rhs += internal::
+         compute_density_rhs(scratch,
+                             present_density_gradient,
+                             i,
+                             q,
+                             delta_density);
+
+  return (rhs);
+}
+template <int dim>
+double compute_rhs
+(const StabilizationFlags  &stabilization,
+ const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+ const Tensor<1,dim> &present_density_gradient,
+ const double       present_density_value,
+ const double       present_pressure_value,
+ const unsigned int i,
+ const unsigned int q,
+ const double       nu,
+ const double       mu,
+ const double       delta,
+ const double       delta_density)
+{
+  double rhs{internal::
+             compute_hydrodynamic_rhs(stabilization,
+                                      scratch,
+                                      present_density_value,
+                                      present_pressure_value,
+                                      i,
+                                      q,
+                                      nu,
+                                      mu,
+                                      delta)};
+  rhs += internal::
+         compute_density_rhs(scratch,
+                             present_density_gradient,
+                             i,
+                             q,
+                             delta_density);
+
+  return (rhs);
+}
+
+
+
+template <int dim>
+void compute_strong_hydrodynamic_residual
+(const std::vector<Tensor<1, dim>> &present_velocity_values,
+ const std::vector<Tensor<2, dim>> &present_velocity_gradients,
+ const std::vector<double>         &present_density_values,
+ std::vector<Tensor<1, dim>>       &strong_residuals,
+ const double                       nu,
+ const Hydrodynamic::VectorOptions<dim>        &options,
+ const BuoyantHydrodynamic::VectorOptions<dim> &buoyancy_options)
+{
+  LegacyHydrodynamic::
+  compute_strong_residual(present_velocity_values,
+                          present_velocity_gradients,
+                          options,
+                          nu,
+                          strong_residuals);
+
+  if (buoyancy_options.gravity_field_values)
+  {
+    Assert(options.froude_number, ExcInternalError());
+
+    for (std::size_t q=0; q<present_velocity_values.size(); ++q)
+      strong_residuals[q] -= present_density_values[q] *
+                             buoyancy_options.gravity_field_values->at(q) /
+                             (*options.froude_number * *options.froude_number);
+  }
+}
+
+
+
+template <int dim>
+void compute_strong_density_residual
+(const std::vector<Tensor<1, dim>>      &present_density_gradients,
+ AssemblyData::RightHandSide::ScratchData<dim> &scratch)
+{
+  Advection::AssemblyData::ScratchData<dim> &advection_scratch
+  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
+
+  Advection::compute_strong_residual(present_density_gradients,
+                                     advection_scratch);
+}
+
+
+
+template <int dim>
+void compute_strong_density_residual
+(const std::vector<Tensor<1, dim>>      &present_density_gradients,
+ AssemblyData::Matrix::ScratchData<dim> &scratch)
+{
+  Advection::AssemblyData::ScratchData<dim> &advection_scratch
+  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
+
+  Advection::compute_strong_residual(present_density_gradients,
+                                     advection_scratch);
+}
+
+
+
 // explicit instantiations
 template
-double compute_hydrodynamic_matrix
+double compute_matrix
 (const StabilizationFlags                   &,
  const AssemblyData::Matrix::ScratchData<2> &,
+ const Tensor<1, 2>&,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
+ const double       ,
+ const double       ,
  const double       ,
  const double       ,
  const double       ,
  const bool          );
 template
-double compute_hydrodynamic_matrix
+double compute_matrix
 (const StabilizationFlags                   &,
  const AssemblyData::Matrix::ScratchData<3> &,
+ const Tensor<1, 3>&,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
+ const double       ,
+ const double       ,
  const double       ,
  const double       ,
  const double       ,
@@ -992,52 +1114,60 @@ double compute_hydrodynamic_matrix
 
 template
 double
-compute_hydrodynamic_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<2> &scratch,
- const double       present_density_value,
- const double       present_pressure_value,
- const unsigned int i,
- const unsigned int q,
- const double       nu,
- const double       mu,
- const double       delta);
+compute_rhs
+(const StabilizationFlags &,
+ const AssemblyData::Matrix::ScratchData<2> &,
+ const Tensor<1, 2>  &,
+ const double         ,
+ const double         ,
+ const unsigned int   ,
+ const unsigned int   ,
+ const double         ,
+ const double         ,
+ const double         ,
+ const double          );
 template
 double
-compute_hydrodynamic_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::Matrix::ScratchData<3> &scratch,
- const double       present_density_value,
- const double       present_pressure_value,
- const unsigned int i,
- const unsigned int q,
- const double       nu,
- const double       mu,
- const double       delta);
+compute_rhs
+(const StabilizationFlags &,
+ const AssemblyData::Matrix::ScratchData<3> &,
+ const Tensor<1, 3>  &,
+ const double         ,
+ const double         ,
+ const unsigned int   ,
+ const unsigned int   ,
+ const double         ,
+ const double         ,
+ const double         ,
+ const double          );
 template
 double
-compute_hydrodynamic_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::RightHandSide::ScratchData<2> &scratch,
- const double       present_density_value,
- const double       present_pressure_value,
- const unsigned int i,
- const unsigned int q,
- const double       nu,
- const double       mu,
- const double       delta);
+compute_rhs
+(const StabilizationFlags &,
+ const AssemblyData::RightHandSide::ScratchData<2> &,
+ const Tensor<1, 2>  &,
+ const double         ,
+ const double         ,
+ const unsigned int   ,
+ const unsigned int   ,
+ const double         ,
+ const double         ,
+ const double         ,
+ const double          );
 template
 double
-compute_hydrodynamic_rhs
-(const StabilizationFlags  &stabilization,
- const AssemblyData::RightHandSide::ScratchData<3> &scratch,
- const double       present_density_value,
- const double       present_pressure_value,
- const unsigned int i,
- const unsigned int q,
- const double       nu,
- const double       mu,
- const double       delta);
+compute_rhs
+(const StabilizationFlags &,
+ const AssemblyData::RightHandSide::ScratchData<3> &,
+ const Tensor<1, 3>  &,
+ const double         ,
+ const double         ,
+ const unsigned int   ,
+ const unsigned int   ,
+ const double         ,
+ const double         ,
+ const double         ,
+ const double          );
 
 template
 void
@@ -1081,63 +1211,6 @@ void
 compute_strong_density_residual
 (const std::vector<Tensor<1, 3>>      &,
  AssemblyData::Matrix::ScratchData<3> &);
-
-template
-double
-compute_density_matrix
-(const AssemblyData::Matrix::ScratchData<2> &,
- const Tensor<1, 2> &,
- const unsigned int ,
- const unsigned int ,
- const unsigned int ,
- const double       ,
- const double       ,
- const bool          );
-template
-double
-compute_density_matrix
-(const AssemblyData::Matrix::ScratchData<3> &,
- const Tensor<1, 3> &,
- const unsigned int ,
- const unsigned int ,
- const unsigned int ,
- const double       ,
- const double       ,
- const bool          );
-
-template
-double
-compute_density_rhs
-(const AssemblyData::Matrix::ScratchData<2> &,
- const Tensor<1, 2> &,
- const unsigned int ,
- const unsigned int ,
- const double        );
-template
-double
-compute_density_rhs
-(const AssemblyData::Matrix::ScratchData<3> &,
- const Tensor<1, 3> &,
- const unsigned int ,
- const unsigned int ,
- const double        );
-
-template
-double
-compute_density_rhs
-(const AssemblyData::RightHandSide::ScratchData<2> &,
- const Tensor<1, 2> &,
- const unsigned int ,
- const unsigned int ,
- const double        );
-template
-double
-compute_density_rhs
-(const AssemblyData::RightHandSide::ScratchData<3> &,
- const Tensor<1, 3> &,
- const unsigned int ,
- const unsigned int ,
- const double       );
 
 }  // namespace BuoyantHydrodynamic
 
