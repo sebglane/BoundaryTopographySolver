@@ -65,11 +65,12 @@ double compute_rhs
 
 template <int dim>
 void compute_strong_residual
-(const std::vector<Tensor<1, dim>>   &present_velocity_values,
- const std::vector<Tensor<2, dim>>   &present_velocity_gradients,
- const VectorOptions<dim>  &options,
- const double                         nu,
- std::vector<Tensor<1,dim>>          &strong_residuals);
+(AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const double nu);
+template <int dim>
+void compute_strong_residual
+(AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+ const double nu);
 
 
 

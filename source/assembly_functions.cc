@@ -278,37 +278,38 @@ double compute_rhs
 
 template <int dim>
 void compute_strong_residual
-(const std::vector<Tensor<1, dim>>   &present_velocity_values,
- const std::vector<Tensor<2, dim>>   &present_velocity_gradients,
- const VectorOptions<dim>  &options,
- const double                         nu,
- std::vector<Tensor<1,dim>>          &strong_residuals)
+(AssemblyData::Matrix::ScratchData<dim> &scratch,
+ const double nu)
 {
+  const auto &present_velocity_values{scratch.present_velocity_values};
+  const auto &present_velocity_gradients{scratch.present_velocity_gradients};
+  auto &strong_residuals{scratch.present_strong_residuals};
+
   const unsigned int n_q_points{(unsigned int)present_velocity_values.size()};
 
   AssertDimension(present_velocity_gradients.size(), n_q_points);
   AssertDimension(strong_residuals.size(), n_q_points);
 
-  Assert(options.present_pressure_gradients,
+  Assert(scratch.vector_options.present_pressure_gradients,
          ExcMessage("Present pressure gradients were not assigned in options."));
-  Assert(options.present_velocity_laplaceans,
+  Assert(scratch.vector_options.present_velocity_laplaceans,
          ExcMessage("Present velocity laplaceans were not assigned in options."));
-  AssertDimension(options.present_pressure_gradients->size(), n_q_points);
-  AssertDimension(options.present_velocity_laplaceans->size(), n_q_points);
+  AssertDimension(scratch.vector_options.present_pressure_gradients->size(), n_q_points);
+  AssertDimension(scratch.vector_options.present_velocity_laplaceans->size(), n_q_points);
 
-  const auto &present_pressure_gradients{*options.present_pressure_gradients};
-  const auto &present_velocity_laplaceans{*options.present_velocity_laplaceans};
+  const auto &present_pressure_gradients{*scratch.vector_options.present_pressure_gradients};
+  const auto &present_velocity_laplaceans{*scratch.vector_options.present_velocity_laplaceans};
 
-  if (options.use_stress_form)
+  if (scratch.vector_options.use_stress_form)
   {
-    Assert(options.present_velocity_grad_divergences,
+    Assert(scratch.vector_options.present_velocity_grad_divergences,
            ExcMessage("Gradient of present velocity divergences were not assigned in options."));
-    AssertDimension(options.present_velocity_grad_divergences->size(), n_q_points);
+    AssertDimension(scratch.vector_options.present_velocity_grad_divergences->size(), n_q_points);
 
     for (unsigned int q=0; q<n_q_points; ++q)
       strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q]) -
                             nu * present_velocity_laplaceans[q] -
-                            nu * options.present_velocity_grad_divergences->at(q) +
+                            nu * scratch.vector_options.present_velocity_grad_divergences->at(q) +
                             present_pressure_gradients[q];
   }
   else
@@ -317,34 +318,111 @@ void compute_strong_residual
                             nu * present_velocity_laplaceans[q] +
                             present_pressure_gradients[q];
 
-  if (options.body_force_values)
+  if (scratch.vector_options.body_force_values)
   {
-    Assert(options.froude_number,
+    Assert(scratch.vector_options.froude_number,
            ExcMessage("Froude number was not assigned in options."));
 
-    Assert(options.body_force_values,
+    Assert(scratch.vector_options.body_force_values,
            ExcMessage("Body force values were not assigned in options."));
-    AssertDimension(options.body_force_values->size(), n_q_points);
+    AssertDimension(scratch.vector_options.body_force_values->size(), n_q_points);
 
     for (unsigned int q=0; q<n_q_points; ++q)
-      strong_residuals[q] -= options.body_force_values->at(q) / std::pow(*options.froude_number, 2);
+      strong_residuals[q] += scratch.vector_options.body_force_values->at(q) /
+                             (*scratch.vector_options.froude_number * *scratch.vector_options.froude_number);
   }
 
-  if (options.angular_velocity)
+  if (scratch.vector_options.angular_velocity)
   {
-    Assert(options.rossby_number,
+    Assert(scratch.vector_options.rossby_number,
            ExcMessage("Rossby number was not assigned in options."));
-    Assert(options.angular_velocity,
+    Assert(scratch.vector_options.angular_velocity,
            ExcMessage("Angular velocity was not assigned in options."));
 
     if constexpr(dim == 2)
         for (unsigned int q=0; q<n_q_points; ++q)
-          strong_residuals[q] += 2.0 / *options.rossby_number * options.angular_velocity.value()[0] *
+          strong_residuals[q] += 2.0 / *scratch.vector_options.rossby_number * scratch.vector_options.angular_velocity.value()[0] *
                                  cross_product_2d(-present_velocity_values[q]);
     else if constexpr(dim == 3)
         for (unsigned int q=0; q<n_q_points; ++q)
-          strong_residuals[q] += 2.0 / *options.rossby_number *
-                                 cross_product_3d(*options.angular_velocity, present_velocity_values[q]);
+          strong_residuals[q] += 2.0 / *scratch.vector_options.rossby_number *
+                                 cross_product_3d(*scratch.vector_options.angular_velocity, present_velocity_values[q]);
+  }
+}
+
+
+
+template <int dim>
+void compute_strong_residual
+(AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+ const double nu)
+{
+  const auto &present_velocity_values{scratch.present_velocity_values};
+  const auto &present_velocity_gradients{scratch.present_velocity_gradients};
+  auto &strong_residuals{scratch.present_strong_residuals};
+
+  const unsigned int n_q_points{(unsigned int)present_velocity_values.size()};
+
+  AssertDimension(present_velocity_gradients.size(), n_q_points);
+  AssertDimension(strong_residuals.size(), n_q_points);
+
+  Assert(scratch.vector_options.present_pressure_gradients,
+         ExcMessage("Present pressure gradients were not assigned in options."));
+  Assert(scratch.vector_options.present_velocity_laplaceans,
+         ExcMessage("Present velocity laplaceans were not assigned in options."));
+  AssertDimension(scratch.vector_options.present_pressure_gradients->size(), n_q_points);
+  AssertDimension(scratch.vector_options.present_velocity_laplaceans->size(), n_q_points);
+
+  const auto &present_pressure_gradients{*scratch.vector_options.present_pressure_gradients};
+  const auto &present_velocity_laplaceans{*scratch.vector_options.present_velocity_laplaceans};
+
+  if (scratch.vector_options.use_stress_form)
+  {
+    Assert(scratch.vector_options.present_velocity_grad_divergences,
+           ExcMessage("Gradient of present velocity divergences were not assigned in options."));
+    AssertDimension(scratch.vector_options.present_velocity_grad_divergences->size(), n_q_points);
+
+    for (unsigned int q=0; q<n_q_points; ++q)
+      strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q]) -
+                             nu * present_velocity_laplaceans[q] -
+                             nu * scratch.vector_options.present_velocity_grad_divergences->at(q) +
+                             present_pressure_gradients[q];
+  }
+  else
+    for (unsigned int q=0; q<n_q_points; ++q)
+      scratch.present_strong_residuals[q] = (present_velocity_gradients[q] * present_velocity_values[q]) -
+                                            nu * present_velocity_laplaceans[q] +
+                                            present_pressure_gradients[q];
+
+  if (scratch.vector_options.body_force_values)
+  {
+    Assert(scratch.vector_options.froude_number,
+           ExcMessage("Froude number was not assigned in options."));
+
+    Assert(scratch.vector_options.body_force_values,
+           ExcMessage("Body force values were not assigned in options."));
+    AssertDimension(scratch.vector_options.body_force_values->size(), n_q_points);
+
+    for (unsigned int q=0; q<n_q_points; ++q)
+      strong_residuals[q] += scratch.vector_options.body_force_values->at(q) /
+                             (*scratch.vector_options.froude_number * *scratch.vector_options.froude_number);
+  }
+
+  if (scratch.vector_options.angular_velocity)
+  {
+    Assert(scratch.vector_options.rossby_number,
+           ExcMessage("Rossby number was not assigned in options."));
+    Assert(scratch.vector_options.angular_velocity,
+           ExcMessage("Angular velocity was not assigned in options."));
+
+    if constexpr(dim == 2)
+        for (unsigned int q=0; q<n_q_points; ++q)
+          strong_residuals[q] += 2.0 / *scratch.vector_options.rossby_number * scratch.vector_options.angular_velocity.value()[0] *
+                                 cross_product_2d(-present_velocity_values[q]);
+    else if constexpr(dim == 3)
+        for (unsigned int q=0; q<n_q_points; ++q)
+          strong_residuals[q] += 2.0 / *scratch.vector_options.rossby_number *
+                                 cross_product_3d(*scratch.vector_options.angular_velocity, present_velocity_values[q]);
   }
 }
 
@@ -517,18 +595,23 @@ compute_rhs
 template
 void
 compute_strong_residual
-(const std::vector<Tensor<1, 2>>  &,
- const std::vector<Tensor<2, 2>>  &,
- const VectorOptions<2> &,
- const double                      ,
- std::vector<Tensor<1,2>>         &);
+(AssemblyData::Matrix::ScratchData<2> &,
+ const double );
 template
-void compute_strong_residual
-(const std::vector<Tensor<1, 3>>   &,
- const std::vector<Tensor<2, 3>>   &,
- const VectorOptions<3>  &,
- const double                       ,
- std::vector<Tensor<1, 3>>          &);
+void
+compute_strong_residual
+(AssemblyData::Matrix::ScratchData<3> &,
+ const double );
+template
+void
+compute_strong_residual
+(AssemblyData::RightHandSide::ScratchData<2> &,
+ const double );
+template
+void
+compute_strong_residual
+(AssemblyData::RightHandSide::ScratchData<3> &,
+ const double );
 
 template
 double
@@ -717,7 +800,7 @@ void compute_strong_hydrodynamic_residual
  const Hydrodynamic::VectorOptions<dim>        &options,
  const BuoyantHydrodynamic::VectorOptions<dim> &buoyancy_options)
 {
-  Hydrodynamic::
+  LegacyHydrodynamic::
   compute_strong_residual(present_velocity_values,
                           present_velocity_gradients,
                           options,

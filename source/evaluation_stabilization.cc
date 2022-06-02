@@ -195,11 +195,7 @@ operator()
 
     // stabilization
     if (stabilization & (apply_supg|apply_pspg))
-      compute_strong_residual(present_velocity_values,
-                              present_velocity_gradients,
-                              scratch.vector_options,
-                              nu,
-                              scratch.present_strong_residuals);
+      compute_strong_residual(scratch, nu);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;
