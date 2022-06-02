@@ -228,21 +228,4 @@ double compute_residual_linearization_matrix
 
 
 
-namespace LegacyHydrodynamic {
-
-using namespace dealii;
-
-
-
-template <int dim>
-void compute_strong_residual
-(const std::vector<Tensor<1, dim>>   &present_velocity_values,
- const std::vector<Tensor<2, dim>>   &present_velocity_gradients,
- const Hydrodynamic::VectorOptions<dim>  &options,
- const double                         nu,
- std::vector<Tensor<1,dim>>          &strong_residuals);
-
-}  // namespace LegacyHydrodynamic
-
-
 #endif /* INCLUDE_ASSEMBLY_FUNCTIONS_H_ */
