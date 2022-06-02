@@ -152,10 +152,11 @@ void compute_strong_hydrodynamic_residual
 
 template <int dim>
 void compute_strong_density_residual
-(const std::vector<Tensor<1, dim>>             &present_density_gradients,
- const std::vector<Tensor<1, dim>>             &present_velocity_values,
- std::vector<double>                           &strong_residuals,
- const Advection::VectorOptions<dim> &advection_options);
+(const std::vector<Tensor<1, dim>>      &present_density_gradients,
+ AssemblyData::Matrix::ScratchData<dim> &advection_options);template <int dim>
+void compute_strong_density_residual
+(const std::vector<Tensor<1, dim>>      &present_density_gradients,
+ AssemblyData::RightHandSide::ScratchData<dim> &advection_options);
 
 
 
@@ -163,7 +164,6 @@ template <int dim>
 double compute_density_matrix
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const Tensor<1, dim>  &present_density_gradient,
- const double       present_strong_residual,
  const unsigned int test_function_index,
  const unsigned int trial_function_index,
  const unsigned int quadrature_point_index,
@@ -245,10 +245,9 @@ double compute_rhs
  */
 template<int dim>
 void compute_strong_residual
-(const std::vector<Tensor<1, dim>>   &present_gradients,
- const std::vector<Tensor<1, dim>>   &advection_field_values,
- std::vector<double>                 &strong_residuals,
- const VectorOptions<dim>  &options);
+(const std::vector<Tensor<1, dim>> &present_gradients,
+ AssemblyData::ScratchData<dim> &scratch);
+
 
 
 /*!

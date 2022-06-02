@@ -44,9 +44,7 @@ assemble_system_local_cell
 
   // stabilization
   compute_strong_residual(present_gradients,
-                          scratch.advection_field_values,
-                          scratch.present_strong_residuals,
-                          scratch.vector_options);
+                          scratch);
 
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())

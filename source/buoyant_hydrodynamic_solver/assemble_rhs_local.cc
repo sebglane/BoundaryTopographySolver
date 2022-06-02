@@ -101,12 +101,8 @@ assemble_rhs_local_cell
                                          hydrodynamic_scratch.vector_options,
                                          scratch.vector_options);
 
-  std::vector<double> present_strong_density_residuals(fe_values.n_quadrature_points);
   compute_strong_density_residual(present_density_gradients,
-                                  present_velocity_values,
-                                  present_strong_density_residuals,
-                                  advection_scratch.vector_options);
-  advection_scratch.present_strong_residuals = present_strong_density_residuals;
+                                  scratch);
 
 
 

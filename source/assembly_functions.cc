@@ -822,15 +822,28 @@ void compute_strong_hydrodynamic_residual
 
 template <int dim>
 void compute_strong_density_residual
-(const std::vector<Tensor<1, dim>>             &present_density_gradients,
- const std::vector<Tensor<1, dim>>             &present_velocity_values,
- std::vector<double>                           &strong_residuals,
- const Advection::VectorOptions<dim> &advection_options)
+(const std::vector<Tensor<1, dim>>      &present_density_gradients,
+ AssemblyData::RightHandSide::ScratchData<dim> &scratch)
 {
+  Advection::AssemblyData::ScratchData<dim> &advection_scratch
+  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
+
   Advection::compute_strong_residual(present_density_gradients,
-                                     present_velocity_values,
-                                     strong_residuals,
-                                     advection_options);
+                                     advection_scratch);
+}
+
+
+
+template <int dim>
+void compute_strong_density_residual
+(const std::vector<Tensor<1, dim>>      &present_density_gradients,
+ AssemblyData::Matrix::ScratchData<dim> &scratch)
+{
+  Advection::AssemblyData::ScratchData<dim> &advection_scratch
+  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
+
+  Advection::compute_strong_residual(present_density_gradients,
+                                     advection_scratch);
 }
 
 
@@ -839,7 +852,6 @@ template <int dim>
 double compute_density_matrix
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
  const Tensor<1, dim>  &present_density_gradient,
- const double       present_strong_residual,
  const unsigned int i,
  const unsigned int j,
  const unsigned int q,
@@ -911,7 +923,7 @@ double compute_density_matrix
     matrix += nu * density_trial_function_gradient * density_test_function_gradient;
 
   // linearization of stabiliziation test function
-  matrix += delta * present_strong_residual *
+  matrix += delta * advection_scratch.present_strong_residuals[q] *
             (velocity_trial_function_value * density_test_function_gradient);
 
   return (matrix);
@@ -1051,24 +1063,30 @@ compute_strong_hydrodynamic_residual
 template
 void
 compute_strong_density_residual
-(const std::vector<Tensor<1, 2>>             &,
- const std::vector<Tensor<1, 2>>             &,
- std::vector<double>                         &,
- const Advection::VectorOptions<2> &);
+(const std::vector<Tensor<1, 2>>      &,
+ AssemblyData::RightHandSide::ScratchData<2> &);
 template
 void
 compute_strong_density_residual
-(const std::vector<Tensor<1, 3>>             &,
- const std::vector<Tensor<1, 3>>             &,
- std::vector<double>                         &,
- const Advection::VectorOptions<3> &);
+(const std::vector<Tensor<1, 3>>      &,
+ AssemblyData::RightHandSide::ScratchData<3> &);
+
+template
+void
+compute_strong_density_residual
+(const std::vector<Tensor<1, 2>>      &,
+ AssemblyData::Matrix::ScratchData<2> &);
+template
+void
+compute_strong_density_residual
+(const std::vector<Tensor<1, 3>>      &,
+ AssemblyData::Matrix::ScratchData<3> &);
 
 template
 double
 compute_density_matrix
 (const AssemblyData::Matrix::ScratchData<2> &,
  const Tensor<1, 2> &,
- const double       ,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
@@ -1080,7 +1098,6 @@ double
 compute_density_matrix
 (const AssemblyData::Matrix::ScratchData<3> &,
  const Tensor<1, 3> &,
- const double       ,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
@@ -1209,39 +1226,38 @@ double compute_rhs
  */
 template<int dim>
 void compute_strong_residual
-(const std::vector<Tensor<1, dim>>   &present_gradients,
- const std::vector<Tensor<1, dim>>   &advection_field_values,
- std::vector<double>                 &strong_residuals,
- const VectorOptions<dim>  &options)
+(const std::vector<Tensor<1, dim>> &present_gradients,
+ AssemblyData::ScratchData<dim> &scratch)
 {
   const unsigned int n_q_points{(unsigned int)present_gradients.size()};
 
+  const auto &advection_field_values{scratch.advection_field_values};
+  auto &strong_residuals{scratch.present_strong_residuals};
   AssertDimension(advection_field_values.size(), n_q_points);
   AssertDimension(strong_residuals.size(), n_q_points);
 
   for (unsigned int q=0; q<n_q_points; ++q)
     strong_residuals[q] = advection_field_values[q] * present_gradients[q];
 
-  if (options.reference_gradients)
+  if (scratch.vector_options.reference_gradients)
   {
-    Assert(options.gradient_scaling,
+    Assert(scratch.vector_options.gradient_scaling,
            ExcMessage("Gradient scaling number was not were not assigned in options."));
-    AssertDimension(options.reference_gradients->size(), n_q_points);
+    AssertDimension(scratch.vector_options.reference_gradients->size(), n_q_points);
 
     for (unsigned int q=0; q<n_q_points; ++q)
-      strong_residuals[q] += *options.gradient_scaling *
+      strong_residuals[q] += *scratch.vector_options.gradient_scaling *
                               advection_field_values[q] *
-                              options.reference_gradients->at(q);
+                              scratch.vector_options.reference_gradients->at(q);
   }
 
-  if (options.source_term_values)
+  if (scratch.vector_options.source_term_values)
   {
-    AssertDimension(options.source_term_values->size(), n_q_points);
+    AssertDimension(scratch.vector_options.source_term_values->size(), n_q_points);
 
     for (unsigned int q=0; q<n_q_points; ++q)
-      strong_residuals[q] -= options.source_term_values->at(q);
+      strong_residuals[q] -= scratch.vector_options.source_term_values->at(q);
   }
-
 }
 
 
@@ -1301,17 +1317,13 @@ compute_rhs
 template
 void
 compute_strong_residual
-(const std::vector<Tensor<1, 2>>    &,
- const std::vector<Tensor<1, 2>>    &,
- std::vector<double>                &,
- const VectorOptions<2>   &);
+(const std::vector<Tensor<1, 2>> &,
+    AssemblyData::ScratchData<2> &);
 template
 void
 compute_strong_residual
-(const std::vector<Tensor<1, 3>>    &,
- const std::vector<Tensor<1, 3>>    &,
- std::vector<double>                &,
- const VectorOptions<3>   &);
+(const std::vector<Tensor<1, 3>> &,
+ AssemblyData::ScratchData<3>    &);
 
 template
 double

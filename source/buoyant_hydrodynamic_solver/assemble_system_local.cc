@@ -104,12 +104,8 @@ assemble_system_local_cell
                                          hydrodynamic_scratch.vector_options,
                                          scratch.vector_options);
 
-  std::vector<double> present_strong_density_residuals(fe_values.n_quadrature_points);
   compute_strong_density_residual(present_density_gradients,
-                                  present_velocity_values,
-                                  present_strong_density_residuals,
-                                  advection_scratch.vector_options);
-  advection_scratch.present_strong_residuals = present_strong_density_residuals;
+                                  scratch);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
@@ -173,7 +169,6 @@ assemble_system_local_cell
         // matrix step 2: density part
         matrix += compute_density_matrix(scratch,
                                          present_density_gradients[q],
-                                         present_strong_density_residuals[q],
                                          i,
                                          j,
                                          q,
