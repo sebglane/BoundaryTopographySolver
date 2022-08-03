@@ -19,11 +19,11 @@ using namespace dealii;
 
 
 template<int dim>
-struct OptionalScalarArguments
+struct ScalarOptions
 {
-  OptionalScalarArguments();
+  ScalarOptions();
 
-  OptionalScalarArguments(const OptionalScalarArguments<dim> &other);
+  ScalarOptions(const ScalarOptions<dim> &other);
 
   // gravity term
   std::optional<Tensor<1, dim>> gravity_field_value;
@@ -33,12 +33,12 @@ struct OptionalScalarArguments
 
 
 template<int dim>
-struct OptionalVectorArguments
+struct VectorOptions
 {
-  OptionalVectorArguments(const unsigned int n_q_points,
+  VectorOptions(const unsigned int n_q_points,
                           const bool allocate_gravity_field = false);
 
-  OptionalVectorArguments(const OptionalVectorArguments<dim> &other);
+  VectorOptions(const VectorOptions<dim> &other);
 
   // gravity term
   std::optional<std::vector<Tensor<1, dim>>> gravity_field_values;

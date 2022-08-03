@@ -60,9 +60,9 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
-  OptionalVectorArguments<dim>  vector_options;
+  VectorOptions<dim>  vector_options;
 
-  OptionalScalarArguments<dim>  scalar_options;
+  ScalarOptions<dim>  scalar_options;
 
 };
 
@@ -112,9 +112,9 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
-  OptionalVectorArguments<dim>  vector_options;
+  VectorOptions<dim>  vector_options;
 
-  OptionalScalarArguments<dim>  scalar_options;
+  ScalarOptions<dim>  scalar_options;
 
 };
 

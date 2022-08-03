@@ -68,6 +68,7 @@ assemble_rhs_local_cell
                                                         this->rossby_number,
                                                         this->froude_number);
   hydrodynamic_scratch.adjust_velocity_field_local_cell();
+  advection_scratch.advection_field_values = present_velocity_values;
 
   // reference density
   if (this->reference_field_ptr != nullptr)
@@ -90,23 +91,10 @@ assemble_rhs_local_cell
   }
 
   // stabilization
-  if (this->stabilization & (apply_supg|apply_pspg))
-    BuoyantHydrodynamic::
-    compute_strong_hydrodynamic_residual(present_velocity_values,
-                                         present_velocity_gradients,
-                                         present_density_values,
-                                         hydrodynamic_scratch.present_strong_residuals,
-                                         nu,
-                                         hydrodynamic_scratch.vector_options,
-                                         scratch.vector_options);
-
-  std::vector<double> present_strong_density_residuals(fe_values.n_quadrature_points);
-  compute_strong_density_residual(present_density_gradients,
-                                  present_velocity_values,
-                                  present_strong_density_residuals,
-                                  advection_scratch.vector_options);
-
-
+  compute_strong_residuals(scratch,
+                           present_density_gradients,
+                           present_density_values,
+                           nu);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
@@ -138,47 +126,23 @@ assemble_rhs_local_cell
 
     for (const auto i: fe_values.dof_indices())
     {
-      const Tensor<1, dim> &velocity_test_function{hydrodynamic_scratch.phi_velocity[i]};
-      const Tensor<2, dim> &velocity_test_function_gradient{hydrodynamic_scratch.grad_phi_velocity[i]};
-      const double          pressure_test_function{hydrodynamic_scratch.phi_pressure[i]};
-      const Tensor<1, dim> &pressure_test_function_gradient{hydrodynamic_scratch.grad_phi_pressure[i]};
-      const double          density_test_function{advection_scratch.phi[i]};
-      const Tensor<1, dim> &density_test_function_gradient{advection_scratch.grad_phi[i]};
-
       // stress form
       if (hydrodynamic_scratch.scalar_options.use_stress_form)
         hydrodynamic_scratch.scalar_options.velocity_test_function_symmetric_gradient =
             hydrodynamic_scratch.sym_grad_phi_velocity[i];
 
-      // rhs step 1: hydrodynamic part
-      double rhs = BuoyantHydrodynamic::
-                   compute_hydrodynamic_rhs(hydrodynamic_scratch.stabilization_flags,
-                                            velocity_test_function,
-                                            velocity_test_function_gradient,
-                                            present_velocity_values[q],
-                                            present_velocity_gradients[q],
-                                            hydrodynamic_scratch.present_strong_residuals[q],
-                                            present_pressure_values[q],
-                                            present_density_values[q],
-                                            pressure_test_function,
-                                            pressure_test_function_gradient,
-                                            nu,
-                                            this->mu,
-                                            delta,
-                                            hydrodynamic_scratch.scalar_options,
-                                            scratch.scalar_options);
-
-      // rhs step 2: density part
-      rhs += compute_density_rhs(present_density_gradients[q],
-                                 present_velocity_values[q],
-                                 present_strong_density_residuals[q],
-                                 density_test_function,
-                                 density_test_function_gradient,
-                                 delta_density,
-                                 advection_scratch.scalar_options);
+      const double rhs{compute_rhs(scratch,
+                                   present_density_gradients[q],
+                                   present_density_values[q],
+                                   present_pressure_values[q],
+                                   i,
+                                   q,
+                                   nu,
+                                   this->mu,
+                                   delta,
+                                   delta_density)};
 
       data.vectors[0](i) += rhs * JxW[q];
-
     }
 
   } // end loop over cell quadrature points

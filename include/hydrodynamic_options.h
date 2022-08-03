@@ -22,11 +22,11 @@ namespace Hydrodynamic
 using namespace dealii;
 
 template<int dim>
-struct OptionalArguments
+struct OptionsBase
 {
-  OptionalArguments(const bool use_stress_form);
+  OptionsBase(const bool use_stress_form);
 
-  OptionalArguments(const OptionalArguments<dim> &other);
+  OptionsBase(const OptionsBase<dim> &other);
 
   // stress-based form
   const bool use_stress_form;
@@ -42,11 +42,11 @@ struct OptionalArguments
 
 
 template<int dim>
-struct OptionalScalarArguments : OptionalArguments<dim>
+struct ScalarOptions : OptionsBase<dim>
 {
-  OptionalScalarArguments(const bool use_stress_from);
+  ScalarOptions(const bool use_stress_from);
 
-  OptionalScalarArguments(const OptionalScalarArguments<dim> &other);
+  ScalarOptions(const ScalarOptions<dim> &other);
 
   // stress-based form
   std::optional<SymmetricTensor<2, dim>>  velocity_trial_function_symmetric_gradient;
@@ -63,9 +63,9 @@ struct OptionalScalarArguments : OptionalArguments<dim>
 
 
 template<int dim>
-struct OptionalVectorArguments : OptionalArguments<dim>
+struct VectorOptions : OptionsBase<dim>
 {
-  OptionalVectorArguments(const StabilizationFlags  &stabilization,
+  VectorOptions(const StabilizationFlags  &stabilization,
                           const bool use_stress_form,
                           const bool allocate_background_velocity,
                           const bool allocate_body_force,
@@ -73,7 +73,7 @@ struct OptionalVectorArguments : OptionalArguments<dim>
                           const unsigned int n_q_points,
                           const unsigned int n_face_q_points);
 
-  OptionalVectorArguments(const OptionalVectorArguments<dim> &other);
+  VectorOptions(const VectorOptions<dim> &other);
 
   // stabilization related solution values
   std::optional<std::vector<Tensor<1, dim>>>  present_velocity_laplaceans;

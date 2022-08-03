@@ -10,15 +10,15 @@
 namespace Advection
 {
 
-OptionalArguments::OptionalArguments()
+OptionsBase::OptionsBase()
 :
 gradient_scaling()
 {}
 
 
 
-OptionalArguments::OptionalArguments
-(const OptionalArguments  &other)
+OptionsBase::OptionsBase
+(const OptionsBase  &other)
 :
 gradient_scaling(other.gradient_scaling)
 {}
@@ -26,10 +26,10 @@ gradient_scaling(other.gradient_scaling)
 
 
 template<int dim>
-OptionalScalarArguments<dim>::OptionalScalarArguments
+ScalarOptions<dim>::ScalarOptions
 ()
 :
-OptionalArguments(),
+OptionsBase(),
 source_term_value(),
 reference_gradient()
 {}
@@ -37,10 +37,10 @@ reference_gradient()
 
 
 template<int dim>
-OptionalScalarArguments<dim>::OptionalScalarArguments
-(const OptionalScalarArguments<dim> &other)
+ScalarOptions<dim>::ScalarOptions
+(const ScalarOptions<dim> &other)
 :
-OptionalArguments(other),
+OptionsBase(other),
 source_term_value(other.source_term_value),
 reference_gradient(other.reference_gradient)
 {}
@@ -48,7 +48,7 @@ reference_gradient(other.reference_gradient)
 
 
 template<int dim>
-OptionalVectorArguments<dim>::OptionalVectorArguments
+VectorOptions<dim>::VectorOptions
 (const unsigned int n_q_points,
  const unsigned int n_face_q_points,
  const bool         allocate_source_term,
@@ -56,7 +56,7 @@ OptionalVectorArguments<dim>::OptionalVectorArguments
  const bool         allocate_background_velocity,
  const bool         allocate_reference_gradient)
 :
-OptionalArguments(),
+OptionsBase(),
 source_term_values(),
 boundary_values(),
 advection_field_face_values(),
@@ -82,10 +82,10 @@ reference_gradients()
 
 
 template<int dim>
-OptionalVectorArguments<dim>::OptionalVectorArguments
-(const OptionalVectorArguments<dim> &other)
+VectorOptions<dim>::VectorOptions
+(const VectorOptions<dim> &other)
 :
-OptionalArguments(other),
+OptionsBase(other),
 source_term_values(other.source_term_values),
 boundary_values(other.boundary_values),
 advection_field_face_values(other.advection_field_face_values),
@@ -94,10 +94,10 @@ reference_gradients(other.reference_gradients)
 {}
 
 // explicit instantiations
-template struct OptionalScalarArguments<2>;
-template struct OptionalScalarArguments<3>;
+template struct ScalarOptions<2>;
+template struct ScalarOptions<3>;
 
-template struct OptionalVectorArguments<2>;
-template struct OptionalVectorArguments<3>;
+template struct VectorOptions<2>;
+template struct VectorOptions<3>;
 
 }  // Advection

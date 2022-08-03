@@ -195,11 +195,7 @@ operator()
 
     // stabilization
     if (stabilization & (apply_supg|apply_pspg))
-      compute_strong_residual(present_velocity_values,
-                              present_velocity_gradients,
-                              scratch.vector_options,
-                              nu,
-                              scratch.present_strong_residuals);
+      compute_strong_residual(scratch, nu);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;
@@ -395,11 +391,11 @@ operator()
   ScratchData<dim> &advection_scratch
     = static_cast<Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
 
-  Advection::OptionalVectorArguments<dim> &advection_vector_options
+  Advection::VectorOptions<dim> &advection_vector_options
     = advection_scratch.vector_options;
-  Hydrodynamic::OptionalVectorArguments<dim> &hydrodynamic_vector_options
+  Hydrodynamic::VectorOptions<dim> &hydrodynamic_vector_options
     = hydrodynamic_scratch.vector_options;
-  BuoyantHydrodynamic::OptionalVectorArguments<dim> &vector_options
+  BuoyantHydrodynamic::VectorOptions<dim> &vector_options
     = scratch.vector_options;
 
   // Coriolis term
@@ -494,19 +490,10 @@ operator()
     }
 
     // stabilization
-    if (this->stabilization & (apply_supg|apply_pspg))
-      compute_strong_hydrodynamic_residual(present_velocity_values,
-                                           present_velocity_gradients,
-                                           present_density_values,
-                                           hydrodynamic_scratch.present_strong_residuals,
-                                           nu,
-                                           hydrodynamic_vector_options,
-                                           vector_options);
-    std::vector<double> present_strong_density_residuals(fe_values.n_quadrature_points);
-    compute_strong_density_residual(present_density_gradients,
-                                    present_velocity_values,
-                                    present_strong_density_residuals,
-                                    advection_scratch.vector_options);
+    compute_strong_residuals(scratch,
+                             present_density_gradients,
+                             present_density_values,
+                             nu);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;
@@ -516,7 +503,7 @@ operator()
     for (const auto q: fe_values.quadrature_point_indices())
     {
       const double mass_residual{trace(present_velocity_gradients[q])};
-      const double density_residual{present_strong_density_residuals[q]};
+      const double density_residual{advection_scratch.present_strong_residuals[q]};
 
       max_mass_residual[0] = std::max(std::abs(mass_residual),
                                       max_mass_residual[0]);

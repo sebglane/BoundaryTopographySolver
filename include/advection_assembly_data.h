@@ -68,8 +68,8 @@ public:
   void adjust_advection_field_local_boundary();
 
   // optional parameters
-  OptionalScalarArguments<dim>  scalar_options;
-  OptionalVectorArguments<dim>  vector_options;
+  ScalarOptions<dim>  scalar_options;
+  VectorOptions<dim>  vector_options;
 
   // shape functions
   std::vector<double>         phi;

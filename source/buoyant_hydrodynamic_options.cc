@@ -11,7 +11,7 @@ namespace BuoyantHydrodynamic
 {
 
 template<int dim>
-OptionalScalarArguments<dim>::OptionalScalarArguments()
+ScalarOptions<dim>::ScalarOptions()
 :
 gravity_field_value()
 {}
@@ -19,8 +19,8 @@ gravity_field_value()
 
 
 template<int dim>
-OptionalScalarArguments<dim>::OptionalScalarArguments
-(const OptionalScalarArguments<dim> &other)
+ScalarOptions<dim>::ScalarOptions
+(const ScalarOptions<dim> &other)
 :
 gravity_field_value(other.gravity_field_value)
 {}
@@ -28,7 +28,7 @@ gravity_field_value(other.gravity_field_value)
 
 
 template<int dim>
-OptionalVectorArguments<dim>::OptionalVectorArguments
+VectorOptions<dim>::VectorOptions
 (const unsigned int n_q_points,
  const bool allocate_gravity_field)
 :
@@ -42,17 +42,17 @@ gravity_field_values()
 
 
 template<int dim>
-OptionalVectorArguments<dim>::OptionalVectorArguments(const OptionalVectorArguments<dim> &other)
+VectorOptions<dim>::VectorOptions(const VectorOptions<dim> &other)
 :
 gravity_field_values(other.gravity_field_values)
 {}
 
 // explicit instantiations
-template struct OptionalScalarArguments<2>;
-template struct OptionalScalarArguments<3>;
+template struct ScalarOptions<2>;
+template struct ScalarOptions<3>;
 
-template struct OptionalVectorArguments<2>;
-template struct OptionalVectorArguments<3>;
+template struct VectorOptions<2>;
+template struct VectorOptions<3>;
 
 }  // namespace BuoyantHydrodynamic
 

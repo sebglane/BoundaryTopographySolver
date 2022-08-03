@@ -45,9 +45,7 @@ assemble_rhs_local_cell
 
   // stabilization
   compute_strong_residual(present_gradients,
-                          scratch.advection_field_values,
-                          scratch.present_strong_residuals,
-                          scratch.vector_options);
+                          scratch);
 
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
@@ -62,16 +60,11 @@ assemble_rhs_local_cell
 
     for (const auto i: fe_values.dof_indices())
     {
-      const double test_function_value{scratch.phi[i]};
-      const Tensor<1,dim> &test_function_gradient{scratch.grad_phi[i]};
-
-      const double rhs{compute_rhs(test_function_value,
-                                   test_function_gradient,
+      const double rhs{compute_rhs(scratch,
                                    present_gradients[q],
-                                   scratch.advection_field_values[q],
-                                   scratch.present_strong_residuals[q],
-                                   delta,
-                                   scratch.scalar_options)};
+                                   i,
+                                   q,
+                                   delta)};
 
       data.vectors[0](i) += rhs * JxW[q];
     }
