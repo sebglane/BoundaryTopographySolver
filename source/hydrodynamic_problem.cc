@@ -160,7 +160,8 @@ void HydrodynamicProblem<dim, TriangulationType>::initialize_mapping()
 {
   solver.get_conditional_output_stream() << "    Initialize mapping..." << std::endl;
 
-  mapping.initialize(triangulation, MappingQGeneric<dim>(mapping.get_degree()));
+  mapping.initialize(MappingQGeneric<dim>(mapping.get_degree()),
+                     triangulation);
 }
 
 

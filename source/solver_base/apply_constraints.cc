@@ -214,10 +214,8 @@ apply_mean_value_constraint
               ExcMessage("The mean value of the selected component was already "
                          "specified."));
 
-  IndexSet  boundary_dofs;
-  DoFTools::extract_boundary_dofs(this->dof_handler,
-                                  mask,
-                                  boundary_dofs);
+  const IndexSet  boundary_dofs{DoFTools::extract_boundary_dofs(this->dof_handler,
+                                                                mask)};
 
   // Look for an admissible local degree of freedom to constrain
   types::global_dof_index local_idx = numbers::invalid_dof_index;
