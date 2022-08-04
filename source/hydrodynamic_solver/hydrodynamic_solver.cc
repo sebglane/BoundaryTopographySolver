@@ -234,7 +234,7 @@ void Solver<dim, TriangulationType>::output_results(const unsigned int cycle) co
     postprocessor.set_background_velocity(background_velocity_ptr);
 
   // prepare data out object
-  DataOut<dim, DoFHandler<dim>>    data_out;
+  DataOut<dim>  data_out;
   data_out.attach_dof_handler(this->dof_handler);
   data_out.add_data_vector(this->present_solution,
                            postprocessor);
