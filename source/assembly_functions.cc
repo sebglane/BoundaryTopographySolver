@@ -191,7 +191,6 @@ double compute_matrix
 template <int dim>
 double compute_rhs
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const double       present_pressure_value,
  const unsigned int i,
  const unsigned int q,
  const double       nu,
@@ -206,6 +205,7 @@ double compute_rhs
 
   const Tensor<2, dim> &present_velocity_gradient{scratch.present_velocity_gradients[q]};
   const Tensor<1, dim> &present_velocity_value{scratch.present_velocity_values[q]};
+  const double          present_pressure_value{scratch.present_pressure_values[q]};
   const Tensor<1, dim> &present_strong_residual{scratch.present_strong_residuals[q]};
 
   const double present_velocity_divergence{trace(present_velocity_gradient)};
@@ -282,7 +282,6 @@ double compute_rhs
 template <int dim>
 double compute_rhs
 (const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const double       present_pressure_value,
  const unsigned int i,
  const unsigned int q,
  const double       nu,
@@ -297,6 +296,7 @@ double compute_rhs
 
   const Tensor<2, dim> &present_velocity_gradient{scratch.present_velocity_gradients[q]};
   const Tensor<1, dim> &present_velocity_value{scratch.present_velocity_values[q]};
+  const double          present_pressure_value{scratch.present_pressure_values[q]};
   const Tensor<1, dim> &present_strong_residual{scratch.present_strong_residuals[q]};
 
   const double present_velocity_divergence{trace(present_velocity_gradient)};
@@ -553,7 +553,6 @@ template
 double
 compute_rhs
 (const AssemblyData::Matrix::ScratchData<2> &,
- const double       ,
  const unsigned int ,
  const unsigned int ,
  const double       ,
@@ -563,7 +562,6 @@ template
 double
 compute_rhs
 (const AssemblyData::Matrix::ScratchData<3> &,
- const double       ,
  const unsigned int ,
  const unsigned int ,
  const double       ,
@@ -574,7 +572,6 @@ template
 double
 compute_rhs
 (const AssemblyData::RightHandSide::ScratchData<2> &,
- const double       ,
  const unsigned int ,
  const unsigned int ,
  const double       ,
@@ -584,7 +581,6 @@ template
 double
 compute_rhs
 (const AssemblyData::RightHandSide::ScratchData<3> &,
- const double       ,
  const unsigned int ,
  const unsigned int ,
  const double       ,
@@ -624,73 +620,8 @@ namespace BuoyantHydrodynamic {
 namespace internal {
 
 template <int dim>
-double compute_hydrodynamic_matrix
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const unsigned int i,
- const unsigned int j,
- const unsigned int q,
- const double       nu,
- const double       delta,
- const double       mu,
- const bool         apply_newton_linearization)
-{
-  const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &hydrodynamic_scratch
-  {static_cast<const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
-
-  double matrix = Hydrodynamic::compute_matrix(hydrodynamic_scratch,
-                                               i,
-                                               j,
-                                               q,
-                                               nu,
-                                               delta,
-                                               mu,
-                                               apply_newton_linearization);
-
-  if (scratch.scalar_options.gravity_field_value)
-  {
-    Assert(hydrodynamic_scratch.scalar_options.froude_number, ExcInternalError());
-
-    const Advection::AssemblyData::Matrix::ScratchData<dim> &advection_scratch
-    {static_cast<const Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
-
-    matrix -= advection_scratch.phi[j] *
-              (*scratch.scalar_options.gravity_field_value * scratch.phi_velocity[i]) /
-              (*hydrodynamic_scratch.scalar_options.froude_number *
-               *hydrodynamic_scratch.scalar_options.froude_number);
-
-    if (!(hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg)))
-    {
-      const Tensor<2, dim> &velocity_test_function_gradient{hydrodynamic_scratch.grad_phi_velocity[i]};
-
-      const Tensor<1, dim> &pressure_test_function_gradient{hydrodynamic_scratch.grad_phi_pressure[i]};
-
-      const Tensor<1, dim> &present_velocity_value{hydrodynamic_scratch.present_velocity_values[q]};
-
-      const double density_trial_function_value{advection_scratch.phi[i]};
-
-      Tensor<1, dim> test_function;
-      if (hydrodynamic_scratch.stabilization_flags & apply_supg)
-        test_function += velocity_test_function_gradient * present_velocity_value;
-      if (hydrodynamic_scratch.stabilization_flags & apply_pspg)
-        test_function += pressure_test_function_gradient;
-
-      matrix -= delta * density_trial_function_value *
-                (*scratch.scalar_options.gravity_field_value * test_function) /
-                (*hydrodynamic_scratch.scalar_options.froude_number *
-                 *hydrodynamic_scratch.scalar_options.froude_number);
-    }
-  }
-
-  return (matrix);
-}
-
-
-
-template <int dim>
 double compute_hydrodynamic_rhs
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const double       present_density_value,
- const double       present_pressure_value,
  const unsigned int i,
  const unsigned int q,
  const double       nu,
@@ -700,8 +631,10 @@ double compute_hydrodynamic_rhs
   const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &hydrodynamic_scratch
   {static_cast<const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
 
+  const Advection::AssemblyData::Matrix::ScratchData<dim> &advection_scratch
+  {static_cast<const Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
+
   double rhs{Hydrodynamic::compute_rhs(hydrodynamic_scratch,
-                                       present_pressure_value,
                                        i,
                                        q,
                                        nu,
@@ -711,6 +644,8 @@ double compute_hydrodynamic_rhs
   if (scratch.scalar_options.gravity_field_value)
   {
     Assert(hydrodynamic_scratch.scalar_options.froude_number, ExcInternalError());
+
+    const double present_density_value{advection_scratch.present_values[q]};
 
     rhs += present_density_value *
            (*scratch.scalar_options.gravity_field_value * hydrodynamic_scratch.phi_velocity[i]) /
@@ -726,8 +661,6 @@ double compute_hydrodynamic_rhs
 template <int dim>
 double compute_hydrodynamic_rhs
 (const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const double       present_density_value,
- const double       present_pressure_value,
  const unsigned int i,
  const unsigned int q,
  const double       nu,
@@ -737,8 +670,10 @@ double compute_hydrodynamic_rhs
   const Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &hydrodynamic_scratch
   {static_cast<const Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch)};
 
+  const Advection::AssemblyData::Matrix::ScratchData<dim> &advection_scratch
+  {static_cast<const Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
+
   double rhs{Hydrodynamic::compute_rhs(hydrodynamic_scratch,
-                                       present_pressure_value,
                                        i,
                                        q,
                                        nu,
@@ -748,6 +683,8 @@ double compute_hydrodynamic_rhs
   if (scratch.scalar_options.gravity_field_value)
   {
     Assert(hydrodynamic_scratch.scalar_options.froude_number, ExcInternalError());
+
+    const double present_density_value{advection_scratch.present_values[q]};
 
     rhs += present_density_value *
            (*scratch.scalar_options.gravity_field_value * hydrodynamic_scratch.phi_velocity[i]) /
@@ -763,7 +700,6 @@ double compute_hydrodynamic_rhs
 template <int dim>
 double compute_density_matrix
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const Tensor<1, dim>  &present_density_gradient,
  const unsigned int i,
  const unsigned int j,
  const unsigned int q,
@@ -785,6 +721,8 @@ double compute_density_matrix
   const Tensor<1, dim> &density_test_function_gradient{advection_scratch.grad_phi[i]};
 
   const double density_test_function_value{advection_scratch.phi[i]};
+
+  const Tensor<1, dim> &present_density_gradient{advection_scratch.present_gradients[q]};
 
   double matrix{Advection::compute_matrix(advection_scratch,
                                           i,
@@ -846,7 +784,6 @@ double compute_density_matrix
 template <int dim>
 double compute_density_rhs
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const Tensor<1,dim> &present_density_gradient,
  const unsigned int i,
  const unsigned int q,
  const double       delta)
@@ -854,7 +791,7 @@ double compute_density_rhs
   const Advection::AssemblyData::RightHandSide::ScratchData<dim> &advection_scratch
   {static_cast<const Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch)};
 
-  const double rhs{Advection::compute_rhs(advection_scratch, present_density_gradient, i, q, delta)};
+  const double rhs{Advection::compute_rhs(advection_scratch, i, q, delta)};
 
   return (rhs);
 }
@@ -864,7 +801,6 @@ double compute_density_rhs
 template <int dim>
 double compute_density_rhs
 (const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const Tensor<1,dim> &present_density_gradient,
  const unsigned int i,
  const unsigned int q,
  const double       delta)
@@ -872,7 +808,7 @@ double compute_density_rhs
   const Advection::AssemblyData::RightHandSide::ScratchData<dim> &advection_scratch
   {static_cast<const Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch)};
 
-  const double rhs{Advection::compute_rhs(advection_scratch, present_density_gradient, i, q, delta)};
+  const double rhs{Advection::compute_rhs(advection_scratch, i, q, delta)};
 
   return (rhs);
 }
@@ -881,10 +817,11 @@ double compute_density_rhs
 
 }  // namespace internal
 
+
+
 template <int dim>
 double compute_matrix
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const Tensor<1, dim>  &present_density_gradient,
  const unsigned int i,
  const unsigned int j,
  const unsigned int q,
@@ -895,19 +832,55 @@ double compute_matrix
  const double       nu_density,
  const bool         apply_newton_linearization)
 {
-  double matrix{internal::
-                compute_hydrodynamic_matrix(scratch,
-                                            i,
-                                            j,
-                                            q,
-                                            nu,
-                                            delta,
-                                            mu,
-                                            apply_newton_linearization)};
+  const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &hydrodynamic_scratch
+  {static_cast<const Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
+
+  double matrix = Hydrodynamic::compute_matrix(hydrodynamic_scratch,
+                                               i,
+                                               j,
+                                               q,
+                                               nu,
+                                               delta,
+                                               mu,
+                                               apply_newton_linearization);
+
+  if (scratch.scalar_options.gravity_field_value)
+  {
+    Assert(hydrodynamic_scratch.scalar_options.froude_number, ExcInternalError());
+
+    const Advection::AssemblyData::Matrix::ScratchData<dim> &advection_scratch
+    {static_cast<const Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
+
+    matrix -= advection_scratch.phi[j] *
+              (*scratch.scalar_options.gravity_field_value * scratch.phi_velocity[i]) /
+              (*hydrodynamic_scratch.scalar_options.froude_number *
+               *hydrodynamic_scratch.scalar_options.froude_number);
+
+    if (!(hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg)))
+    {
+      const Tensor<2, dim> &velocity_test_function_gradient{hydrodynamic_scratch.grad_phi_velocity[i]};
+
+      const Tensor<1, dim> &pressure_test_function_gradient{hydrodynamic_scratch.grad_phi_pressure[i]};
+
+      const Tensor<1, dim> &present_velocity_value{hydrodynamic_scratch.present_velocity_values[q]};
+
+      const double density_trial_function_value{advection_scratch.phi[i]};
+
+      Tensor<1, dim> test_function;
+      if (hydrodynamic_scratch.stabilization_flags & apply_supg)
+        test_function += velocity_test_function_gradient * present_velocity_value;
+      if (hydrodynamic_scratch.stabilization_flags & apply_pspg)
+        test_function += pressure_test_function_gradient;
+
+      matrix -= delta * density_trial_function_value *
+                (*scratch.scalar_options.gravity_field_value * test_function) /
+                (*hydrodynamic_scratch.scalar_options.froude_number *
+                 *hydrodynamic_scratch.scalar_options.froude_number);
+    }
+  }
 
   matrix += internal::
             compute_density_matrix(scratch,
-                                   present_density_gradient,
                                    i,
                                    j,
                                    q,
@@ -915,8 +888,8 @@ double compute_matrix
                                    nu_density,
                                    apply_newton_linearization);
 
-  return (matrix);
 
+  return (matrix);
 }
 
 
@@ -924,9 +897,6 @@ double compute_matrix
 template <int dim>
 double compute_rhs
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const Tensor<1,dim> &present_density_gradient,
- const double       present_density_value,
- const double       present_pressure_value,
  const unsigned int i,
  const unsigned int q,
  const double       nu,
@@ -936,8 +906,6 @@ double compute_rhs
 {
   double rhs{internal::
              compute_hydrodynamic_rhs(scratch,
-                                      present_density_value,
-                                      present_pressure_value,
                                       i,
                                       q,
                                       nu,
@@ -945,19 +913,18 @@ double compute_rhs
                                       delta)};
   rhs += internal::
          compute_density_rhs(scratch,
-                             present_density_gradient,
                              i,
                              q,
                              delta_density);
 
   return (rhs);
 }
+
+
+
 template <int dim>
 double compute_rhs
 (const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const Tensor<1,dim> &present_density_gradient,
- const double       present_density_value,
- const double       present_pressure_value,
  const unsigned int i,
  const unsigned int q,
  const double       nu,
@@ -967,8 +934,6 @@ double compute_rhs
 {
   double rhs{internal::
              compute_hydrodynamic_rhs(scratch,
-                                      present_density_value,
-                                      present_pressure_value,
                                       i,
                                       q,
                                       nu,
@@ -976,7 +941,6 @@ double compute_rhs
                                       delta)};
   rhs += internal::
          compute_density_rhs(scratch,
-                             present_density_gradient,
                              i,
                              q,
                              delta_density);
@@ -989,13 +953,14 @@ double compute_rhs
 template <int dim>
 void compute_strong_residuals
 (AssemblyData::Matrix::ScratchData<dim> &scratch,
- const std::vector<Tensor<1, dim>> &present_density_gradients,
- const std::vector<double>         &present_density_values,
  const double nu)
 {
   Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &hydrodynamic_scratch =
   static_cast<Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
 
+  Advection::AssemblyData::Matrix::ScratchData<dim> &advection_scratch =
+  static_cast<Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
+
   if (hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg))
   {
     Hydrodynamic::
@@ -1004,9 +969,11 @@ void compute_strong_residuals
 
     if (scratch.vector_options.gravity_field_values)
     {
+      const auto &present_density_values{advection_scratch.present_values};
       Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
       AssertDimension(present_density_values.size(),
                       scratch.vector_options.gravity_field_values->size());
+
 
       auto &strong_residuals{hydrodynamic_scratch.present_strong_residuals};
       AssertDimension(present_density_values.size(),
@@ -1020,22 +987,22 @@ void compute_strong_residuals
     }
   }
 
-  Advection::AssemblyData::ScratchData<dim> &advection_scratch
-  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
-
-  Advection::compute_strong_residual(present_density_gradients,
-                                     advection_scratch);
+  Advection::compute_strong_residual(advection_scratch);
 }
+
+
+
 template <int dim>
 void compute_strong_residuals
 (AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const std::vector<Tensor<1, dim>> &present_density_gradients,
- const std::vector<double>         &present_density_values,
  const double nu)
 {
   Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &hydrodynamic_scratch =
   static_cast<Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
 
+  Advection::AssemblyData::RightHandSide::ScratchData<dim> &advection_scratch =
+  static_cast<Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
+
   if (hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg))
   {
     Hydrodynamic::
@@ -1044,6 +1011,8 @@ void compute_strong_residuals
 
     if (scratch.vector_options.gravity_field_values)
     {
+      const auto &present_density_values{advection_scratch.present_values};
+
       Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
       AssertDimension(present_density_values.size(),
                       scratch.vector_options.gravity_field_values->size());
@@ -1060,11 +1029,7 @@ void compute_strong_residuals
     }
   }
 
-  Advection::AssemblyData::ScratchData<dim> &advection_scratch
-  {static_cast<Advection::AssemblyData::ScratchData<dim> &>(scratch)};
-
-  Advection::compute_strong_residual(present_density_gradients,
-                                     advection_scratch);
+  Advection::compute_strong_residual(advection_scratch);
 }
 
 
@@ -1074,7 +1039,6 @@ void compute_strong_residuals
 template
 double compute_matrix
 (const AssemblyData::Matrix::ScratchData<2> &,
- const Tensor<1, 2>&,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
@@ -1087,7 +1051,6 @@ double compute_matrix
 template
 double compute_matrix
 (const AssemblyData::Matrix::ScratchData<3> &,
- const Tensor<1, 3>&,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
@@ -1102,9 +1065,6 @@ template
 double
 compute_rhs
 (const AssemblyData::Matrix::ScratchData<2> &,
- const Tensor<1, 2>  &,
- const double         ,
- const double         ,
  const unsigned int   ,
  const unsigned int   ,
  const double         ,
@@ -1115,9 +1075,6 @@ template
 double
 compute_rhs
 (const AssemblyData::Matrix::ScratchData<3> &,
- const Tensor<1, 3>  &,
- const double         ,
- const double         ,
  const unsigned int   ,
  const unsigned int   ,
  const double         ,
@@ -1128,9 +1085,6 @@ template
 double
 compute_rhs
 (const AssemblyData::RightHandSide::ScratchData<2> &,
- const Tensor<1, 2>  &,
- const double         ,
- const double         ,
  const unsigned int   ,
  const unsigned int   ,
  const double         ,
@@ -1141,9 +1095,6 @@ template
 double
 compute_rhs
 (const AssemblyData::RightHandSide::ScratchData<3> &,
- const Tensor<1, 3>  &,
- const double         ,
- const double         ,
  const unsigned int   ,
  const unsigned int   ,
  const double         ,
@@ -1156,30 +1107,22 @@ template
 void
 compute_strong_residuals
 (AssemblyData::Matrix::ScratchData<2> &,
- const std::vector<Tensor<1, 2>>  &,
- const std::vector<double>        &,
  const double                       );
 template
 void
 compute_strong_residuals
 (AssemblyData::Matrix::ScratchData<3> &,
- const std::vector<Tensor<1, 3>>  &,
- const std::vector<double>        &,
  const double                       );
 
 template
 void
 compute_strong_residuals
 (AssemblyData::RightHandSide::ScratchData<2> &,
- const std::vector<Tensor<1, 2>>  &,
- const std::vector<double>        &,
  const double                       );
 template
 void
 compute_strong_residuals
 (AssemblyData::RightHandSide::ScratchData<3> &,
- const std::vector<Tensor<1, 3>>  &,
- const std::vector<double>        &,
  const double                       );
 
 
@@ -1229,12 +1172,12 @@ double compute_matrix
 template <int dim>
 double compute_rhs
 (const AssemblyData::ScratchData<dim> &scratch,
- const Tensor<1, dim>  &present_gradient,
  const unsigned int     i,
  const unsigned int     q,
  const double           delta)
 {
   const Tensor<1, dim> &advection_field_value{scratch.advection_field_values[q]};
+  const Tensor<1, dim> &present_gradient{scratch.present_gradients[q]};
 
   double rhs{-(advection_field_value * present_gradient)};
 
@@ -1270,12 +1213,12 @@ double compute_rhs
  */
 template<int dim>
 void compute_strong_residual
-(const std::vector<Tensor<1, dim>> &present_gradients,
- AssemblyData::ScratchData<dim> &scratch)
+(AssemblyData::ScratchData<dim> &scratch)
 {
-  const unsigned int n_q_points{(unsigned int)present_gradients.size()};
+  const unsigned int n_q_points{(unsigned int)scratch.present_gradients.size()};
 
   const auto &advection_field_values{scratch.advection_field_values};
+  const auto &present_gradients{scratch.present_gradients};
   auto &strong_residuals{scratch.present_strong_residuals};
   AssertDimension(advection_field_values.size(), n_q_points);
   AssertDimension(strong_residuals.size(), n_q_points);
@@ -1345,7 +1288,6 @@ template
 double
 compute_rhs
 (const AssemblyData::ScratchData<2> &,
- const Tensor<1, 2>  &,
  const unsigned int   ,
  const unsigned int   ,
  const double          );
@@ -1353,7 +1295,6 @@ template
 double
 compute_rhs
 (const AssemblyData::ScratchData<3> &,
- const Tensor<1, 3>  &,
  const unsigned int   ,
  const unsigned int   ,
  const double          );
@@ -1361,13 +1302,11 @@ compute_rhs
 template
 void
 compute_strong_residual
-(const std::vector<Tensor<1, 2>> &,
-    AssemblyData::ScratchData<2> &);
+(AssemblyData::ScratchData<2> &);
 template
 void
 compute_strong_residual
-(const std::vector<Tensor<1, 3>> &,
- AssemblyData::ScratchData<3>    &);
+(AssemblyData::ScratchData<3>    &);
 
 template
 double

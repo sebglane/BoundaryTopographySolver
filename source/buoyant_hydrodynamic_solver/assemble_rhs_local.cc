@@ -45,18 +45,19 @@ assemble_rhs_local_cell
     = static_cast<Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
 
   // solution values
-  auto &present_velocity_values = scratch.present_velocity_values;
-  auto &present_velocity_gradients = scratch.present_velocity_gradients;
+  auto &present_velocity_values = hydrodynamic_scratch.present_velocity_values;
+  auto &present_velocity_gradients = hydrodynamic_scratch.present_velocity_gradients;
+  auto &present_pressure_values = hydrodynamic_scratch.present_pressure_values;
   present_velocity_values = scratch.get_values("evaluation_point",
                                                velocity);
   present_velocity_gradients = scratch.get_gradients("evaluation_point",
                                                      velocity);
-  const auto &present_pressure_values = scratch.get_values("evaluation_point",
-                                                           pressure);
+  present_pressure_values = scratch.get_values("evaluation_point",
+                                               pressure);
   const auto &present_density_values = scratch.get_values("evaluation_point",
                                                           density);
-  const auto &present_density_gradients = scratch.get_gradients("evaluation_point",
-                                                                density);
+  advection_scratch.present_gradients = scratch.get_gradients("evaluation_point",
+                                                              density);
 
   // assign vector options
   hydrodynamic_scratch.assign_vector_options_local_cell("evaluation_point",
@@ -92,8 +93,6 @@ assemble_rhs_local_cell
 
   // stabilization
   compute_strong_residuals(scratch,
-                           present_density_gradients,
-                           present_density_values,
                            nu);
 
   for (const auto q: fe_values.quadrature_point_indices())
@@ -132,9 +131,6 @@ assemble_rhs_local_cell
             hydrodynamic_scratch.sym_grad_phi_velocity[i];
 
       const double rhs{compute_rhs(scratch,
-                                   present_density_gradients[q],
-                                   present_density_values[q],
-                                   present_pressure_values[q],
                                    i,
                                    q,
                                    nu,

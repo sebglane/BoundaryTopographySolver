@@ -40,12 +40,13 @@ assemble_rhs_local_cell
   // solution values
   auto &present_velocity_values = scratch.present_velocity_values;
   auto &present_velocity_gradients = scratch.present_velocity_gradients;
+  auto &present_pressure_values = scratch.present_pressure_values;
   present_velocity_values = scratch.get_values("evaluation_point",
                                                velocity);
   present_velocity_gradients = scratch.get_gradients("evaluation_point",
                                                      velocity);
-  const auto &present_pressure_values = scratch.get_values("evaluation_point",
-                                                           pressure);
+  present_pressure_values = scratch.get_values("evaluation_point",
+                                               pressure);
 
   // assign vector options
   scratch.assign_vector_options_local_cell("evaluation_point",
@@ -85,7 +86,6 @@ assemble_rhs_local_cell
             scratch.sym_grad_phi_velocity[i];
 
       const double rhs{compute_rhs(scratch,
-                                   present_pressure_values[q],
                                    i,
                                    q,
                                    nu,

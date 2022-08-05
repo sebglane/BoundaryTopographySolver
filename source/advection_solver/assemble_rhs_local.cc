@@ -29,8 +29,8 @@ assemble_rhs_local_cell
   const double delta{c * std::pow(cell->diameter(), 2)};
 
   // solution values
-  const auto &present_gradients = scratch.get_gradients("evaluation_point",
-                                                        FEValuesExtractors::Scalar(FEValuesExtractors::Scalar(scalar_fe_index)));
+  scratch.present_gradients = scratch.get_gradients("evaluation_point",
+                                                    FEValuesExtractors::Scalar(FEValuesExtractors::Scalar(scalar_fe_index)));
 
   // advection field
   advection_field_ptr->value_list(scratch.get_quadrature_points(),
@@ -44,8 +44,7 @@ assemble_rhs_local_cell
   scratch.adjust_advection_field_local_cell();
 
   // stabilization
-  compute_strong_residual(present_gradients,
-                          scratch);
+  compute_strong_residual(scratch);
 
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
@@ -61,7 +60,6 @@ assemble_rhs_local_cell
     for (const auto i: fe_values.dof_indices())
     {
       const double rhs{compute_rhs(scratch,
-                                   present_gradients[q],
                                    i,
                                    q,
                                    delta)};

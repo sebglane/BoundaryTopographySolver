@@ -78,6 +78,11 @@ public:
   // advection field
   std::vector<Tensor<1,dim>>  advection_field_values;
 
+  // present solution values
+  std::vector<double>         present_values;
+  std::vector<Tensor<1, dim>> present_gradients;
+
+
   // stabilization related quantities
   std::vector<double>         present_strong_residuals;
 
