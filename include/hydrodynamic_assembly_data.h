@@ -75,8 +75,6 @@ public:
     const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr = nullptr,
     const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr);
 
-  void assign_scalar_options_local_cell(const unsigned int q_point_index);
-
   void assign_optional_shape_functions_local_cell(
     const FEValuesExtractors::Vector &velocity,
     const FEValuesExtractors::Scalar &pressure,
@@ -90,10 +88,10 @@ public:
 
   void adjust_velocity_field_local_boundary();
 
-  const StabilizationFlags  &stabilization_flags;
+  const StabilizationFlags   &stabilization_flags;
 
-  VectorOptions<dim>  vector_options;
-  ScalarOptions<dim>  scalar_options;
+  VectorOptions<dim>          vector_options;
+  ScalarOptions<dim>          scalar_options;
 
   // shape functions
   std::vector<Tensor<1, dim>> phi_velocity;
@@ -178,8 +176,6 @@ public:
     const double                                                nu,
     const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr = nullptr,
     const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr);
-
-  void assign_scalar_options_local_cell(const unsigned int q_point_index);
 
   void assign_optional_shape_functions_local_cell(
     const FEValuesExtractors::Vector &velocity,

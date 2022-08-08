@@ -54,15 +54,9 @@ double compute_residual_linearization_matrix
     if (apply_newton_linearization)
       linearized_residual += present_velocity_gradient * velocity_trial_function_value;
 
-    if (scratch.scalar_options.use_stress_form)
-    {
-      Assert(scratch.scalar_options.velocity_trial_function_grad_divergence,
-             ExcMessage("Gradient of velocity trial function divergence was not "
-                        "specified in options."));
-
+    if (scratch.vector_options.use_stress_form)
       linearized_residual -= nu * (velocity_trial_function_laplacean +
-                                   *scratch.scalar_options.velocity_trial_function_grad_divergence);
-    }
+                                   scratch.grad_div_phi_velocity[j]);
     else
       linearized_residual -= nu * velocity_trial_function_laplacean;
 
@@ -142,18 +136,9 @@ double compute_matrix
     matrix += velocity_trial_function_gradient * present_velocity_value *
               velocity_test_function_value;
 
-  if (scratch.scalar_options.use_stress_form)
-  {
-    Assert(scratch.scalar_options.velocity_trial_function_symmetric_gradient,
-           ExcMessage("Symmetric velocity trial function gradient was not assigned "
-                      "in options"));
-    Assert(scratch.scalar_options.velocity_test_function_symmetric_gradient,
-           ExcMessage("Symmetric velocity test function gradient was not assigned "
-                      "in options"));
-
-    matrix += 2.0 * nu * scalar_product(*scratch.scalar_options.velocity_trial_function_symmetric_gradient,
-                                        *scratch.scalar_options.velocity_test_function_symmetric_gradient);
-  }
+  if (scratch.vector_options.use_stress_form)
+    matrix += 2.0 * nu * scalar_product(scratch.sym_grad_phi_velocity[i],
+                                        scratch.sym_grad_phi_velocity[j]);
   else
     matrix += nu * scalar_product(velocity_trial_function_gradient,
                                   velocity_test_function_gradient);
@@ -216,29 +201,26 @@ double compute_rhs
              (present_velocity_gradient * present_velocity_value) *
              velocity_test_function_value};
 
-  if (scratch.scalar_options.use_stress_form)
+  if (scratch.vector_options.use_stress_form)
   {
-    Assert(scratch.scalar_options.present_symmetric_velocity_gradient,
+    Assert(scratch.vector_options.present_sym_velocity_gradients,
            ExcMessage("Present symmetric velocity gradient was not assigned "
                       "in options"));
-    Assert(scratch.scalar_options.velocity_test_function_symmetric_gradient,
-           ExcMessage("Symmetric velocity test function gradient was not assigned "
-                      "in options"));
 
-    rhs -= 2.0 * nu * scalar_product(*scratch.scalar_options.present_symmetric_velocity_gradient,
-                                     *scratch.scalar_options.velocity_test_function_symmetric_gradient);
+    rhs -= 2.0 * nu * scalar_product(scratch.vector_options.present_sym_velocity_gradients->at(q),
+                                     scratch.sym_grad_phi_velocity[i]);
   }
   else
     rhs -= nu * scalar_product(present_velocity_gradient,
                                velocity_test_function_gradient);
 
-  if (scratch.scalar_options.body_force_value)
+  if (scratch.vector_options.body_force_values)
   {
-    Assert(scratch.scalar_options.froude_number,
+    Assert(scratch.vector_options.froude_number,
            ExcMessage("Froude number was not assigned in options."));
 
-    rhs -= *scratch.scalar_options.body_force_value * velocity_test_function_value /
-           (*scratch.scalar_options.froude_number * *scratch.scalar_options.froude_number);
+    rhs -= scratch.vector_options.body_force_values->at(q) * velocity_test_function_value /
+           (*scratch.vector_options.froude_number * *scratch.vector_options.froude_number);
   }
 
   if (scratch.scalar_options.angular_velocity)
@@ -307,29 +289,26 @@ double compute_rhs
              (present_velocity_gradient * present_velocity_value) *
              velocity_test_function_value};
 
-  if (scratch.scalar_options.use_stress_form)
+  if (scratch.vector_options.use_stress_form)
   {
-    Assert(scratch.scalar_options.present_symmetric_velocity_gradient,
+    Assert(scratch.vector_options.present_sym_velocity_gradients,
            ExcMessage("Present symmetric velocity gradient was not assigned "
                       "in options"));
-    Assert(scratch.scalar_options.velocity_test_function_symmetric_gradient,
-           ExcMessage("Symmetric velocity test function gradient was not assigned "
-                      "in options"));
 
-    rhs -= 2.0 * nu * scalar_product(*scratch.scalar_options.present_symmetric_velocity_gradient,
-                                     *scratch.scalar_options.velocity_test_function_symmetric_gradient);
+    rhs -= 2.0 * nu * scalar_product(scratch.vector_options.present_sym_velocity_gradients->at(q),
+                                     scratch.sym_grad_phi_velocity[i]);
   }
   else
     rhs -= nu * scalar_product(present_velocity_gradient,
                                velocity_test_function_gradient);
 
-  if (scratch.scalar_options.body_force_value)
+  if (scratch.vector_options.body_force_values)
   {
-    Assert(scratch.scalar_options.froude_number,
+    Assert(scratch.vector_options.froude_number,
            ExcMessage("Froude number was not assigned in options."));
 
-    rhs -= *scratch.scalar_options.body_force_value * velocity_test_function_value /
-           (*scratch.scalar_options.froude_number * *scratch.scalar_options.froude_number);
+    rhs -= scratch.vector_options.body_force_values->at(q) * velocity_test_function_value /
+           (*scratch.vector_options.froude_number * *scratch.vector_options.froude_number);
   }
 
   if (scratch.scalar_options.angular_velocity)
@@ -428,21 +407,21 @@ void compute_strong_residual
                              (*scratch.vector_options.froude_number * *scratch.vector_options.froude_number);
   }
 
-  if (scratch.vector_options.angular_velocity)
+  if (scratch.scalar_options.angular_velocity)
   {
-    Assert(scratch.vector_options.rossby_number,
+    Assert(scratch.scalar_options.rossby_number,
            ExcMessage("Rossby number was not assigned in options."));
-    Assert(scratch.vector_options.angular_velocity,
+    Assert(scratch.scalar_options.angular_velocity,
            ExcMessage("Angular velocity was not assigned in options."));
 
     if constexpr(dim == 2)
         for (unsigned int q=0; q<n_q_points; ++q)
-          strong_residuals[q] += 2.0 / *scratch.vector_options.rossby_number * scratch.vector_options.angular_velocity.value()[0] *
+          strong_residuals[q] += 2.0 / *scratch.scalar_options.rossby_number * scratch.scalar_options.angular_velocity.value()[0] *
                                  cross_product_2d(-present_velocity_values[q]);
     else if constexpr(dim == 3)
         for (unsigned int q=0; q<n_q_points; ++q)
-          strong_residuals[q] += 2.0 / *scratch.vector_options.rossby_number *
-                                 cross_product_3d(*scratch.vector_options.angular_velocity, present_velocity_values[q]);
+          strong_residuals[q] += 2.0 / *scratch.scalar_options.rossby_number *
+                                 cross_product_3d(*scratch.scalar_options.angular_velocity, present_velocity_values[q]);
   }
 }
 
@@ -507,21 +486,21 @@ void compute_strong_residual
                              (*scratch.vector_options.froude_number * *scratch.vector_options.froude_number);
   }
 
-  if (scratch.vector_options.angular_velocity)
+  if (scratch.scalar_options.angular_velocity)
   {
-    Assert(scratch.vector_options.rossby_number,
+    Assert(scratch.scalar_options.rossby_number,
            ExcMessage("Rossby number was not assigned in options."));
-    Assert(scratch.vector_options.angular_velocity,
+    Assert(scratch.scalar_options.angular_velocity,
            ExcMessage("Angular velocity was not assigned in options."));
 
     if constexpr(dim == 2)
         for (unsigned int q=0; q<n_q_points; ++q)
-          strong_residuals[q] += 2.0 / *scratch.vector_options.rossby_number * scratch.vector_options.angular_velocity.value()[0] *
+          strong_residuals[q] += 2.0 / *scratch.scalar_options.rossby_number * scratch.scalar_options.angular_velocity.value()[0] *
                                  cross_product_2d(-present_velocity_values[q]);
     else if constexpr(dim == 3)
         for (unsigned int q=0; q<n_q_points; ++q)
-          strong_residuals[q] += 2.0 / *scratch.vector_options.rossby_number *
-                                 cross_product_3d(*scratch.vector_options.angular_velocity, present_velocity_values[q]);
+          strong_residuals[q] += 2.0 / *scratch.scalar_options.rossby_number *
+                                 cross_product_3d(*scratch.scalar_options.angular_velocity, present_velocity_values[q]);
   }
 }
 
@@ -641,16 +620,16 @@ double compute_hydrodynamic_rhs
                                        mu,
                                        delta)};
 
-  if (scratch.scalar_options.gravity_field_value)
+  if (scratch.vector_options.gravity_field_values)
   {
-    Assert(hydrodynamic_scratch.scalar_options.froude_number, ExcInternalError());
+    Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
 
     const double present_density_value{advection_scratch.present_values[q]};
 
     rhs += present_density_value *
-           (*scratch.scalar_options.gravity_field_value * hydrodynamic_scratch.phi_velocity[i]) /
-           (*hydrodynamic_scratch.scalar_options.froude_number *
-            *hydrodynamic_scratch.scalar_options.froude_number);
+           (scratch.vector_options.gravity_field_values->at(q) * hydrodynamic_scratch.phi_velocity[i]) /
+           (*hydrodynamic_scratch.vector_options.froude_number *
+            *hydrodynamic_scratch.vector_options.froude_number);
   }
 
   return (rhs);
@@ -680,16 +659,16 @@ double compute_hydrodynamic_rhs
                                        mu,
                                        delta)};
 
-  if (scratch.scalar_options.gravity_field_value)
+  if (scratch.vector_options.gravity_field_values)
   {
-    Assert(hydrodynamic_scratch.scalar_options.froude_number, ExcInternalError());
+    Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
 
     const double present_density_value{advection_scratch.present_values[q]};
 
     rhs += present_density_value *
-           (*scratch.scalar_options.gravity_field_value * hydrodynamic_scratch.phi_velocity[i]) /
-           (*hydrodynamic_scratch.scalar_options.froude_number *
-            *hydrodynamic_scratch.scalar_options.froude_number);
+           (scratch.vector_options.gravity_field_values->at(q) * hydrodynamic_scratch.phi_velocity[i]) /
+           (*hydrodynamic_scratch.vector_options.froude_number *
+            *hydrodynamic_scratch.vector_options.froude_number);
   }
 
   return (rhs);
@@ -737,12 +716,12 @@ double compute_density_matrix
               density_test_function_value;
 
     // linearization of velocity inside reference gradient term
-    if (advection_scratch.scalar_options.reference_gradient)
+    if (advection_scratch.vector_options.reference_gradients)
     {
-      Assert(advection_scratch.scalar_options.gradient_scaling, ExcInternalError());
+      Assert(advection_scratch.vector_options.gradient_scaling, ExcInternalError());
 
-      matrix += *advection_scratch.scalar_options.gradient_scaling *
-                (velocity_trial_function_value * *advection_scratch.scalar_options.reference_gradient) *
+      matrix += *advection_scratch.vector_options.gradient_scaling *
+                (velocity_trial_function_value * advection_scratch.vector_options.reference_gradients->at(q)) *
                 density_test_function_value;
     }
   }
@@ -758,13 +737,13 @@ double compute_density_matrix
       linearized_residual += velocity_trial_function_value * present_density_gradient;
 
       // linearization of reference gradient term
-      if (advection_scratch.scalar_options.reference_gradient)
+      if (advection_scratch.vector_options.reference_gradients)
       {
-        Assert(advection_scratch.scalar_options.gradient_scaling, ExcInternalError());
+        Assert(advection_scratch.vector_options.gradient_scaling, ExcInternalError());
 
-        linearized_residual += *advection_scratch.scalar_options.gradient_scaling *
+        linearized_residual += *advection_scratch.vector_options.gradient_scaling *
                                velocity_trial_function_value *
-                               *advection_scratch.scalar_options.reference_gradient;
+                               advection_scratch.vector_options.reference_gradients->at(q);
       }
     }
     matrix += delta * linearized_residual * (density_test_function_gradient * present_velocity_value);
@@ -844,17 +823,17 @@ double compute_matrix
                                                mu,
                                                apply_newton_linearization);
 
-  if (scratch.scalar_options.gravity_field_value)
+  if (scratch.vector_options.gravity_field_values)
   {
-    Assert(hydrodynamic_scratch.scalar_options.froude_number, ExcInternalError());
+    Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
 
     const Advection::AssemblyData::Matrix::ScratchData<dim> &advection_scratch
     {static_cast<const Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
 
     matrix -= advection_scratch.phi[j] *
-              (*scratch.scalar_options.gravity_field_value * scratch.phi_velocity[i]) /
-              (*hydrodynamic_scratch.scalar_options.froude_number *
-               *hydrodynamic_scratch.scalar_options.froude_number);
+              (scratch.vector_options.gravity_field_values->at(q) * scratch.phi_velocity[i]) /
+              (*hydrodynamic_scratch.vector_options.froude_number *
+               *hydrodynamic_scratch.vector_options.froude_number);
 
     if (!(hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg)))
     {
@@ -873,9 +852,9 @@ double compute_matrix
         test_function += pressure_test_function_gradient;
 
       matrix -= delta * density_trial_function_value *
-                (*scratch.scalar_options.gravity_field_value * test_function) /
-                (*hydrodynamic_scratch.scalar_options.froude_number *
-                 *hydrodynamic_scratch.scalar_options.froude_number);
+                (scratch.vector_options.gravity_field_values->at(q) * test_function) /
+                (*hydrodynamic_scratch.vector_options.froude_number *
+                 *hydrodynamic_scratch.vector_options.froude_number);
     }
   }
 
@@ -1181,17 +1160,17 @@ double compute_rhs
 
   double rhs{-(advection_field_value * present_gradient)};
 
-  if (scratch.scalar_options.reference_gradient)
+  if (scratch.vector_options.reference_gradients)
   {
-    Assert(scratch.scalar_options.gradient_scaling,
+    Assert(scratch.vector_options.gradient_scaling,
            ExcMessage("Gradient scaling number was not were not assigned in options."));
 
-    rhs -= *scratch.scalar_options.gradient_scaling *
-            (advection_field_value * *scratch.scalar_options.reference_gradient);
+    rhs -= *scratch.vector_options.gradient_scaling *
+            (advection_field_value * scratch.vector_options.reference_gradients->at(q));
   }
 
-  if (scratch.scalar_options.source_term_value)
-    rhs += *scratch.scalar_options.source_term_value;
+  if (scratch.vector_options.source_term_values)
+    rhs += scratch.vector_options.source_term_values->at(q);
 
   rhs *= scratch.phi[i];
 

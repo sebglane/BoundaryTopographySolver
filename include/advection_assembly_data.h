@@ -61,15 +61,12 @@ public:
     const std::shared_ptr<const Function<dim>>         &boundary_function_ptr,
     const std::shared_ptr<const TensorFunction<1,dim>> &background_advection_ptr = nullptr);
 
-  void assign_scalar_options_local_cell(const unsigned int q_point_index);
-
   void adjust_advection_field_local_cell();
 
   void adjust_advection_field_local_boundary();
 
   // optional parameters
-  ScalarOptions<dim>  scalar_options;
-  VectorOptions<dim>  vector_options;
+  VectorOptions<dim>          vector_options;
 
   // shape functions
   std::vector<double>         phi;

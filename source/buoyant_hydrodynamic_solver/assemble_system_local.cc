@@ -41,59 +41,29 @@ assemble_system_local_cell
                              std::pow(cell->diameter(), 2)};
   const double nu_density{this->Advection::Solver<dim, TriangulationType>::nu};
 
-  Hydrodynamic::AssemblyData::Matrix::
-  ScratchData<dim> &hydrodynamic_scratch
-    = static_cast<Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
-  Advection::AssemblyData::Matrix::
-  ScratchData<dim> &advection_scratch
-    = static_cast<Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
-
   // solution values
-  auto &present_velocity_values = hydrodynamic_scratch.present_velocity_values;
-  auto &present_velocity_gradients = hydrodynamic_scratch.present_velocity_gradients;
-  auto &present_pressure_values = hydrodynamic_scratch.present_pressure_values;
-  present_velocity_values = scratch.get_values("evaluation_point",
-                                               velocity);
-  present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                     velocity);
-  present_pressure_values = scratch.get_values("evaluation_point",
-                                               pressure);
-  const auto &present_density_values = scratch.get_values("evaluation_point",
-                                                          density);
-  advection_scratch.present_gradients = scratch.get_gradients("evaluation_point",
-                                                              density);
+  scratch.present_velocity_values = scratch.get_values("evaluation_point",
+                                                       velocity);
+  scratch.present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                             velocity);
+  scratch.present_pressure_values = scratch.get_values("evaluation_point",
+                                                       pressure);
+  scratch.present_values = scratch.get_values("evaluation_point",
+                                              density);
+  scratch.present_gradients = scratch.get_gradients("evaluation_point",
+                                                    density);
 
-  // assign vector options
-  hydrodynamic_scratch.assign_vector_options_local_cell("evaluation_point",
-                                                        velocity,
-                                                        pressure,
-                                                        this->angular_velocity_ptr,
-                                                        this->body_force_ptr,
-                                                        this->background_velocity_ptr,
-                                                        this->rossby_number,
-                                                        this->froude_number);
-  hydrodynamic_scratch.adjust_velocity_field_local_cell();
-  advection_scratch.advection_field_values = present_velocity_values;
-
-  // reference density
-  if (this->reference_field_ptr != nullptr)
-  {
-    this->reference_field_ptr->gradient_list(scratch.get_quadrature_points(),
-                                             *advection_scratch.vector_options.reference_gradients);
-
-    advection_scratch.vector_options.gradient_scaling = this->gradient_scaling_number;
-    advection_scratch.scalar_options.gradient_scaling = this->gradient_scaling_number;
-  }
-
-  // gravity field
-  if (gravity_field_ptr != nullptr)
-  {
-    gravity_field_ptr->value_list(scratch.get_quadrature_points(),
-                                  *scratch.vector_options.gravity_field_values);
-
-    hydrodynamic_scratch.vector_options.froude_number = this->froude_number;
-    hydrodynamic_scratch.scalar_options.froude_number = this->froude_number;
-  }
+  scratch.assign_vector_options_local_cell("evaluation_point",
+                                           velocity,
+                                           pressure,
+                                           this->angular_velocity_ptr,
+                                           this->body_force_ptr,
+                                           this->gravity_field_ptr,
+                                           this->background_velocity_ptr,
+                                           this->reference_field_ptr,
+                                           this->rossby_number,
+                                           this->froude_number,
+                                           this->gradient_scaling_number);
 
   // stabilization
   compute_strong_residuals(scratch,
@@ -103,49 +73,22 @@ assemble_system_local_cell
   {
     for (const auto i: fe_values.dof_indices())
     {
-      hydrodynamic_scratch.phi_velocity[i] = fe_values[velocity].value(i, q);
-      hydrodynamic_scratch.grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
-      hydrodynamic_scratch.div_phi_velocity[i] = fe_values[velocity].divergence(i, q);
-      hydrodynamic_scratch.phi_pressure[i] = fe_values[pressure].value(i, q);
-      hydrodynamic_scratch.grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
-      advection_scratch.phi[i] = fe_values[density].value(i, q);
-      advection_scratch.grad_phi[i] = fe_values[density].gradient(i, q);
+      scratch.phi_velocity[i] = fe_values[velocity].value(i, q);
+      scratch.grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
+      scratch.div_phi_velocity[i] = fe_values[velocity].divergence(i, q);
+      scratch.phi_pressure[i] = fe_values[pressure].value(i, q);
+      scratch.grad_phi_pressure[i] = fe_values[pressure].gradient(i, q);
+      scratch.phi[i] = fe_values[density].value(i, q);
+      scratch.grad_phi[i] = fe_values[density].gradient(i, q);
     }
 
     // assign optional shape functions
-    hydrodynamic_scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
-
-    // assign scalar options
-    hydrodynamic_scratch.assign_scalar_options_local_cell(q);
-
-    // reference density
-    if (advection_scratch.vector_options.reference_gradients)
-      advection_scratch.scalar_options.reference_gradient =
-          advection_scratch.vector_options.reference_gradients->at(q);
-
-    // gravity field
-    if (scratch.vector_options.gravity_field_values)
-      scratch.scalar_options.gravity_field_value =
-          scratch.vector_options.gravity_field_values->at(q);
+    scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
 
     for (const auto i: fe_values.dof_indices())
     {
-      // stress form
-      if (hydrodynamic_scratch.scalar_options.use_stress_form)
-        hydrodynamic_scratch.scalar_options.velocity_test_function_symmetric_gradient =
-            hydrodynamic_scratch.sym_grad_phi_velocity[i];
-
       for (const auto j: fe_values.dof_indices())
       {
-        // stress form
-        if (hydrodynamic_scratch.scalar_options.use_stress_form)
-          hydrodynamic_scratch.scalar_options.velocity_trial_function_symmetric_gradient =
-              hydrodynamic_scratch.sym_grad_phi_velocity[j];
-        // stabilization
-        if (this->stabilization & (apply_supg|apply_pspg))
-          hydrodynamic_scratch.scalar_options.velocity_trial_function_grad_divergence =
-              hydrodynamic_scratch.grad_div_phi_velocity[j];
-
         const double matrix{compute_matrix(scratch,
                                            i,
                                            j,

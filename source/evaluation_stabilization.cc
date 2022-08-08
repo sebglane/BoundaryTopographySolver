@@ -404,8 +404,8 @@ operator()
   // Coriolis term
   if (this->angular_velocity_ptr)
   {
-    hydrodynamic_vector_options.angular_velocity = this->angular_velocity_ptr->value();
-    hydrodynamic_vector_options.rossby_number = this->rossby_number;
+    hydrodynamic_scratch.scalar_options.angular_velocity = this->angular_velocity_ptr->value();
+    hydrodynamic_scratch.scalar_options.rossby_number = this->rossby_number;
   }
 
   double cell_momentum_residual;
@@ -469,14 +469,11 @@ operator()
                                                           this->froude_number);
     hydrodynamic_scratch.adjust_velocity_field_local_cell();
 
-
-
     // solution values
-    const auto &present_density_values = scratch.get_values("evaluation_point",
-                                                            density);
-    auto &present_density_gradients = advection_scratch.present_gradients;
-    present_density_gradients = scratch.get_gradients("evaluation_point",
-                                                      density);
+    advection_scratch.present_values = scratch.get_values("evaluation_point",
+                                                          density);
+    advection_scratch.present_gradients = scratch.get_gradients("evaluation_point",
+                                                                density);
 
     // reference density
     if (reference_density_ptr)

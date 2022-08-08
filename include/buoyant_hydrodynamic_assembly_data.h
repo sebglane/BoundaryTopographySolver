@@ -60,6 +60,29 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
+  void assign_vector_options_local_cell(
+    const std::string                                          &name,
+    const FEValuesExtractors::Vector                           &velocity,
+    const FEValuesExtractors::Scalar                           &pressure,
+    const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &gravity_field_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr,
+    const std::shared_ptr<const Function<dim>>                 &reference_field_ptr = nullptr,
+    const double                                                rossby_number = 0.0,
+    const double                                                froude_number = 0.0,
+    const double                                                stratification_number = 0.0);
+
+  /*
+  void assign_vector_options_local_boundary(
+    const std::string                                          &name,
+    const FEValuesExtractors::Vector                           &velocity,
+    const FEValuesExtractors::Scalar                           &pressure,
+    const double                                                nu,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr);
+   */
+
   VectorOptions<dim>  vector_options;
 
   ScalarOptions<dim>  scalar_options;
@@ -111,6 +134,19 @@ public:
     const bool                allocate_reference_gradient = false);
 
   ScratchData(const ScratchData<dim>  &data);
+
+  void assign_vector_options_local_cell(
+    const std::string                                          &name,
+    const FEValuesExtractors::Vector                           &velocity,
+    const FEValuesExtractors::Scalar                           &pressure,
+    const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &gravity_field_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr,
+    const std::shared_ptr<const Function<dim>>                 &reference_field_ptr = nullptr,
+    const double                                                rossby_number = 0.0,
+    const double                                                froude_number = 0.0,
+    const double                                                stratification_number = 0.0);
 
   VectorOptions<dim>  vector_options;
 

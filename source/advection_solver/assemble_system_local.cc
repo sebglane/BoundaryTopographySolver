@@ -48,8 +48,6 @@ assemble_system_local_cell
   // loop over cell quadrature points
   for (const auto q: fe_values.quadrature_point_indices())
   {
-    scratch.assign_scalar_options_local_cell(q);
-
     for (const auto i: fe_values.dof_indices())
     {
       scratch.phi[i] = fe_values.shape_value(i, q);

@@ -10,43 +10,6 @@
 namespace Advection
 {
 
-OptionsBase::OptionsBase()
-:
-gradient_scaling()
-{}
-
-
-
-OptionsBase::OptionsBase
-(const OptionsBase  &other)
-:
-gradient_scaling(other.gradient_scaling)
-{}
-
-
-
-template<int dim>
-ScalarOptions<dim>::ScalarOptions
-()
-:
-OptionsBase(),
-source_term_value(),
-reference_gradient()
-{}
-
-
-
-template<int dim>
-ScalarOptions<dim>::ScalarOptions
-(const ScalarOptions<dim> &other)
-:
-OptionsBase(other),
-source_term_value(other.source_term_value),
-reference_gradient(other.reference_gradient)
-{}
-
-
-
 template<int dim>
 VectorOptions<dim>::VectorOptions
 (const unsigned int n_q_points,
@@ -56,7 +19,7 @@ VectorOptions<dim>::VectorOptions
  const bool         allocate_background_velocity,
  const bool         allocate_reference_gradient)
 :
-OptionsBase(),
+gradient_scaling(),
 source_term_values(),
 boundary_values(),
 advection_field_face_values(),
@@ -85,7 +48,7 @@ template<int dim>
 VectorOptions<dim>::VectorOptions
 (const VectorOptions<dim> &other)
 :
-OptionsBase(other),
+gradient_scaling(other.gradient_scaling),
 source_term_values(other.source_term_values),
 boundary_values(other.boundary_values),
 advection_field_face_values(other.advection_field_face_values),
@@ -94,9 +57,6 @@ reference_gradients(other.reference_gradients)
 {}
 
 // explicit instantiations
-template struct ScalarOptions<2>;
-template struct ScalarOptions<3>;
-
 template struct VectorOptions<2>;
 template struct VectorOptions<3>;
 

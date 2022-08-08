@@ -42,15 +42,12 @@ assemble_system_local_cell
   const double delta{c * std::pow(cell->diameter(), 2)};
 
   // solution values
-  auto &present_velocity_values = scratch.present_velocity_values;
-  auto &present_velocity_gradients = scratch.present_velocity_gradients;
-  auto &present_pressure_values = scratch.present_pressure_values;
-  present_velocity_values = scratch.get_values("evaluation_point",
-                                               velocity);
-  present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                     velocity);
-  present_pressure_values = scratch.get_values("evaluation_point",
-                                               pressure);
+  scratch.present_velocity_values = scratch.get_values("evaluation_point",
+                                                       velocity);
+  scratch.present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                             velocity);
+  scratch.present_pressure_values = scratch.get_values("evaluation_point",
+                                                       pressure);
 
   // assign vector options
   scratch.assign_vector_options_local_cell("evaluation_point",
@@ -79,28 +76,10 @@ assemble_system_local_cell
     // assign optional shape functions
     scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
 
-    // assign scalar options
-    scratch.assign_scalar_options_local_cell(q);
-
     for (const auto i: fe_values.dof_indices())
     {
-      // stress form
-      if (scratch.scalar_options.use_stress_form)
-        scratch.scalar_options.velocity_test_function_symmetric_gradient =
-            scratch.sym_grad_phi_velocity[i];
-
       for (const auto j: fe_values.dof_indices())
       {
-        // stress form
-        if (scratch.scalar_options.use_stress_form)
-        {
-          scratch.scalar_options.velocity_trial_function_symmetric_gradient =
-            scratch.sym_grad_phi_velocity[j];
-          if (stabilization & (apply_supg|apply_pspg))
-            scratch.scalar_options.velocity_trial_function_grad_divergence =
-              scratch.grad_div_phi_velocity[j];
-        }
-
         const double matrix{compute_matrix(scratch,
                                            i,
                                            j,
@@ -112,7 +91,6 @@ assemble_system_local_cell
 
         data.matrices[0](i, j) +=  matrix * JxW[q];
       }
-
 
       const double rhs{compute_rhs(scratch,
                                    i,

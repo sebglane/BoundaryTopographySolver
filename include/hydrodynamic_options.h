@@ -22,48 +22,22 @@ namespace Hydrodynamic
 using namespace dealii;
 
 template<int dim>
-struct OptionsBase
-{
-  OptionsBase(const bool use_stress_form);
-
-  OptionsBase(const OptionsBase<dim> &other);
-
-  // stress-based form
-  const bool use_stress_form;
-
-  // body force term
-  std::optional<double> froude_number;
-
-  // Coriolis term
-  std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity;
-  std::optional<double> rossby_number;
-};
-
-
-
-template<int dim>
-struct ScalarOptions : OptionsBase<dim>
+struct ScalarOptions
 {
   ScalarOptions(const bool use_stress_from);
 
   ScalarOptions(const ScalarOptions<dim> &other);
 
-  // stress-based form
-  std::optional<SymmetricTensor<2, dim>>  velocity_trial_function_symmetric_gradient;
-  std::optional<SymmetricTensor<2, dim>>  velocity_test_function_symmetric_gradient;
-  std::optional<SymmetricTensor<2, dim>>  present_symmetric_velocity_gradient;
+  // Coriolis term
+  std::optional<typename Utility::AngularVelocity<dim>::value_type> angular_velocity;
+  std::optional<double>                   rossby_number;
 
-  // stabilization and stress-based related trial functions
-  std::optional<Tensor<1, dim>>           velocity_trial_function_grad_divergence;
-
-  // body force term
-  std::optional<Tensor<1, dim>>           body_force_value;
 };
 
 
 
 template<int dim>
-struct VectorOptions : OptionsBase<dim>
+struct VectorOptions
 {
   VectorOptions(const StabilizationFlags  &stabilization,
                           const bool use_stress_form,
@@ -74,6 +48,9 @@ struct VectorOptions : OptionsBase<dim>
                           const unsigned int n_face_q_points);
 
   VectorOptions(const VectorOptions<dim> &other);
+
+  // stress-based form
+  const bool use_stress_form;
 
   // stabilization related solution values
   std::optional<std::vector<Tensor<1, dim>>>  present_velocity_laplaceans;
@@ -88,6 +65,7 @@ struct VectorOptions : OptionsBase<dim>
   std::optional<std::vector<Tensor<2, dim>>>  background_velocity_gradients;
 
   // body force term
+  std::optional<double>                       froude_number;
   std::optional<std::vector<Tensor<1, dim>>>  body_force_values;
 
   // source term face values

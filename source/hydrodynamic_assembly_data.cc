@@ -158,15 +158,13 @@ assign_vector_options_local_cell
            ExcMessage("Velocity laplacean are not allocated in options."));
     AssertDimension(vector_options.present_velocity_laplaceans->size(),
                     n_q_points);
-    vector_options.present_velocity_laplaceans
-      = this->get_laplacians(name, velocity);
+    vector_options.present_velocity_laplaceans = this->get_laplacians(name, velocity);
 
     Assert(vector_options.present_pressure_gradients,
            ExcMessage("Present pressure gradients are not allocated in options."));
     AssertDimension(vector_options.present_pressure_gradients->size(),
                     n_q_points);
-    vector_options.present_pressure_gradients
-      = this->get_gradients(name, pressure);
+    vector_options.present_pressure_gradients = this->get_gradients(name, pressure);
 
     if (vector_options.use_stress_form)
     {
@@ -194,10 +192,6 @@ assign_vector_options_local_cell
   {
     Assert(rossby_number > 0.0,
            ExcLowerRangeType<double>(rossby_number, 0.0));
-
-    vector_options.angular_velocity = angular_velocity_ptr->value();
-    vector_options.rossby_number = rossby_number;
-
     scalar_options.angular_velocity = angular_velocity_ptr->value();
     scalar_options.rossby_number = rossby_number;
   }
@@ -216,7 +210,6 @@ assign_vector_options_local_cell
     body_force_ptr->value_list(this->get_quadrature_points(),
                                *vector_options.body_force_values);
     vector_options.froude_number = froude_number;
-    scalar_options.froude_number = froude_number;
   }
 
   // background field
@@ -414,29 +407,6 @@ assign_optional_shape_functions_local_boundary
     for (const auto i: fe_values.dof_indices())
       grad_phi_velocity[i] = fe_values[velocity].gradient(i, q);
   }
-}
-
-
-
-
-template <int dim>
-void ScratchData<dim>::
-assign_scalar_options_local_cell
-(const unsigned int q)
-{
-  // stress form
-  if (vector_options.use_stress_form)
-  {
-    Assert(vector_options.present_sym_velocity_gradients,
-           ExcMessage("Symmetric velocity gradients are not allocated in options."));
-    scalar_options.present_symmetric_velocity_gradient =
-          vector_options.present_sym_velocity_gradients->at(q);
-  }
-
-  // body force
-  if (vector_options.body_force_values)
-    scalar_options.body_force_value =
-        vector_options.body_force_values->at(q);
 }
 
 
@@ -665,10 +635,6 @@ assign_vector_options_local_cell
   {
     Assert(rossby_number > 0.0,
            ExcLowerRangeType<double>(rossby_number, 0.0));
-
-    vector_options.angular_velocity = angular_velocity_ptr->value();
-    vector_options.rossby_number = rossby_number;
-
     scalar_options.angular_velocity = angular_velocity_ptr->value();
     scalar_options.rossby_number = rossby_number;
   }
@@ -687,7 +653,6 @@ assign_vector_options_local_cell
     body_force_ptr->value_list(this->get_quadrature_points(),
                                *vector_options.body_force_values);
     vector_options.froude_number = froude_number;
-    scalar_options.froude_number = froude_number;
   }
 
   // background field
@@ -840,27 +805,6 @@ assign_vector_options_local_boundary
           - present_pressure_values[q] * face_normal_vectors[q]
           + nu * present_velocity_gradients[q] * face_normal_vectors[q];
   }
-}
-
-
-
-template <int dim>
-void ScratchData<dim>::
-assign_scalar_options_local_cell
-(const unsigned int q)
-{
-  // stress form
-  if (vector_options.use_stress_form)
-  {
-    Assert(vector_options.present_sym_velocity_gradients,
-           ExcMessage("Symmetric velocity gradients are not allocated in options."));
-    scalar_options.present_symmetric_velocity_gradient =
-          vector_options.present_sym_velocity_gradients->at(q);
-  }
-  // body force
-  if (vector_options.body_force_values)
-    scalar_options.body_force_value =
-        vector_options.body_force_values->at(q);
 }
 
 
