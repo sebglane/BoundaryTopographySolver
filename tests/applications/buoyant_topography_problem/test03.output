@@ -29,10 +29,31 @@
 | SUPG/PSPG stab. parameter                | 1                    |
 | Grad-Div stab. parameter                 | 1                    |
 +------------------------------------------+----------------------+
-| Buoyant hydrodynamic solver parameters                          |
-| SUPG density stab. parameter             | 1                    |
-| Minimal viscosity (density)              | 0.0001               |
+| Problem parameters                                              |
 +------------------------------------------+----------------------+
+| Spatial dimension                        | 2                    |
+| Max. number of Newton iterations         | 15                   |
+| Absolute tolerance                       | 1e-12                |
+| Relative tolerance                       | 1e-09                |
+| Verbose                                  | false                |
+| Print timings                            | false                |
+| Graphical output directory               | ./ResultsBuoyantTopographyProblem |
++------------------------------------------+----------------------+
+| Refinement control parameters                                   |
++------------------------------------------+----------------------+
+| Adaptive mesh refinement                 | True                 |
+| Initial refinements                      | 4                    |
+| Initial boundary refinements             | 0                    |
+| Fraction of cells set to coarsen         | 0                    |
+| Fraction of cells set to refine          | 0.8                  |
+| Maximum number of levels                 | 10                   |
+| Minimum number of levels                 | 2                    |
+| Number of refinement cycles              | 3                    |
++------------------------------------------+----------------------+
+| Advection solver parameters                                     |
++------------------------------------------+----------------------+
+| SUPG stabilization coeff.                | 1                    |
+| Minimal viscosity                        | 0.0001               |
 | Mapping                                  | MappingQ<dim>(1)     |
 | Reynolds number                          | 100                  |
 | Froude number                            | 100000               |

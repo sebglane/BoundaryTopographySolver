@@ -166,6 +166,8 @@ Solver
  Mapping<dim>        &mapping,
  const Parameters    &parameters)
 :
+graphical_output_directory(parameters.graphical_output_directory),
+verbose(parameters.verbose),
 pcout(std::cout,
       (Utilities::MPI::this_mpi_process(tria.get_communicator()) == 0)),
 triangulation(tria),
@@ -182,9 +184,7 @@ n_picard_iterations(parameters.n_picard_iterations),
 absolute_tolerance(parameters.absolute_tolerance),
 relative_tolerance(parameters.relative_tolerance),
 print_timings(parameters.print_timings),
-apply_picard_iteration(parameters.apply_picard_iteration),
-graphical_output_directory(parameters.graphical_output_directory),
-verbose(parameters.verbose)
+apply_picard_iteration(parameters.apply_picard_iteration)
 {
   if (print_timings == false)
     computing_timer.disable_output();

@@ -20,6 +20,9 @@ void Solver<dim, TriangulationType>::setup_fe_system()
   if (this->verbose)
     this->pcout << "    Setup FE system..." << std::endl;
 
+  velocity_fe_index = 0;
+  pressure_fe_index = dim;
+
   this->fe_system = std::make_shared<FESystem<dim>>(FESystem<dim>(FE_Q<dim>(velocity_fe_degree), dim), 1,
                                                     FE_Q<dim>(velocity_fe_degree - 1), 1);
 }
@@ -43,15 +46,16 @@ void Solver<dim, TriangulationType>::setup_dofs()
   // velocity-pressure coupling
   for (unsigned int c=0; c<dim+1; ++c)
     for (unsigned int d=0; d<dim+1; ++d)
-      if (c<dim || d<dim)
+      if (c<pressure_fe_index|| d<pressure_fe_index)
         coupling_table[c][d] = DoFTools::always;
-      else if ((c==dim && d<dim) || (c<dim && d==dim))
+      else if ((c==pressure_fe_index && d<pressure_fe_index) ||
+               (c<pressure_fe_index && d==pressure_fe_index))
         coupling_table[c][d] = DoFTools::always;
       else
         coupling_table[c][d] = DoFTools::none;
 
   if (stabilization & apply_pspg)
-    coupling_table[dim][dim] = DoFTools::always;
+    coupling_table[pressure_fe_index][pressure_fe_index] = DoFTools::always;
 
   this->setup_system_matrix(coupling_table);
 

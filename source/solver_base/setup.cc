@@ -37,14 +37,16 @@ setup_dofs()
   zero_constraints.clear();
   zero_constraints.reinit(locally_relevant_dofs);
 
+  component_mean_values.clear();
+
   // possibly initialize the mapping
   MappingQCache<dim> *mapping_q_cache_ptr = dynamic_cast<MappingQCache<dim>*>(&mapping);
   if (mapping_q_cache_ptr != nullptr)
   {
     if (verbose)
       pcout << "Initialize mapping..." << std::endl;
-    mapping_q_cache_ptr->initialize(triangulation,
-                                    MappingQGeneric<dim>(mapping_q_cache_ptr->get_degree()));
+    mapping_q_cache_ptr->initialize(MappingQGeneric<dim>(mapping_q_cache_ptr->get_degree()),
+                                    triangulation);
   }
 
   this->apply_hanging_node_constraints();

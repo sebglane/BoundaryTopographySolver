@@ -31,7 +31,8 @@ apply_hanging_node_constraints()
 template <int dim, typename TriangulationType>
 void Solver<dim, TriangulationType>::
 apply_periodicity_constraints
-(std::vector<PeriodicBoundaryData<dim>> &periodic_bcs)
+(std::vector<PeriodicBoundaryData<dim>> &periodic_bcs,
+ const ComponentMask                    &mask)
 {
   std::vector<GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
   periodicity_vector;
@@ -44,10 +45,12 @@ apply_periodicity_constraints
                                       periodicity_vector);
 
   DoFTools::make_periodicity_constraints<dim, dim>(periodicity_vector,
-                                                   nonzero_constraints);
+                                                   nonzero_constraints,
+                                                   mask);
 
   DoFTools::make_periodicity_constraints<dim, dim>(periodicity_vector,
-                                                   zero_constraints);
+                                                   zero_constraints,
+                                                   mask);
 
 }
 
@@ -190,6 +193,88 @@ apply_normal_flux_constraints
                                                   mapping);
 }
 
+
+
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::
+apply_mean_value_constraint
+(const ComponentMask &mask,
+ const double         mean_value)
+{
+  this->pcout << "    Apply mean value constraint..." << std::endl;
+  Assert(mask.size() == this->fe_system->n_components(),
+         ExcDimensionMismatch(mask.size(), this->fe_system->n_components()));
+
+  Assert(mask.n_selected_components() == 1,
+         ExcMessage("Only one component of the solution can be selected "
+                    "for constraining the mean value."));
+
+  const unsigned int selected_component{mask.first_selected_component()};
+  AssertThrow(!component_mean_values.contains(selected_component),
+              ExcMessage("The mean value of the selected component was already "
+                         "specified."));
+
+  const IndexSet  boundary_dofs{DoFTools::extract_boundary_dofs(this->dof_handler,
+                                                                mask)};
+
+  // Look for an admissible local degree of freedom to constrain
+  types::global_dof_index local_idx = numbers::invalid_dof_index;
+  IndexSet::ElementIterator idx = boundary_dofs.begin();
+  IndexSet::ElementIterator endidx = boundary_dofs.end();
+  for(; idx != endidx; ++idx)
+    if ((this->zero_constraints.can_store_line(*idx) &&
+         !this->zero_constraints.is_constrained(*idx)) &&
+        (this->nonzero_constraints.can_store_line(*idx) &&
+                     !this->nonzero_constraints.is_constrained(*idx)))
+    {
+      local_idx = *idx;
+      break;
+    }
+
+  // choose the degree of freedom with the smallest index. If no
+  // admissible degree of freedom was found in a given processor, its
+  // value is set the number of degree of freedom
+  types::global_dof_index global_idx{numbers::invalid_dof_index};
+
+  // ensure that at least one processor found things
+  if (const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&this->triangulation);
+      tria_ptr != nullptr)
+  {
+    global_idx = Utilities::MPI::min((local_idx != numbers::invalid_dof_index)? local_idx: this->dof_handler.n_dofs(),
+                                     tria_ptr->get_communicator());
+  }
+  else
+    global_idx = local_idx;
+  AssertThrow(global_idx != numbers::invalid_dof_index,
+              ExcMessage("Invalid DoF index when setting mean value constraint "
+                         "on the pressure component."));
+
+  // check that an admissible degree of freedom was found
+  AssertThrow(global_idx < dof_handler.n_dofs(),
+              ExcMessage("Error, couldn't find a DoF to constrain."));
+
+  // set the degree of freedom to zero
+  if (zero_constraints.can_store_line(global_idx))
+  {
+    AssertThrow(!zero_constraints.is_constrained(global_idx),
+                ExcInternalError());
+    zero_constraints.add_line(global_idx);
+  }
+  if (nonzero_constraints.can_store_line(global_idx))
+  {
+    AssertThrow(!nonzero_constraints.is_constrained(global_idx),
+                ExcInternalError());
+    nonzero_constraints.add_line(global_idx);
+  }
+
+  // add mean value
+  component_mean_values[selected_component] = mean_value;
+
+}
+
+
+
 // explicit instantiations
 template
 void
@@ -201,9 +286,11 @@ Solver<3>::
 apply_hanging_node_constraints();
 
 template void Solver<2>::apply_periodicity_constraints
-(std::vector<PeriodicBoundaryData<2>> &);
+(std::vector<PeriodicBoundaryData<2>> &,
+ const ComponentMask                  &);
 template void Solver<3>::apply_periodicity_constraints
-(std::vector<PeriodicBoundaryData<3>> &);
+(std::vector<PeriodicBoundaryData<3>> &,
+ const ComponentMask                  &);
 
 template void Solver<2>::apply_dirichlet_constraints
 (const typename BoundaryConditionsBase<2>::BCMapping &, const ComponentMask &);
@@ -220,5 +307,16 @@ void
 Solver<3>::
 apply_normal_flux_constraints
 (const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
+
+template
+void
+Solver<2>::
+apply_mean_value_constraint
+(const ComponentMask &, const double);
+template
+void
+Solver<3>::
+apply_mean_value_constraint
+(const ComponentMask &, const double);
 
 }  // namespace Base

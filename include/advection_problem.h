@@ -58,6 +58,10 @@ struct ProblemParameters: SolverParameters
    */
   unsigned int  mapping_degree;
 
+  /*!
+   * @brief The stratification number of the problem.
+   */
+  double        stratification_number;
 };
 
 

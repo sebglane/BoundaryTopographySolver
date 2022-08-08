@@ -17,47 +17,32 @@ namespace BuoyantHydrodynamic
 
 using namespace dealii;
 
-struct OptionalArguments
-{
-  OptionalArguments();
-
-  OptionalArguments(const OptionalArguments &other);
-
-  std::optional<double> stratification_number;
-};
-
-
 
 template<int dim>
-struct OptionalArgumentsWeakForm : OptionalArguments
+struct ScalarOptions
 {
-  OptionalArgumentsWeakForm();
+  ScalarOptions();
 
-  OptionalArgumentsWeakForm(const OptionalArgumentsWeakForm<dim> &other);
+  ScalarOptions(const ScalarOptions<dim> &other);
 
   // gravity term
   std::optional<Tensor<1, dim>> gravity_field_value;
 
-  // source term
-  std::optional<Tensor<1, dim>> reference_density_gradient;
 };
 
 
 
 template<int dim>
-struct OptionalArgumentsStrongForm : OptionalArguments
+struct VectorOptions
 {
-  OptionalArgumentsStrongForm(const bool allocate_gravity_field,
-                              const bool allocate_reference_density,
-                              const unsigned int n_q_points);
+  VectorOptions(const unsigned int n_q_points,
+                          const bool allocate_gravity_field = false);
 
-  OptionalArgumentsStrongForm(const OptionalArgumentsStrongForm<dim> &other);
+  VectorOptions(const VectorOptions<dim> &other);
 
   // gravity term
   std::optional<std::vector<Tensor<1, dim>>> gravity_field_values;
 
-  // source term
-  std::optional<std::vector<Tensor<1, dim>>> reference_density_gradients;
 };
 
 }  // namespace BuoyantHydrodynamic

@@ -13,11 +13,11 @@
 #include <deal.II/lac/block_vector.h>
 
 #include <assembly_functions.h>
-#include <buoyant_hydrodynamic_problem.h>
-#include <hydrodynamic_problem.h>
+#include <buoyant_hydrodynamic_assembly_data.h>
 #include <evaluation_stabilization.h>
-#include <hydrodynamic_solver.h>
+#include <hydrodynamic_assembly_data.h>
 
+#include <optional>
 
 namespace Hydrodynamic {
 
@@ -27,21 +27,21 @@ template <int dim, typename VectorType>
 EvaluationStabilization<dim, VectorType>::
 EvaluationStabilization
 (const std::filesystem::path &output_directory,
- const StabilizationFlags &stabilization_flags,
- const unsigned int velocity_start_index,
- const unsigned int pressure_index,
- const double reynolds_number,
- const bool   use_stress_form,
- const double froude_number,
- const double rossby_number,
- const bool   print_table)
+ const StabilizationFlags    &stabilization_flags,
+ const unsigned int           velocity_fe_index,
+ const unsigned int           pressure_fe_index,
+ const double                 reynolds_number,
+ const bool                   use_stress_form,
+ const double                 froude_number,
+ const double                 rossby_number,
+ const bool                   print_table)
 :
 angular_velocity_ptr(),
 body_force_ptr(),
 background_velocity_ptr(),
 stabilization(stabilization_flags),
-velocity_start_index(velocity_start_index),
-pressure_index(pressure_index),
+velocity_fe_index(velocity_fe_index),
+pressure_fe_index(pressure_fe_index),
 reynolds_number(reynolds_number),
 froude_number(froude_number),
 rossby_number(rossby_number),
@@ -129,33 +129,23 @@ operator()
   if (angular_velocity_ptr || background_velocity_ptr)
     update_flags |= update_quadrature_points;
 
-  using Scratch = AssemblyData::RightHandSide::Scratch<dim>;
+  using ScratchData = AssemblyData::RightHandSide::ScratchData<dim>;
 
-  Scratch scratch(mapping,
-                  quadrature_formula,
-                  fe,
-                  update_flags,
-                  Quadrature<dim-1>(1),
-                  update_default,
-                  stabilization,
-                  use_stress_form,
-                  background_velocity_ptr != nullptr,
-                  body_force_ptr != nullptr);
+  ScratchData scratch(mapping,
+                      fe,
+                      quadrature_formula,
+                      update_flags,
+                      Quadrature<dim-1>(),
+                      update_default,
+                      stabilization,
+                      use_stress_form,
+                      background_velocity_ptr != nullptr,
+                      body_force_ptr != nullptr);
 
-  const FEValuesExtractors::Vector  velocity(velocity_start_index);
-  const FEValuesExtractors::Scalar  pressure(pressure_index);
+  const FEValuesExtractors::Vector  velocity(velocity_fe_index);
+  const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
 
   const double nu{1.0 / reynolds_number};
-
-  OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
-  strong_form_options.use_stress_form = use_stress_form;
-
-  // Coriolis term
-  if (angular_velocity_ptr)
-  {
-    strong_form_options.angular_velocity = angular_velocity_ptr->value();
-    strong_form_options.rossby_number = rossby_number;
-  }
 
   double cell_momentum_residual;
   double mean_momentum_residual{0.0};
@@ -177,91 +167,51 @@ operator()
   for (const auto &cell: dof_handler.active_cell_iterators())
   if (cell->is_locally_owned())
   {
-    scratch.fe_values.reinit(cell);
+    const auto &fe_values = scratch.reinit(cell);
+    scratch.extract_local_dof_values("evaluation_point",
+                                     solution);
+    const auto &JxW = scratch.get_JxW_values();
 
     const double delta{c * std::pow(cell->diameter(), 2)};
 
     // solution values
-    scratch.fe_values[velocity].get_function_values(solution,
-                                                    scratch.present_velocity_values);
-    scratch.fe_values[velocity].get_function_gradients(solution,
-                                                       scratch.present_velocity_gradients);
+    auto &present_velocity_values = scratch.present_velocity_values;
+    auto &present_velocity_gradients = scratch.present_velocity_gradients;
+    auto &present_pressure_values = scratch.present_pressure_values;
+    present_velocity_values = scratch.get_values("evaluation_point",
+                                                 velocity);
+    present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                       velocity);
+    present_pressure_values = scratch.get_values("evaluation_point",
+                                                 pressure);
 
-    scratch.fe_values[pressure].get_function_values(solution,
-                                                    scratch.present_pressure_values);
-
-    // stress form
-    if (use_stress_form)
-      scratch.fe_values[velocity].get_function_symmetric_gradients(solution,
-                                                                   scratch.present_sym_velocity_gradients);
-
-    // stabilization related solution values
-    if (stabilization & (apply_supg|apply_pspg))
-    {
-      scratch.fe_values[velocity].get_function_laplacians(solution,
-                                                          scratch.present_velocity_laplaceans);
-      scratch.fe_values[pressure].get_function_gradients(solution,
-                                                         scratch.present_pressure_gradients);
-
-      // stress form
-      if (use_stress_form)
-      {
-        std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
-        scratch.fe_values[velocity].get_function_hessians(solution,
-                                                          present_hessians);
-
-        std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
-            strong_form_options.present_velocity_grad_divergences.value();
-        for (std::size_t q=0; q<present_hessians.size(); ++q)
-        {
-          present_velocity_grad_divergences[q] = 0;
-          for (unsigned int d=0; d<dim; ++d)
-            present_velocity_grad_divergences[q] += present_hessians[q][d][d];
-        }
-      }
-    }
-
-    // body force
-    if (body_force_ptr)
-    {
-      body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                                 *strong_form_options.body_force_values);
-      strong_form_options.froude_number = froude_number;
-    }
-
-    // background field
-    if (background_velocity_ptr)
-    {
-      background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                                          *strong_form_options.background_velocity_values);
-      background_velocity_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                             *strong_form_options.background_velocity_gradients);
-    }
+    // assign vector options
+    scratch.assign_vector_options_local_cell("evaluation_point",
+                                             velocity,
+                                             pressure,
+                                             angular_velocity_ptr,
+                                             body_force_ptr,
+                                             background_velocity_ptr,
+                                             rossby_number,
+                                             froude_number);
+    scratch.adjust_velocity_field_local_cell();
 
     // stabilization
     if (stabilization & (apply_supg|apply_pspg))
-      compute_strong_residual(scratch.present_velocity_values,
-                              scratch.present_velocity_gradients,
-                              scratch.present_velocity_laplaceans,
-                              scratch.present_pressure_gradients,
-                              scratch.present_strong_residuals,
-                              nu,
-                              strong_form_options);
+      compute_strong_residual(scratch, nu);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;
     cell_volume = 0;
 
-    for (const auto q: scratch.fe_values.quadrature_point_indices())
+    for (const auto q: fe_values.quadrature_point_indices())
     {
-      const double JxW{scratch.fe_values.JxW(q)};
-
-      const double mass_residual{trace(scratch.present_velocity_gradients[q])};
+      const double mass_residual{trace(present_velocity_gradients[q])};
       max_mass_residual[0] = std::max(std::abs(mass_residual), max_mass_residual[0]);
-      cell_mass_residual += mass_residual * JxW;
+      cell_mass_residual += mass_residual * JxW[q];
 
-      cell_volume += JxW;
-      volume += JxW;
+      cell_volume += JxW[q];
+      volume += JxW[q];
 
       if (this->stabilization & (apply_supg|apply_pspg))
       {
@@ -271,7 +221,7 @@ operator()
                                             max_momentum_residual[0]);
         max_momentum_viscosity[0] = std::max(delta * momentum_residual,
                                              max_momentum_viscosity[0]);
-        cell_momentum_residual += momentum_residual * JxW;
+        cell_momentum_residual += momentum_residual * JxW[q];
       }
     } // end loop over cell quadrature points
 
@@ -335,9 +285,9 @@ EvaluationStabilization<dim, VectorType>::
 EvaluationStabilization
 (const std::filesystem::path &output_directory,
  const StabilizationFlags &stabilization_flags,
- const unsigned int velocity_start_index,
- const unsigned int pressure_index,
- const unsigned int density_index,
+ const unsigned int velocity_fe_index,
+ const unsigned int pressure_fe_index,
+ const unsigned int density_fe_index,
  const double reynolds_number,
  const double stratification_number,
  const bool   use_stress_form,
@@ -345,18 +295,19 @@ EvaluationStabilization
  const double rossby_number,
  const bool   print_table)
 :
-Hydrodynamic::EvaluationStabilization<dim, VectorType>(output_directory,
-                                           stabilization_flags,
-                                           velocity_start_index,
-                                           pressure_index,
-                                           reynolds_number,
-                                           use_stress_form,
-                                           froude_number,
-                                           rossby_number,
-                                           print_table),
+Hydrodynamic::EvaluationStabilization<dim, VectorType>
+(output_directory,
+ stabilization_flags,
+ velocity_fe_index,
+ pressure_fe_index,
+ reynolds_number,
+ use_stress_form,
+ froude_number,
+ rossby_number,
+ print_table),
 reference_density_ptr(),
 gravity_field_ptr(),
-density_index(density_index),
+density_fe_index(density_fe_index),
 stratification_number(stratification_number),
 c_density(std::numeric_limits<double>::min())
 {
@@ -413,38 +364,48 @@ operator()
   if (this->stabilization & (apply_supg|apply_pspg))
     update_flags |= update_hessians;
 
-  using Scratch = AssemblyData::RightHandSide::Scratch<dim>;
-  Scratch scratch(mapping,
-                  quadrature_formula,
-                  fe,
-                  update_flags,
-                  QGauss<dim-1>(1),
-                  update_default,
-                  this->stabilization,
-                  this->use_stress_form,
-                  this->background_velocity_ptr != nullptr,
-                  this->body_force_ptr != nullptr,
-                  false,
-                  false,
-                  gravity_field_ptr != nullptr,
-                  reference_density_ptr != nullptr);
+  using ScratchData = AssemblyData::RightHandSide::ScratchData<dim>;
+  ScratchData scratch(mapping,
+                      fe,
+                      quadrature_formula,
+                      update_flags,
+                      Quadrature<dim-1>(),
+                      update_default,
+                      this->stabilization,
+                      this->use_stress_form,
+                      this->background_velocity_ptr != nullptr,
+                      this->body_force_ptr != nullptr,
+                      this->gravity_field_ptr != nullptr,
+                      false,
+                      false,
+                      false,
+                      this->reference_density_ptr != nullptr);
 
-  const FEValuesExtractors::Vector  velocity(this->velocity_start_index);
-  const FEValuesExtractors::Scalar  pressure(this->pressure_index);
-  const FEValuesExtractors::Scalar  density(density_index);
+  const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
+  const FEValuesExtractors::Scalar  pressure(this->pressure_fe_index);
+  const FEValuesExtractors::Scalar  density(density_fe_index);
 
   const double nu{1.0 / this->reynolds_number};
 
-  Hydrodynamic::OptionalArgumentsStrongForm<dim> &strong_form_options = scratch.hydrodynamic_strong_form_options;
-  strong_form_options.use_stress_form = this->use_stress_form;
+  Hydrodynamic::AssemblyData::RightHandSide::
+  ScratchData<dim> &hydrodynamic_scratch
+    = static_cast<Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
+  Advection::AssemblyData::RightHandSide::
+  ScratchData<dim> &advection_scratch
+    = static_cast<Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
 
-  BuoyantHydrodynamic::OptionalArgumentsStrongForm<dim> &buoyancy_strong_form_options = scratch.strong_form_options;
+  Advection::VectorOptions<dim> &advection_vector_options
+    = advection_scratch.vector_options;
+  Hydrodynamic::VectorOptions<dim> &hydrodynamic_vector_options
+    = hydrodynamic_scratch.vector_options;
+  BuoyantHydrodynamic::VectorOptions<dim> &vector_options
+    = scratch.vector_options;
 
   // Coriolis term
   if (this->angular_velocity_ptr)
   {
-    strong_form_options.angular_velocity = this->angular_velocity_ptr->value();
-    strong_form_options.rossby_number = this->rossby_number;
+    hydrodynamic_vector_options.angular_velocity = this->angular_velocity_ptr->value();
+    hydrodynamic_vector_options.rossby_number = this->rossby_number;
   }
 
   double cell_momentum_residual;
@@ -476,118 +437,78 @@ operator()
   for (const auto &cell: dof_handler.active_cell_iterators())
   if (cell->is_locally_owned())
   {
-    scratch.fe_values.reinit(cell);
+
+    const auto &fe_values = scratch.reinit(cell);
+    scratch.extract_local_dof_values("evaluation_point",
+                                     solution);
+    const auto &JxW = scratch.get_JxW_values();
 
     const double delta{this->c * std::pow(cell->diameter(), 2)};
     const double delta_density{c_density * std::pow(cell->diameter(), 2)};
 
-    scratch.fe_values[velocity].get_function_values(solution,
-                                                    scratch.present_velocity_values);
-    scratch.fe_values[velocity].get_function_gradients(solution,
-                                                       scratch.present_velocity_gradients);
 
-    scratch.fe_values[pressure].get_function_values(solution,
-                                                    scratch.present_pressure_values);
+    // solution values
+    auto &present_velocity_values = scratch.present_velocity_values;
+    auto &present_velocity_gradients = scratch.present_velocity_gradients;
+    auto &present_pressure_values = scratch.present_pressure_values;
+    present_velocity_values = scratch.get_values("evaluation_point",
+                                                 velocity);
+    present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                       velocity);
+    present_pressure_values = scratch.get_values("evaluation_point",
+                                                 pressure);
 
-    // stress form
-    if (this->use_stress_form)
-      scratch.fe_values[velocity].get_function_symmetric_gradients(solution,
-                                                                   scratch.present_sym_velocity_gradients);
+    // assign vector options
+    hydrodynamic_scratch.assign_vector_options_local_cell("evaluation_point",
+                                                          velocity,
+                                                          pressure,
+                                                          this->angular_velocity_ptr,
+                                                          this->body_force_ptr,
+                                                          this->background_velocity_ptr,
+                                                          this->rossby_number,
+                                                          this->froude_number);
+    hydrodynamic_scratch.adjust_velocity_field_local_cell();
 
-    scratch.fe_values[density].get_function_values(solution,
-                                                   scratch.present_density_values);
-    scratch.fe_values[density].get_function_gradients(solution,
-                                                      scratch.present_density_gradients);
 
-    // stabilization related solution values
-    if (this->stabilization & (apply_supg|apply_pspg))
-    {
-      scratch.fe_values[velocity].get_function_laplacians(solution,
-                                                          scratch.present_velocity_laplaceans);
-      scratch.fe_values[pressure].get_function_gradients(solution,
-                                                         scratch.present_pressure_gradients);
 
-      // stress form
-      if (this->use_stress_form)
-      {
-        std::vector<Tensor<3, dim>> present_hessians(scratch.n_q_points);
-        scratch.fe_values[velocity].get_function_hessians(solution,
-                                                          present_hessians);
-
-        std::vector<Tensor<1, dim>> &present_velocity_grad_divergences =
-            strong_form_options.present_velocity_grad_divergences.value();
-        for (std::size_t q=0; q<present_hessians.size(); ++q)
-        {
-          present_velocity_grad_divergences[q] = 0;
-          for (unsigned int d=0; d<dim; ++d)
-            present_velocity_grad_divergences[q] += present_hessians[q][d][d];
-        }
-      }
-    }
-
-    // body force
-    if (this->body_force_ptr)
-    {
-      this->body_force_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                                       *strong_form_options.body_force_values);
-      strong_form_options.froude_number = this->froude_number;
-    }
-
-    // background field
-    if (this->background_velocity_ptr)
-    {
-      this->background_velocity_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                                                *strong_form_options.background_velocity_values);
-      this->background_velocity_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                                   *strong_form_options.background_velocity_gradients);
-    }
+    // solution values
+    const auto &present_density_values = scratch.get_values("evaluation_point",
+                                                            density);
+    auto &present_density_gradients = advection_scratch.present_gradients;
+    present_density_gradients = scratch.get_gradients("evaluation_point",
+                                                      density);
 
     // reference density
     if (reference_density_ptr)
     {
-      reference_density_ptr->gradient_list(scratch.fe_values.get_quadrature_points(),
-                                           *buoyancy_strong_form_options.reference_density_gradients);
+      reference_density_ptr->gradient_list(fe_values.get_quadrature_points(),
+                                           *advection_vector_options.reference_gradients);
 
-      buoyancy_strong_form_options.stratification_number = stratification_number;
+      advection_vector_options.gradient_scaling = stratification_number;
     }
 
     // gravity field
     if (gravity_field_ptr)
     {
-      gravity_field_ptr->value_list(scratch.fe_values.get_quadrature_points(),
-                                    *buoyancy_strong_form_options.gravity_field_values);
+      gravity_field_ptr->value_list(fe_values.get_quadrature_points(),
+                                    *vector_options.gravity_field_values);
 
-      strong_form_options.froude_number = this->froude_number;
+      hydrodynamic_vector_options.froude_number = this->froude_number;
     }
 
     // stabilization
-    if (this->stabilization & (apply_supg|apply_pspg))
-      compute_strong_hydrodynamic_residual(scratch.present_velocity_values,
-                                           scratch.present_velocity_gradients,
-                                           scratch.present_velocity_laplaceans,
-                                           scratch.present_pressure_gradients,
-                                           scratch.present_density_values,
-                                           scratch.present_strong_residuals,
-                                           nu,
-                                           strong_form_options,
-                                           buoyancy_strong_form_options);
-    compute_strong_density_residual(scratch.present_density_gradients,
-                                    scratch.present_velocity_values,
-                                    scratch.present_strong_density_residuals,
-                                    strong_form_options,
-                                    buoyancy_strong_form_options);
+    compute_strong_residuals(scratch,
+                             nu);
 
     cell_momentum_residual = 0;
     cell_mass_residual = 0;
     cell_density_residual = 0;
     cell_volume = 0;
 
-    for (const auto q: scratch.fe_values.quadrature_point_indices())
+    for (const auto q: fe_values.quadrature_point_indices())
     {
-      const double JxW{scratch.fe_values.JxW(q)};
-
-      const double mass_residual{trace(scratch.present_velocity_gradients[q])};
-      const double density_residual{scratch.present_strong_density_residuals[q]};
+      const double mass_residual{trace(present_velocity_gradients[q])};
+      const double density_residual{advection_scratch.present_strong_residuals[q]};
 
       max_mass_residual[0] = std::max(std::abs(mass_residual),
                                       max_mass_residual[0]);
@@ -596,21 +517,21 @@ operator()
       max_density_viscosity[0] = std::max(std::abs(delta_density * density_residual),
                                           max_density_viscosity[0]);
 
-      cell_mass_residual += mass_residual * JxW;
-      cell_density_residual += density_residual * JxW;
+      cell_mass_residual += mass_residual * JxW[q];
+      cell_density_residual += density_residual * JxW[q];
 
-      cell_volume += JxW;
-      volume += JxW;
+      cell_volume += JxW[q];
+      volume += JxW[q];
 
       if (this->stabilization & (apply_supg|apply_pspg))
       {
-        const double momentum_residual{scratch.present_strong_residuals[q].norm()};
+        const double momentum_residual{hydrodynamic_scratch.present_strong_residuals[q].norm()};
 
         max_momentum_residual[0] = std::max(momentum_residual,
                                             max_momentum_residual[0]);
         max_momentum_viscosity[0] = std::max(delta * momentum_residual,
                                              max_momentum_viscosity[0]);
-        cell_momentum_residual += momentum_residual * JxW;
+        cell_momentum_residual += momentum_residual * JxW[q];
       }
 
     } // end loop over cell quadrature points

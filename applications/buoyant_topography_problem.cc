@@ -80,7 +80,7 @@ template <int dim>
 class Problem : public BuoyantHydrodynamicProblem<dim>
 {
 public:
-  Problem(ProblemParameters &parameters);
+  Problem(const ProblemParameters &parameters);
 
 protected:
   virtual void make_grid() override;
@@ -114,7 +114,7 @@ private:
 
 
 template <>
-Problem<2>::Problem(ProblemParameters &parameters)
+Problem<2>::Problem(const ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<2>(parameters),
 traction_evaluation_ptr(
@@ -146,7 +146,12 @@ front_bndry_id(numbers::invalid_boundary_id)
   Assert(reference_density_ptr->gradient(point) * gravity_field_ptr->value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 
-  stabilization_evaluation_ptr->set_stabilization_parameters(parameters.c, parameters.mu, parameters.c_density);
+  const Hydrodynamic::SolverParameters &hydrodynamic_parameters
+    = static_cast<const Hydrodynamic::SolverParameters &>(parameters);
+  const Advection::SolverParameters &advection_parameters
+    = static_cast<const Advection::SolverParameters &>(parameters);
+
+  stabilization_evaluation_ptr->set_stabilization_parameters(hydrodynamic_parameters.c, hydrodynamic_parameters.mu, advection_parameters.c);
   stabilization_evaluation_ptr->set_gravity_field(gravity_field_ptr);
   stabilization_evaluation_ptr->set_reference_density(reference_density_ptr);
 }
@@ -154,7 +159,7 @@ front_bndry_id(numbers::invalid_boundary_id)
 
 
 template <>
-Problem<3>::Problem(ProblemParameters &parameters)
+Problem<3>::Problem(const ProblemParameters &parameters)
 :
 BuoyantHydrodynamicProblem<3>(parameters),
 traction_evaluation_ptr(
@@ -186,7 +191,12 @@ front_bndry_id(numbers::invalid_boundary_id)
   Assert(reference_density_ptr->gradient(point) * gravity_field_ptr->value(point) >= 0.0,
          ExcMessage("Density gradient and gravity field are not co-linear."));
 
-  stabilization_evaluation_ptr->set_stabilization_parameters(parameters.c, parameters.mu, parameters.c_density);
+  const Hydrodynamic::SolverParameters &hydrodynamic_parameters =
+  static_cast<const Hydrodynamic::SolverParameters &>(parameters);
+  const Advection::SolverParameters &advection_parameters =
+  static_cast<const Advection::SolverParameters &>(parameters);
+
+  stabilization_evaluation_ptr->set_stabilization_parameters(hydrodynamic_parameters.c, hydrodynamic_parameters.mu, advection_parameters.c);
   stabilization_evaluation_ptr->set_gravity_field(gravity_field_ptr);
   stabilization_evaluation_ptr->set_reference_density(reference_density_ptr);
 }
@@ -204,7 +214,7 @@ void Problem<dim>::set_gravity_field()
 template <int dim>
 void Problem<dim>::set_reference_density()
 {
-  this->solver.set_reference_density(reference_density_ptr);
+  this->solver.set_reference_field(reference_density_ptr);
 }
 
 
@@ -280,7 +290,7 @@ void Problem<dim>::set_boundary_conditions()
 
   VectorBoundaryConditions<dim> &velocity_bcs = this->solver.get_velocity_bcs();
   ScalarBoundaryConditions<dim> &pressure_bcs = this->solver.get_pressure_bcs();
-  ScalarBoundaryConditions<dim> &density_bcs = this->solver.get_density_bcs();
+  ScalarBoundaryConditions<dim> &density_bcs = this->solver.get_bcs();
 
   velocity_bcs.clear();
   pressure_bcs.clear();

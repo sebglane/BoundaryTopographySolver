@@ -10,75 +10,49 @@
 namespace BuoyantHydrodynamic
 {
 
-OptionalArguments::OptionalArguments()
+template<int dim>
+ScalarOptions<dim>::ScalarOptions()
 :
-stratification_number()
-{}
-
-
-
-OptionalArguments::OptionalArguments(const OptionalArguments &other)
-:
-stratification_number(other.stratification_number)
+gravity_field_value()
 {}
 
 
 
 template<int dim>
-OptionalArgumentsWeakForm<dim>::OptionalArgumentsWeakForm()
+ScalarOptions<dim>::ScalarOptions
+(const ScalarOptions<dim> &other)
 :
-OptionalArguments(),
-gravity_field_value(),
-reference_density_gradient()
+gravity_field_value(other.gravity_field_value)
 {}
 
 
 
 template<int dim>
-OptionalArgumentsWeakForm<dim>::OptionalArgumentsWeakForm
-(const OptionalArgumentsWeakForm<dim> &other)
+VectorOptions<dim>::VectorOptions
+(const unsigned int n_q_points,
+ const bool allocate_gravity_field)
 :
-OptionalArguments(other),
-gravity_field_value(other.gravity_field_value),
-reference_density_gradient(other.reference_density_gradient)
-{}
-
-
-
-template<int dim>
-OptionalArgumentsStrongForm<dim>::OptionalArgumentsStrongForm
-(const bool allocate_gravity_field,
- const bool allocate_reference_density,
- const unsigned int n_q_points)
-:
-OptionalArguments(),
-gravity_field_values(),
-reference_density_gradients()
+gravity_field_values()
 {
   if (allocate_gravity_field)
     gravity_field_values.emplace(n_q_points);
-
-  if (allocate_reference_density)
-    reference_density_gradients.emplace(n_q_points);
 }
 
 
 
 
 template<int dim>
-OptionalArgumentsStrongForm<dim>::OptionalArgumentsStrongForm(const OptionalArgumentsStrongForm<dim> &other)
+VectorOptions<dim>::VectorOptions(const VectorOptions<dim> &other)
 :
-OptionalArguments(other),
-gravity_field_values(other.gravity_field_values),
-reference_density_gradients(other.reference_density_gradients)
+gravity_field_values(other.gravity_field_values)
 {}
 
 // explicit instantiations
-template struct OptionalArgumentsWeakForm<2>;
-template struct OptionalArgumentsWeakForm<3>;
+template struct ScalarOptions<2>;
+template struct ScalarOptions<3>;
 
-template struct OptionalArgumentsStrongForm<2>;
-template struct OptionalArgumentsStrongForm<3>;
+template struct VectorOptions<2>;
+template struct VectorOptions<3>;
 
 }  // namespace BuoyantHydrodynamic
 

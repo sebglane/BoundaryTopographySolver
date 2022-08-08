@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         build_type: ["Release", "Debug"]
-        dealii_version: ["v9.3.0"]
+        dealii_version: ["v9.4.0"]
     
     # Run steps inside dealii container
     container:
@@ -50,8 +50,8 @@ jobs:
           pr-message: 'Hello, thanks for opening your first Pull Request and taking the time to improve this library.'
 
       # Checks-out repository with branch of triggering commit
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3.0.1
 
       # Compile the library
       - name: Compile library (${{ matrix.build_type }}-deal.ii:${{ matrix.dealii_version }})

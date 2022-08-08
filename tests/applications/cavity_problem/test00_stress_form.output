@@ -39,6 +39,7 @@ Solving cavity problem
     Set boundary conditions...
     Number of active cells: 256
     Number of total degrees of freedom: 2467
+    Apply mean value constraint...
 Cycle 0:
 Initial residual: 3.184841e-02
 Iteration:   0, Current residual: 1.4511e-02 (Tolerance: 3.1848e-11), Residual components: 1.4511e-02, 8.2019e-17, 
@@ -53,6 +54,7 @@ Mesh refinement...
     Number of cells set for coarsening: 0
     Number of active cells: 364
     Number of total degrees of freedom: 3579
+    Apply mean value constraint...
 Cycle 1:
 Initial residual: 1.1020e-02
 Iteration:   0, Current residual: 1.1664e-03 (Tolerance: 1.1020e-11), Residual components: 1.1664e-03, 1.4679e-16, 
@@ -65,6 +67,7 @@ Mesh refinement...
     Number of cells set for coarsening: 0
     Number of active cells: 625
     Number of total degrees of freedom: 6213
+    Apply mean value constraint...
 Cycle 2:
 Initial residual: 8.1990e-03
 Iteration:   0, Current residual: 5.6769e-04 (Tolerance: 8.1990e-12), Residual components: 5.6769e-04, 4.0339e-16, 
@@ -76,3 +79,4 @@ Mesh refinement...
     Number of cells set for coarsening: 0
     Number of active cells: 1099
     Number of total degrees of freedom: 10826
+    Apply mean value constraint...

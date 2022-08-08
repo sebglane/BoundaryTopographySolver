@@ -79,16 +79,29 @@ void CavityProblem<dim>::set_boundary_conditions()
   velocity_bcs.extract_boundary_ids();
   pressure_bcs.extract_boundary_ids();
 
-  velocity_bcs.set_dirichlet_bc(left_bndry_id);
-  velocity_bcs.set_dirichlet_bc(right_bndry_id);
-  velocity_bcs.set_dirichlet_bc(bottom_bndry_id);
-
   std::vector<double> value(dim);
   value[0] = 1.0;
   const std::shared_ptr<Function<dim>> velocity_top_bndry =
       std::make_shared<Functions::ConstantFunction<dim>>(value);
 
   velocity_bcs.set_dirichlet_bc(top_bndry_id, velocity_top_bndry);
+
+  if (dim == 2)
+  {
+    velocity_bcs.set_dirichlet_bc(left_bndry_id);
+    velocity_bcs.set_dirichlet_bc(right_bndry_id);
+    velocity_bcs.set_dirichlet_bc(bottom_bndry_id);
+  }
+  else if (dim == 3)
+  {
+    velocity_bcs.set_dirichlet_bc(left_bndry_id);
+    velocity_bcs.set_dirichlet_bc(right_bndry_id);
+    velocity_bcs.set_dirichlet_bc(front_bndry_id);
+    velocity_bcs.set_dirichlet_bc(back_bndry_id);
+    velocity_bcs.set_dirichlet_bc(bottom_bndry_id);
+  }
+
+  pressure_bcs.set_datum_at_boundary();
 
   velocity_bcs.close();
   pressure_bcs.close();
