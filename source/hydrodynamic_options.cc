@@ -11,7 +11,7 @@ namespace Hydrodynamic
 {
 
 template<int dim>
-ScalarOptions<dim>::ScalarOptions(const bool use_stress_form)
+ScalarOptions<dim>::ScalarOptions()
 :
 angular_velocity(),
 rossby_number()

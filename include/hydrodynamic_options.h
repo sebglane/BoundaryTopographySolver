@@ -24,7 +24,7 @@ using namespace dealii;
 template<int dim>
 struct ScalarOptions
 {
-  ScalarOptions(const bool use_stress_from);
+  ScalarOptions();
 
   ScalarOptions(const ScalarOptions<dim> &other);
 
