@@ -40,6 +40,8 @@ vector_options(quadrature.size(),
 phi(fe.n_dofs_per_cell()),
 grad_phi(fe.n_dofs_per_cell()),
 advection_field_values(quadrature.size()),
+present_values(quadrature.size()),
+present_gradients(quadrature.size()),
 present_strong_residuals(quadrature.size())
 {}
 
@@ -79,6 +81,8 @@ vector_options(other.vector_options),
 phi(other.phi),
 grad_phi(other.grad_phi),
 advection_field_values(other.advection_field_values),
+present_values(other.present_values),
+present_gradients(other.present_gradients),
 present_strong_residuals(other.present_strong_residuals)
 {}
 

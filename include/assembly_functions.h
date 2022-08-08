@@ -11,10 +11,10 @@
 #include <deal.II/base/tensor.h>
 
 #include <advection_assembly_data.h>
-#include <buoyant_hydrodynamic_assembly_data.h>
-#include <hydrodynamic_assembly_data.h>
 #include <angular_velocity.h>
+#include <buoyant_hydrodynamic_assembly_data.h>
 #include <buoyant_hydrodynamic_options.h>
+#include <hydrodynamic_assembly_data.h>
 #include <hydrodynamic_options.h>
 
 #include <optional>
@@ -39,7 +39,6 @@ double compute_matrix
 template <int dim>
 double compute_rhs
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const double       present_pressure_value,
  const unsigned int test_function_index,
  const unsigned int quadrature_point_index,
  const double       nu,
@@ -51,7 +50,6 @@ double compute_rhs
 template <int dim>
 double compute_rhs
 (const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const double       present_pressure_value,
  const unsigned int test_function_index,
  const unsigned int quadrature_point_index,
  const double       nu,
@@ -64,6 +62,9 @@ template <int dim>
 void compute_strong_residual
 (AssemblyData::Matrix::ScratchData<dim> &scratch,
  const double nu);
+
+
+
 template <int dim>
 void compute_strong_residual
 (AssemblyData::RightHandSide::ScratchData<dim> &scratch,
@@ -81,7 +82,6 @@ using namespace dealii;
 template <int dim>
 double compute_matrix
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const Tensor<1, dim>  &present_density_gradient,
  const unsigned int test_function_index,
  const unsigned int trial_function_index,
  const unsigned int quadrature_point_index,
@@ -97,21 +97,18 @@ double compute_matrix
 template <int dim>
 double compute_rhs
 (const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const Tensor<1,dim> &present_density_gradient,
- const double       present_density_value,
- const double       present_pressure_value,
  const unsigned int test_function_index,
  const unsigned int quadrature_point_index,
  const double       nu,
  const double       mu,
  const double       delta,
  const double       delta_density);
+
+
+
 template <int dim>
 double compute_rhs
 (const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const Tensor<1,dim> &present_density_gradient,
- const double       present_density_value,
- const double       present_pressure_value,
  const unsigned int test_function_index,
  const unsigned int quadrature_point_index,
  const double       nu,
@@ -124,14 +121,13 @@ double compute_rhs
 template <int dim>
 void compute_strong_residuals
 (AssemblyData::Matrix::ScratchData<dim> &scratch,
- const std::vector<Tensor<1, dim>> &present_density_gradients,
- const std::vector<double>         &present_density_values,
  const double nu);
+
+
+
 template <int dim>
 void compute_strong_residuals
 (AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const std::vector<Tensor<1, dim>> &present_density_gradients,
- const std::vector<double>         &present_density_values,
  const double nu);
 
 
@@ -169,7 +165,6 @@ double compute_matrix
 template <int dim>
 double compute_rhs
 (const AssemblyData::ScratchData<dim> &scratch,
- const Tensor<1, dim>  &present_gradient,
  const unsigned int     test_function_index,
  const unsigned int     quadrature_point_index,
  const double           delta);
@@ -186,8 +181,7 @@ double compute_rhs
  */
 template<int dim>
 void compute_strong_residual
-(const std::vector<Tensor<1, dim>> &present_gradients,
- AssemblyData::ScratchData<dim> &scratch);
+(AssemblyData::ScratchData<dim> &scratch);
 
 
 

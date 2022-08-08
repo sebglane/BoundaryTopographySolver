@@ -104,9 +104,10 @@ public:
   // stabilization related shape functions
   std::vector<Tensor<1, dim>> grad_phi_pressure;
 
-  // present solution values which cannot be referenced
+  // present solution values
   std::vector<Tensor<1, dim>> present_velocity_values;
   std::vector<Tensor<2, dim>> present_velocity_gradients;
+  std::vector<double>         present_pressure_values;
 
   // stress tensor related shape functions
   std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;
@@ -203,9 +204,10 @@ public:
   // stabilization related shape functions
   std::vector<Tensor<1, dim>> grad_phi_pressure;
 
-  // present solution values which cannot be referenced
+  // present solution values
   std::vector<Tensor<1, dim>> present_velocity_values;
   std::vector<Tensor<2, dim>> present_velocity_gradients;
+  std::vector<double>         present_pressure_values;
 
   // stress tensor related shape functions
   std::vector<SymmetricTensor<2, dim>>  sym_grad_phi_velocity;

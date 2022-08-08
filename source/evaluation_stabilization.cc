@@ -177,10 +177,13 @@ operator()
     // solution values
     auto &present_velocity_values = scratch.present_velocity_values;
     auto &present_velocity_gradients = scratch.present_velocity_gradients;
+    auto &present_pressure_values = scratch.present_pressure_values;
     present_velocity_values = scratch.get_values("evaluation_point",
                                                  velocity);
     present_velocity_gradients = scratch.get_gradients("evaluation_point",
                                                        velocity);
+    present_pressure_values = scratch.get_values("evaluation_point",
+                                                 pressure);
 
     // assign vector options
     scratch.assign_vector_options_local_cell("evaluation_point",
@@ -445,12 +448,15 @@ operator()
 
 
     // solution values
-    auto &present_velocity_values = hydrodynamic_scratch.present_velocity_values;
-    auto &present_velocity_gradients = hydrodynamic_scratch.present_velocity_gradients;
+    auto &present_velocity_values = scratch.present_velocity_values;
+    auto &present_velocity_gradients = scratch.present_velocity_gradients;
+    auto &present_pressure_values = scratch.present_pressure_values;
     present_velocity_values = scratch.get_values("evaluation_point",
                                                  velocity);
     present_velocity_gradients = scratch.get_gradients("evaluation_point",
                                                        velocity);
+    present_pressure_values = scratch.get_values("evaluation_point",
+                                                 pressure);
 
     // assign vector options
     hydrodynamic_scratch.assign_vector_options_local_cell("evaluation_point",
@@ -468,8 +474,9 @@ operator()
     // solution values
     const auto &present_density_values = scratch.get_values("evaluation_point",
                                                             density);
-    const auto &present_density_gradients = scratch.get_gradients("evaluation_point",
-                                                                  density);
+    auto &present_density_gradients = advection_scratch.present_gradients;
+    present_density_gradients = scratch.get_gradients("evaluation_point",
+                                                      density);
 
     // reference density
     if (reference_density_ptr)
@@ -491,8 +498,6 @@ operator()
 
     // stabilization
     compute_strong_residuals(scratch,
-                             present_density_gradients,
-                             present_density_values,
                              nu);
 
     cell_momentum_residual = 0;

@@ -51,16 +51,17 @@ assemble_system_local_cell
   // solution values
   auto &present_velocity_values = hydrodynamic_scratch.present_velocity_values;
   auto &present_velocity_gradients = hydrodynamic_scratch.present_velocity_gradients;
+  auto &present_pressure_values = hydrodynamic_scratch.present_pressure_values;
   present_velocity_values = scratch.get_values("evaluation_point",
                                                velocity);
   present_velocity_gradients = scratch.get_gradients("evaluation_point",
                                                      velocity);
-  const auto &present_pressure_values = scratch.get_values("evaluation_point",
-                                                           pressure);
+  present_pressure_values = scratch.get_values("evaluation_point",
+                                               pressure);
   const auto &present_density_values = scratch.get_values("evaluation_point",
                                                           density);
-  const auto &present_density_gradients = scratch.get_gradients("evaluation_point",
-                                                                density);
+  advection_scratch.present_gradients = scratch.get_gradients("evaluation_point",
+                                                              density);
 
   // assign vector options
   hydrodynamic_scratch.assign_vector_options_local_cell("evaluation_point",
@@ -96,8 +97,6 @@ assemble_system_local_cell
 
   // stabilization
   compute_strong_residuals(scratch,
-                           present_density_gradients,
-                           present_density_values,
                            nu);
 
   for (const auto q: fe_values.quadrature_point_indices())
@@ -148,7 +147,6 @@ assemble_system_local_cell
               hydrodynamic_scratch.grad_div_phi_velocity[j];
 
         const double matrix{compute_matrix(scratch,
-                                           present_density_gradients[q],
                                            i,
                                            j,
                                            q,
@@ -163,9 +161,6 @@ assemble_system_local_cell
       }
 
       const double rhs{compute_rhs(scratch,
-                                   present_density_gradients[q],
-                                   present_density_values[q],
-                                   present_pressure_values[q],
                                    i,
                                    q,
                                    nu,
@@ -217,8 +212,8 @@ assemble_system_local_boundary
     // evaluate solution
     scratch.extract_local_dof_values("evaluation_point",
                                      this->evaluation_point);
-    const auto &present_values  = scratch.get_values("evaluation_point",
-                                                     density);
+    const auto &present_values = scratch.get_values("evaluation_point",
+                                                    density);
     const auto &present_velocity_values = scratch.get_values("evaluation_point",
                                                              velocity);
 
