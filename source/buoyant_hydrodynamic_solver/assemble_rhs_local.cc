@@ -56,6 +56,7 @@ assemble_rhs_local_cell
                                            this->body_force_ptr,
                                            this->gravity_field_ptr,
                                            this->background_velocity_ptr,
+                                           this->source_term_ptr,
                                            this->reference_field_ptr,
                                            this->rossby_number,
                                            this->froude_number,

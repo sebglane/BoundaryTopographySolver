@@ -17,21 +17,6 @@ namespace BuoyantHydrodynamic
 
 using namespace dealii;
 
-
-template<int dim>
-struct ScalarOptions
-{
-  ScalarOptions();
-
-  ScalarOptions(const ScalarOptions<dim> &other);
-
-  // gravity term
-  std::optional<Tensor<1, dim>> gravity_field_value;
-
-};
-
-
-
 template<int dim>
 struct VectorOptions
 {

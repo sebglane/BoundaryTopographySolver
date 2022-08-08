@@ -108,8 +108,7 @@ ScratchData<dim>::ScratchData(const ScratchData<dim> &other)
 dealii::MeshWorker::ScratchData<dim>(other),
 Hydrodynamic::AssemblyData::Matrix::ScratchData<dim>(other),
 Advection::AssemblyData::ScratchData<dim>(other),
-vector_options(other.vector_options),
-scalar_options(other.scalar_options)
+vector_options(other.vector_options)
 {}
 
 
@@ -124,6 +123,7 @@ assign_vector_options_local_cell
  const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr,
  const std::shared_ptr<const TensorFunction<1,dim>>         &gravity_field_ptr,
  const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr,
+ const std::shared_ptr<const Function<dim>>                 &source_term_ptr,
  const std::shared_ptr<const Function<dim>>                 &reference_field_ptr,
  const double                                                rossby_number,
  const double                                                froude_number,
@@ -140,7 +140,7 @@ assign_vector_options_local_cell
                                                      froude_number);
 
   Advection::AssemblyData::Matrix::
-  ScratchData<dim>::assign_vector_options_local_cell(nullptr,
+  ScratchData<dim>::assign_vector_options_local_cell(source_term_ptr,
                                                      nullptr,
                                                      reference_field_ptr,
                                                      stratification_number);
@@ -224,8 +224,7 @@ Advection::AssemblyData::ScratchData<dim>(mapping,
                                           false,
                                           allocate_reference_gradient),
 vector_options(quadrature.size(),
-               allocate_gravity_field),
-scalar_options()
+               allocate_gravity_field)
 {}
 
 
@@ -273,8 +272,7 @@ ScratchData<dim>::ScratchData(const ScratchData<dim> &other)
 dealii::MeshWorker::ScratchData<dim>(other),
 Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim>(other),
 Advection::AssemblyData::ScratchData<dim>(other),
-vector_options(other.vector_options),
-scalar_options(other.scalar_options)
+vector_options(other.vector_options)
 {}
 
 
@@ -289,6 +287,7 @@ assign_vector_options_local_cell
  const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr,
  const std::shared_ptr<const TensorFunction<1,dim>>         &gravity_field_ptr,
  const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr,
+ const std::shared_ptr<const Function<dim>>                 &source_term_ptr,
  const std::shared_ptr<const Function<dim>>                 &reference_field_ptr,
  const double                                                rossby_number,
  const double                                                froude_number,
@@ -305,7 +304,7 @@ assign_vector_options_local_cell
                                                      froude_number);
 
   Advection::AssemblyData::RightHandSide::
-  ScratchData<dim>::assign_vector_options_local_cell(nullptr,
+  ScratchData<dim>::assign_vector_options_local_cell(source_term_ptr,
                                                      nullptr,
                                                      reference_field_ptr,
                                                      stratification_number);
