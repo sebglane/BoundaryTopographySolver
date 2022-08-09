@@ -30,7 +30,6 @@ MeshWorker::ScratchData<dim>(mapping,
                              update_flags,
                              face_quadrature,
                              face_update_flags),
-scalar_options(),
 vector_options(quadrature.size(),
                face_quadrature.size(),
                allocate_source_term,
@@ -76,7 +75,6 @@ template <int dim>
 ScratchData<dim>::ScratchData(const ScratchData<dim>  &other)
 :
 MeshWorker::ScratchData<dim>(other),
-scalar_options(other.scalar_options),
 vector_options(other.vector_options),
 phi(other.phi),
 grad_phi(other.grad_phi),
@@ -133,7 +131,6 @@ assign_vector_options_local_cell
     reference_field_ptr->gradient_list(this->get_quadrature_points(),
                                        *vector_options.reference_gradients);
     vector_options.gradient_scaling = gradient_scaling;
-    scalar_options.gradient_scaling = gradient_scaling;
   }
 }
 
@@ -162,19 +159,6 @@ assign_vector_options_local_boundary
   }
 }
 
-
-
-template <int dim>
-void ScratchData<dim>::
-assign_scalar_options_local_cell
-(const unsigned int q)
-{
-  if (vector_options.source_term_values)
-    scalar_options.source_term_value = vector_options.source_term_values->at(q);
-
-  if (vector_options.reference_gradients)
-    scalar_options.reference_gradient = vector_options.reference_gradients->at(q);
-}
 
 
 

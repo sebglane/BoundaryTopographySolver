@@ -16,36 +16,8 @@ namespace Advection {
 
 using namespace dealii;
 
-struct OptionsBase
-{
-  OptionsBase();
-
-  OptionsBase(const OptionsBase &other);
-
-  // scale factor of the gradient of the reference field
-  std::optional<double> gradient_scaling;
-};
-
-
-
 template<int dim>
-struct ScalarOptions : OptionsBase
-{
-  ScalarOptions();
-
-  ScalarOptions(const ScalarOptions<dim> &other);
-
-  // source term
-  std::optional<double>           source_term_value;
-
-  // reference gradient
-  std::optional<Tensor<1, dim>>   reference_gradient;
-};
-
-
-
-template<int dim>
-struct VectorOptions : OptionsBase
+struct VectorOptions
 {
   VectorOptions(
       const unsigned int n_q_points,
@@ -56,6 +28,9 @@ struct VectorOptions : OptionsBase
       const bool         allocate_reference_gradient = false);
 
   VectorOptions(const VectorOptions<dim> &other);
+
+  // scale factor of the gradient of the reference field
+  std::optional<double>                       gradient_scaling;
 
   // source term
   std::optional<std::vector<double>>          source_term_values;

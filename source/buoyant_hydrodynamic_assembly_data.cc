@@ -108,11 +108,69 @@ ScratchData<dim>::ScratchData(const ScratchData<dim> &other)
 dealii::MeshWorker::ScratchData<dim>(other),
 Hydrodynamic::AssemblyData::Matrix::ScratchData<dim>(other),
 Advection::AssemblyData::ScratchData<dim>(other),
-vector_options(other.vector_options),
-scalar_options(other.scalar_options)
+vector_options(other.vector_options)
 {}
 
 
+
+template <int dim>
+void ScratchData<dim>::
+assign_vector_options_local_cell
+(const std::string                                          &name,
+ const FEValuesExtractors::Vector                           &velocity,
+ const FEValuesExtractors::Scalar                           &pressure,
+ const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &gravity_field_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr,
+ const std::shared_ptr<const Function<dim>>                 &source_term_ptr,
+ const std::shared_ptr<const Function<dim>>                 &reference_field_ptr,
+ const double                                                rossby_number,
+ const double                                                froude_number,
+ const double                                                stratification_number)
+{
+  Hydrodynamic::AssemblyData::Matrix::
+  ScratchData<dim>::assign_vector_options_local_cell(name,
+                                                     velocity,
+                                                     pressure,
+                                                     angular_velocity_ptr,
+                                                     body_force_ptr,
+                                                     background_velocity_ptr,
+                                                     rossby_number,
+                                                     froude_number);
+
+  Advection::AssemblyData::Matrix::
+  ScratchData<dim>::assign_vector_options_local_cell(source_term_ptr,
+                                                     nullptr,
+                                                     reference_field_ptr,
+                                                     stratification_number);
+
+  this->adjust_velocity_field_local_cell();
+  this->advection_field_values = this->present_velocity_values;
+
+  // gravity field
+  if (gravity_field_ptr != nullptr)
+  {
+    Assert(froude_number > 0.0,
+           ExcLowerRangeType<double>(froude_number, 0.0));
+
+    Assert(this->vector_options.gravity_field_values,
+           ExcMessage("Gravity field values are not allocated in options."));
+    AssertDimension(this->vector_options.gravity_field_values->size(),
+                    this->get_current_fe_values().n_quadrature_points);
+
+    gravity_field_ptr->value_list(this->get_quadrature_points(),
+                                  *vector_options.gravity_field_values);
+
+    this->
+    Hydrodynamic::AssemblyData::Matrix::
+    ScratchData<dim>::vector_options.froude_number = froude_number;
+  }
+}
+
+
+
+// explicit instantiations
 template class ScratchData<2>;
 template class ScratchData<3>;
 
@@ -166,8 +224,7 @@ Advection::AssemblyData::ScratchData<dim>(mapping,
                                           false,
                                           allocate_reference_gradient),
 vector_options(quadrature.size(),
-               allocate_gravity_field),
-scalar_options()
+               allocate_gravity_field)
 {}
 
 
@@ -215,10 +272,71 @@ ScratchData<dim>::ScratchData(const ScratchData<dim> &other)
 dealii::MeshWorker::ScratchData<dim>(other),
 Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim>(other),
 Advection::AssemblyData::ScratchData<dim>(other),
-vector_options(other.vector_options),
-scalar_options(other.scalar_options)
+vector_options(other.vector_options)
 {}
 
+
+
+template <int dim>
+void ScratchData<dim>::
+assign_vector_options_local_cell
+(const std::string                                          &name,
+ const FEValuesExtractors::Vector                           &velocity,
+ const FEValuesExtractors::Scalar                           &pressure,
+ const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &gravity_field_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr,
+ const std::shared_ptr<const Function<dim>>                 &source_term_ptr,
+ const std::shared_ptr<const Function<dim>>                 &reference_field_ptr,
+ const double                                                rossby_number,
+ const double                                                froude_number,
+ const double                                                stratification_number)
+{
+  Hydrodynamic::AssemblyData::RightHandSide::
+  ScratchData<dim>::assign_vector_options_local_cell(name,
+                                                     velocity,
+                                                     pressure,
+                                                     angular_velocity_ptr,
+                                                     body_force_ptr,
+                                                     background_velocity_ptr,
+                                                     rossby_number,
+                                                     froude_number);
+
+  Advection::AssemblyData::RightHandSide::
+  ScratchData<dim>::assign_vector_options_local_cell(source_term_ptr,
+                                                     nullptr,
+                                                     reference_field_ptr,
+                                                     stratification_number);
+
+  this->adjust_velocity_field_local_cell();
+  this->advection_field_values = this->present_velocity_values;
+
+  // gravity field
+  if (gravity_field_ptr != nullptr)
+  {
+    Assert(froude_number > 0.0,
+           ExcLowerRangeType<double>(froude_number, 0.0));
+
+    Assert(this->vector_options.gravity_field_values,
+           ExcMessage("Gravity field values are not allocated in options."));
+    AssertDimension(this->vector_options.gravity_field_values->size(),
+                    this->get_current_fe_values().n_quadrature_points);
+
+
+    gravity_field_ptr->value_list(this->get_quadrature_points(),
+                                  *vector_options.gravity_field_values);
+
+    this->
+    Hydrodynamic::AssemblyData::RightHandSide::
+    ScratchData<dim>::vector_options.froude_number
+    = froude_number;
+  }
+}
+
+
+
+// explicit instantiations
 template class ScratchData<2>;
 template class ScratchData<3>;
 

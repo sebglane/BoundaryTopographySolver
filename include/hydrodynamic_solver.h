@@ -243,28 +243,27 @@ private:
   (const typename DoFHandler<dim>::active_cell_iterator  &cell,
    AssemblyData::Matrix::ScratchData<dim>                &scratch,
    MeshWorker::CopyData<1,1,1>                           &data,
-   const bool                                             use_newton_linearization,
-   const bool                                             use_stress_form) const;
+   const bool                                             use_newton_linearization) const;
 
+protected:
   void assemble_system_local_boundary
   (const typename DoFHandler<dim>::active_cell_iterator  &cell,
    const unsigned int                                     face_number,
    AssemblyData::Matrix::ScratchData<dim>                &scratch,
-   MeshWorker::CopyData<1,1,1>                           &data,
-   const bool                                             use_stress_form) const;
+   MeshWorker::CopyData<1,1,1>                           &data) const;
 
+private:
   void assemble_rhs_local_cell
   (const typename DoFHandler<dim>::active_cell_iterator  &cell,
    AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
-   MeshWorker::CopyData<0,1,1>                           &data,
-   const bool                                             use_stress_form) const;
+   MeshWorker::CopyData<0,1,1>                           &data) const;
 
+protected:
   void assemble_rhs_local_boundary
   (const typename DoFHandler<dim>::active_cell_iterator  &cell,
    const unsigned int                                     face_number,
    AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
-   MeshWorker::CopyData<0,1,1>                           &data,
-   const bool                                             use_stress_form) const;
+   MeshWorker::CopyData<0,1,1>                           &data) const;
 
 protected:
   VectorBoundaryConditions<dim> velocity_boundary_conditions;

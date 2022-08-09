@@ -17,8 +17,7 @@ void Solver<dim, TriangulationType>::
 assemble_rhs_local_cell
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
- MeshWorker::CopyData<0,1,1>                           &data,
- const bool                                             /* use_stress_form */) const
+ MeshWorker::CopyData<0,1,1>                           &data) const
 {
   data.vectors[0] = 0;
   cell->get_dof_indices(data.local_dof_indices[0]);
@@ -38,15 +37,12 @@ assemble_rhs_local_cell
   const double delta{c * std::pow(cell->diameter(), 2)};
 
   // solution values
-  auto &present_velocity_values = scratch.present_velocity_values;
-  auto &present_velocity_gradients = scratch.present_velocity_gradients;
-  auto &present_pressure_values = scratch.present_pressure_values;
-  present_velocity_values = scratch.get_values("evaluation_point",
-                                               velocity);
-  present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                     velocity);
-  present_pressure_values = scratch.get_values("evaluation_point",
-                                               pressure);
+  scratch.present_velocity_values = scratch.get_values("evaluation_point",
+                                                       velocity);
+  scratch.present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                             velocity);
+  scratch.present_pressure_values = scratch.get_values("evaluation_point",
+                                                       pressure);
 
   // assign vector options
   scratch.assign_vector_options_local_cell("evaluation_point",
@@ -75,16 +71,8 @@ assemble_rhs_local_cell
     // assign optional shape functions
     scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
 
-    // assign scalar options
-    scratch.assign_scalar_options_local_cell(q);
-
     for (const auto i: fe_values.dof_indices())
     {
-      // stress form
-      if (scratch.scalar_options.use_stress_form)
-        scratch.scalar_options.velocity_test_function_symmetric_gradient =
-            scratch.sym_grad_phi_velocity[i];
-
       const double rhs{compute_rhs(scratch,
                                    i,
                                    q,
@@ -106,8 +94,7 @@ assemble_rhs_local_boundary
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  const unsigned int                                     face_number,
  AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
- MeshWorker::CopyData<0,1,1>                           &data,
- const bool                                             /* use_stress_form */) const
+ MeshWorker::CopyData<0,1,1>                           &data) const
 {
   const FEValuesExtractors::Vector  velocity(velocity_fe_index);
   const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
@@ -117,7 +104,7 @@ assemble_rhs_local_boundary
   const typename VectorBoundaryConditions<dim>::NeumannBCMapping
   &neumann_bcs = velocity_boundary_conditions.neumann_bcs;
 
-  // Neumann boundary condition
+  // Traction boundary conditions
   if (!neumann_bcs.empty())
     if (neumann_bcs.find(boundary_id) != neumann_bcs.end())
     {
@@ -150,7 +137,7 @@ assemble_rhs_local_boundary
       } // loop over face quadrature points
     }
 
-  // unconstrained boundary condition
+  // Traction-free boundary conditions
   if (include_boundary_stress_terms)
     if (std::find(boundary_stress_ids.begin(),
                   boundary_stress_ids.end(),
@@ -201,16 +188,14 @@ Solver<2>::
 assemble_rhs_local_cell
 (const typename DoFHandler<2>::active_cell_iterator  &cell,
  AssemblyData::RightHandSide::ScratchData<2>         &scratch,
- MeshWorker::CopyData<0,1,1>                         &data,
- const bool                                           use_stress_form) const;
+ MeshWorker::CopyData<0,1,1>                         &data) const;
 template
 void
 Solver<3>::
 assemble_rhs_local_cell
 (const typename DoFHandler<3>::active_cell_iterator  &cell,
  AssemblyData::RightHandSide::ScratchData<3>         &scratch,
- MeshWorker::CopyData<0,1,1>                         &data,
- const bool                                           use_stress_form) const;
+ MeshWorker::CopyData<0,1,1>                         &data) const;
 
 template
 void
@@ -219,8 +204,7 @@ assemble_rhs_local_boundary
 (const typename DoFHandler<2>::active_cell_iterator  &cell,
  const unsigned int                                   face_number,
  AssemblyData::RightHandSide::ScratchData<2>         &scratch,
- MeshWorker::CopyData<0,1,1>                         &data,
- const bool                                           use_stress_form) const;
+ MeshWorker::CopyData<0,1,1>                         &data) const;
 template
 void
 Solver<3>::
@@ -228,8 +212,7 @@ assemble_rhs_local_boundary
 (const typename DoFHandler<3>::active_cell_iterator  &cell,
  const unsigned int                                   face_number,
  AssemblyData::RightHandSide::ScratchData<3>         &scratch,
- MeshWorker::CopyData<0,1,1>                         &data,
- const bool                                           use_stress_form) const;
+ MeshWorker::CopyData<0,1,1>                         &data) const;
 
 }  // namespace Hydrodynamic
 

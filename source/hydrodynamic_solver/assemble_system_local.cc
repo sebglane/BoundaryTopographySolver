@@ -20,8 +20,7 @@ assemble_system_local_cell
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::Matrix::ScratchData<dim>                &scratch,
  MeshWorker::CopyData<1,1,1>                           &data,
- const bool                                             use_newton_linearization,
- const bool                                             /* use_stress_form */) const
+ const bool                                             use_newton_linearization) const
 {
   data.matrices[0] = 0;
   data.vectors[0] = 0;
@@ -42,15 +41,12 @@ assemble_system_local_cell
   const double delta{c * std::pow(cell->diameter(), 2)};
 
   // solution values
-  auto &present_velocity_values = scratch.present_velocity_values;
-  auto &present_velocity_gradients = scratch.present_velocity_gradients;
-  auto &present_pressure_values = scratch.present_pressure_values;
-  present_velocity_values = scratch.get_values("evaluation_point",
-                                               velocity);
-  present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                     velocity);
-  present_pressure_values = scratch.get_values("evaluation_point",
-                                               pressure);
+  scratch.present_velocity_values = scratch.get_values("evaluation_point",
+                                                       velocity);
+  scratch.present_velocity_gradients = scratch.get_gradients("evaluation_point",
+                                                             velocity);
+  scratch.present_pressure_values = scratch.get_values("evaluation_point",
+                                                       pressure);
 
   // assign vector options
   scratch.assign_vector_options_local_cell("evaluation_point",
@@ -79,28 +75,10 @@ assemble_system_local_cell
     // assign optional shape functions
     scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
 
-    // assign scalar options
-    scratch.assign_scalar_options_local_cell(q);
-
     for (const auto i: fe_values.dof_indices())
     {
-      // stress form
-      if (scratch.scalar_options.use_stress_form)
-        scratch.scalar_options.velocity_test_function_symmetric_gradient =
-            scratch.sym_grad_phi_velocity[i];
-
       for (const auto j: fe_values.dof_indices())
       {
-        // stress form
-        if (scratch.scalar_options.use_stress_form)
-        {
-          scratch.scalar_options.velocity_trial_function_symmetric_gradient =
-            scratch.sym_grad_phi_velocity[j];
-          if (stabilization & (apply_supg|apply_pspg))
-            scratch.scalar_options.velocity_trial_function_grad_divergence =
-              scratch.grad_div_phi_velocity[j];
-        }
-
         const double matrix{compute_matrix(scratch,
                                            i,
                                            j,
@@ -112,7 +90,6 @@ assemble_system_local_cell
 
         data.matrices[0](i, j) +=  matrix * JxW[q];
       }
-
 
       const double rhs{compute_rhs(scratch,
                                    i,
@@ -135,8 +112,7 @@ assemble_system_local_boundary
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  const unsigned int                                     face_number,
  AssemblyData::Matrix::ScratchData<dim>                &scratch,
- MeshWorker::CopyData<1,1,1>                           &data,
- const bool                                             /* use_stress_form */) const
+ MeshWorker::CopyData<1,1,1>                           &data) const
 {
   const FEValuesExtractors::Vector  velocity(velocity_fe_index);
   const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
@@ -146,7 +122,7 @@ assemble_system_local_boundary
   const typename VectorBoundaryConditions<dim>::NeumannBCMapping
   &neumann_bcs = velocity_boundary_conditions.neumann_bcs;
 
-  // Neumann boundary condition
+  // Traction boundary conditions
   if (!neumann_bcs.empty())
     if (neumann_bcs.find(boundary_id) != neumann_bcs.end())
     {
@@ -179,7 +155,7 @@ assemble_system_local_boundary
         } // loop over face quadrature points
       }
 
-  // unconstrained boundary condition
+  // Traction-free boundary condition
   if (include_boundary_stress_terms)
     if (std::find(boundary_stress_ids.begin(),
                   boundary_stress_ids.end(),
@@ -204,7 +180,6 @@ assemble_system_local_boundary
                                                    nu,
                                                    nullptr,
                                                    background_velocity_ptr);
-      scratch.adjust_velocity_field_local_boundary();
 
       // boundary traction
       const auto &boundary_tractions{scratch.vector_options.boundary_traction_values};
@@ -257,7 +232,6 @@ assemble_system_local_cell
 (const typename DoFHandler<2>::active_cell_iterator &,
  AssemblyData::Matrix::ScratchData<2>               &,
  MeshWorker::CopyData<1,1,1>                        &,
- const bool                                          ,
  const bool                                           ) const;
 template
 void
@@ -266,7 +240,6 @@ assemble_system_local_cell
 (const typename DoFHandler<3>::active_cell_iterator &,
  AssemblyData::Matrix::ScratchData<3>               &,
  MeshWorker::CopyData<1,1,1>                        &,
- const bool                                          ,
  const bool                                           ) const;
 
 template
@@ -276,8 +249,7 @@ assemble_system_local_boundary
 (const typename DoFHandler<2>::active_cell_iterator &,
  const unsigned int                                  ,
  AssemblyData::Matrix::ScratchData<2>               &,
- MeshWorker::CopyData<1,1,1>                        &,
- const bool                                           ) const;
+ MeshWorker::CopyData<1,1,1>                        &) const;
 template
 void
 Solver<3>::
@@ -285,8 +257,7 @@ assemble_system_local_boundary
 (const typename DoFHandler<3>::active_cell_iterator &,
  const unsigned int                                  ,
  AssemblyData::Matrix::ScratchData<3>               &,
- MeshWorker::CopyData<1,1,1>                        &,
- const bool                                           ) const;
+ MeshWorker::CopyData<1,1,1>                        &) const;
 
 
 }  // namespace Hydrodynamic
