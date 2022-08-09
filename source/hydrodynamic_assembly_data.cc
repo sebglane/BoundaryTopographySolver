@@ -437,22 +437,6 @@ adjust_velocity_field_local_cell()
 
 
 
-template <int dim>
-void ScratchData<dim>::
-adjust_velocity_field_local_boundary()
-{
-  if (vector_options.background_velocity_gradients)
-  {
-    AssertDimension(vector_options.background_velocity_gradients->size(),
-                    present_velocity_gradients.size());
-
-    for (unsigned int q=0; q<present_velocity_values.size(); ++q)
-      present_velocity_gradients[q] += vector_options.background_velocity_gradients->at(q);
-  }
-}
-
-
-
 // explicit instantiations
 template class ScratchData<2>;
 template class ScratchData<3>;

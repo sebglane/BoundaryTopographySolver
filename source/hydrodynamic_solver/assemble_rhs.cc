@@ -49,19 +49,18 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
   using CellIteratorType = typename DoFHandler<dim>::active_cell_iterator;
 
   // setup the lambda function for the cell assembly
-  auto cell_worker = [this, use_stress_form](
+  auto cell_worker = [this](
       const CellIteratorType &cell,
       ScratchData            &scratch,
       CopyData               &data)
       {
         this->assemble_rhs_local_cell(cell,
                                       scratch,
-                                      data,
-                                      use_stress_form);
+                                      data);
       };
 
   // setup the lambda function for the boundary assembly
-  auto boundary_worker = [this, use_stress_form](
+  auto boundary_worker = [this](
       const CellIteratorType &cell,
       const unsigned int      face_number,
       ScratchData            &scratch,
@@ -70,8 +69,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
         this->assemble_rhs_local_boundary(cell,
                                           face_number,
                                           scratch,
-                                          data,
-                                          use_stress_form);
+                                          data);
       };
 
 

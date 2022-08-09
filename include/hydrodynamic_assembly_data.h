@@ -86,7 +86,7 @@ public:
 
   void adjust_velocity_field_local_cell();
 
-  void adjust_velocity_field_local_boundary();
+//  void adjust_velocity_field_local_boundary();
 
   const StabilizationFlags   &stabilization_flags;
 

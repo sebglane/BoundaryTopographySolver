@@ -53,7 +53,7 @@ void Solver<dim, TriangulationType>::assemble_system
   using CellIteratorType = typename DoFHandler<dim>::active_cell_iterator;
 
   // setup the lambda function for the cell assembly
-  auto cell_worker = [this, use_newton_linearization, use_stress_form](
+  auto cell_worker = [this, use_newton_linearization](
       const CellIteratorType &cell,
       ScratchData            &scratch,
       CopyData               &data)
@@ -61,12 +61,11 @@ void Solver<dim, TriangulationType>::assemble_system
         this->assemble_system_local_cell(cell,
                                          scratch,
                                          data,
-                                         use_newton_linearization,
-                                         use_stress_form);
+                                         use_newton_linearization);
       };
 
   // setup the lambda function for the boundary assembly
-  auto boundary_worker = [this, use_newton_linearization, use_stress_form](
+  auto boundary_worker = [this](
       const CellIteratorType &cell,
       const unsigned int      face_number,
       ScratchData            &scratch,
@@ -75,8 +74,7 @@ void Solver<dim, TriangulationType>::assemble_system
         this->assemble_system_local_boundary(cell,
                                              face_number,
                                              scratch,
-                                             data,
-                                             use_stress_form);
+                                             data);
       };
 
 

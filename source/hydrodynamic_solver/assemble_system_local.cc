@@ -20,8 +20,7 @@ assemble_system_local_cell
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::Matrix::ScratchData<dim>                &scratch,
  MeshWorker::CopyData<1,1,1>                           &data,
- const bool                                             use_newton_linearization,
- const bool                                             /* use_stress_form */) const
+ const bool                                             use_newton_linearization) const
 {
   data.matrices[0] = 0;
   data.vectors[0] = 0;
@@ -113,8 +112,7 @@ assemble_system_local_boundary
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  const unsigned int                                     face_number,
  AssemblyData::Matrix::ScratchData<dim>                &scratch,
- MeshWorker::CopyData<1,1,1>                           &data,
- const bool                                             /* use_stress_form */) const
+ MeshWorker::CopyData<1,1,1>                           &data) const
 {
   const FEValuesExtractors::Vector  velocity(velocity_fe_index);
   const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
@@ -182,7 +180,6 @@ assemble_system_local_boundary
                                                    nu,
                                                    nullptr,
                                                    background_velocity_ptr);
-      scratch.adjust_velocity_field_local_boundary();
 
       // boundary traction
       const auto &boundary_tractions{scratch.vector_options.boundary_traction_values};
@@ -235,7 +232,6 @@ assemble_system_local_cell
 (const typename DoFHandler<2>::active_cell_iterator &,
  AssemblyData::Matrix::ScratchData<2>               &,
  MeshWorker::CopyData<1,1,1>                        &,
- const bool                                          ,
  const bool                                           ) const;
 template
 void
@@ -244,7 +240,6 @@ assemble_system_local_cell
 (const typename DoFHandler<3>::active_cell_iterator &,
  AssemblyData::Matrix::ScratchData<3>               &,
  MeshWorker::CopyData<1,1,1>                        &,
- const bool                                          ,
  const bool                                           ) const;
 
 template
@@ -254,8 +249,7 @@ assemble_system_local_boundary
 (const typename DoFHandler<2>::active_cell_iterator &,
  const unsigned int                                  ,
  AssemblyData::Matrix::ScratchData<2>               &,
- MeshWorker::CopyData<1,1,1>                        &,
- const bool                                           ) const;
+ MeshWorker::CopyData<1,1,1>                        &) const;
 template
 void
 Solver<3>::
@@ -263,8 +257,7 @@ assemble_system_local_boundary
 (const typename DoFHandler<3>::active_cell_iterator &,
  const unsigned int                                  ,
  AssemblyData::Matrix::ScratchData<3>               &,
- MeshWorker::CopyData<1,1,1>                        &,
- const bool                                           ) const;
+ MeshWorker::CopyData<1,1,1>                        &) const;
 
 
 }  // namespace Hydrodynamic
