@@ -16,8 +16,7 @@ void Solver<dim, TriangulationType>::
 assemble_rhs_local_cell
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
- MeshWorker::CopyData<0,1,1>                           &data,
- const bool                                             use_stress_form) const
+ MeshWorker::CopyData<0,1,1>                           &data) const
 {
   data.vectors[0] = 0;
   cell->get_dof_indices(data.local_dof_indices[0]);
@@ -106,21 +105,97 @@ assemble_rhs_local_boundary
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  const unsigned int                                     face_number,
  AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
- MeshWorker::CopyData<0,1,1>                           &data,
- const bool                                             use_stress_form) const
+ MeshWorker::CopyData<0,1,1>                           &data) const
 {
-  const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
-  const FEValuesExtractors::Scalar  pressure(this->pressure_fe_index);
-  const FEValuesExtractors::Scalar  density(this->scalar_fe_index);
-
   const types::boundary_id  boundary_id{cell->face(face_number)->boundary_id()};
 
-  Hydrodynamic::AssemblyData::RightHandSide::
-  ScratchData<dim> &hydrodynamic_scratch
-    = static_cast<Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
-  Advection::AssemblyData::RightHandSide::
-  ScratchData<dim> &advection_scratch
-    = static_cast<Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
+  // Traction boundary conditions
+  const typename VectorBoundaryConditions<dim>::NeumannBCMapping
+  &neumann_bcs = this->velocity_boundary_conditions.neumann_bcs;
+  if (!neumann_bcs.empty())
+    if (neumann_bcs.find(boundary_id) != neumann_bcs.end())
+    {
+      Hydrodynamic::AssemblyData::RightHandSide::
+      ScratchData<dim> &hydrodynamic_scratch
+        = static_cast<Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
+      const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
+      const FEValuesExtractors::Scalar  pressure(this->pressure_fe_index);
+
+      const auto &fe_face_values = scratch.reinit(cell, face_number);
+      const auto &JxW = scratch.get_JxW_values();
+
+      // assign vector options
+      hydrodynamic_scratch.assign_vector_options_local_boundary("",
+                                                                velocity,
+                                                                pressure,
+                                                                0.0,
+                                                                neumann_bcs.at(boundary_id),
+                                                                this->background_velocity_ptr);
+
+      // boundary traction
+      const auto &boundary_tractions{hydrodynamic_scratch.vector_options.boundary_traction_values};
+
+      // loop over face quadrature points
+      for (const auto q: fe_face_values.quadrature_point_indices())
+      {
+        // extract the test function's values at the face quadrature points
+        for (const auto i: fe_face_values.dof_indices())
+          scratch.phi_velocity[i] = fe_face_values[velocity].value(i,q);
+
+        // loop over the degrees of freedom
+        for (const auto i: fe_face_values.dof_indices())
+          data.vectors[0](i) += scratch.phi_velocity[i] *
+                                boundary_tractions[q] *
+                                JxW[q];
+      } // loop over face quadrature points
+    }
+
+  // Traction-free boundary conditions
+  if (this->include_boundary_stress_terms)
+    if (std::find(this->boundary_stress_ids.begin(),
+                  this->boundary_stress_ids.end(),
+                  boundary_id) != this->boundary_stress_ids.end())
+    {
+      Hydrodynamic::AssemblyData::RightHandSide::
+      ScratchData<dim> &hydrodynamic_scratch
+        = static_cast<Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
+      const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
+      const FEValuesExtractors::Scalar  pressure(this->pressure_fe_index);
+
+      const double nu{1.0 / this->reynolds_number};
+
+      const auto &fe_face_values = scratch.reinit(cell, face_number);
+      const auto &JxW = scratch.get_JxW_values();
+
+      // evaluate solution
+      scratch.extract_local_dof_values("evaluation_point",
+                                       this->evaluation_point);
+
+      // assign vector options
+      hydrodynamic_scratch.assign_vector_options_local_boundary("evaluation_point",
+                                                                velocity,
+                                                                pressure,
+                                                                nu,
+                                                                nullptr,
+                                                                this->background_velocity_ptr);
+
+      // boundary traction
+      const auto &boundary_tractions{hydrodynamic_scratch.vector_options.boundary_traction_values};
+
+      // loop over face quadrature points
+      for (const auto q: fe_face_values.quadrature_point_indices())
+      {
+        // extract the test function's values at the face quadrature points
+        for (const auto i: fe_face_values.dof_indices())
+          scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
+
+        // loop over the degrees of freedom
+        for (const auto i: fe_face_values.dof_indices())
+          data.vectors[0](i) += scratch.phi_velocity[i] *
+                                boundary_tractions[q] *
+                                JxW[q];
+      } // Loop over face quadrature points
+    }
 
   // Dirichlet boundary conditions
   const typename ScalarBoundaryConditions<dim>::BCMapping
@@ -128,6 +203,12 @@ assemble_rhs_local_boundary
 
   if (dirichlet_bcs.find(boundary_id) != dirichlet_bcs.end())
   {
+    Advection::AssemblyData::RightHandSide::
+    ScratchData<dim> &advection_scratch
+      = static_cast<Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
+    const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
+    const FEValuesExtractors::Scalar  density(this->scalar_fe_index);
+
     const auto &fe_face_values = scratch.reinit(cell, face_number);
     const auto &JxW = scratch.get_JxW_values();
 
@@ -165,94 +246,6 @@ assemble_rhs_local_boundary
       } // loop over face quadrature points
   }
 
-
-  // Neumann boundary conditions
-  const typename VectorBoundaryConditions<dim>::NeumannBCMapping
-  &neumann_bcs = this->velocity_boundary_conditions.neumann_bcs;
-
-  if (neumann_bcs.find(boundary_id) != neumann_bcs.end())
-  {
-    const auto &fe_face_values = hydrodynamic_scratch.reinit(cell, face_number);
-    const auto &JxW = hydrodynamic_scratch.get_JxW_values();
-
-    // boundary values
-    AssertDimension(fe_face_values.n_quadrature_points,
-                    hydrodynamic_scratch.vector_options.boundary_traction_values.size());
-    neumann_bcs.at(boundary_id)->value_list(scratch.get_quadrature_points(),
-                                            hydrodynamic_scratch.vector_options.boundary_traction_values);
-    const std::vector<Tensor<1,dim>>  &boundary_tractions = hydrodynamic_scratch.vector_options.boundary_traction_values;
-
-    // loop over face quadrature points
-    for (const auto q: fe_face_values.quadrature_point_indices())
-    {
-      // extract the test function's values at the face quadrature points
-      for (const auto i: fe_face_values.dof_indices())
-        hydrodynamic_scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
-
-      // loop over the degrees of freedom
-      for (const auto i: fe_face_values.dof_indices())
-        data.vectors[0](i) += hydrodynamic_scratch.phi_velocity[i] *
-                              boundary_tractions[q] *
-                              JxW[q];
-    } // loop over face quadrature points
-  }
-
-  if (this->include_boundary_stress_terms)
-    if (std::find(this->boundary_stress_ids.begin(),
-                  this->boundary_stress_ids.end(),
-                  boundary_id) != this->boundary_stress_ids.end())
-    {
-      const double nu{1.0 / this->reynolds_number};
-
-      const auto &fe_face_values = scratch.reinit(cell, face_number);
-      const auto &JxW = scratch.get_JxW_values();
-
-      scratch.extract_local_dof_values("evaluation_point",
-                                       this->evaluation_point);
-      const auto &present_pressure_values = scratch.get_values("evaluation_point",
-                                                               pressure);
-
-      // normal vectors
-      const auto &face_normal_vectors = scratch.get_normal_vectors();
-
-      // compute present boundary traction
-      AssertDimension(fe_face_values.n_quadrature_points,
-                      hydrodynamic_scratch.vector_options.boundary_traction_values.size());
-      std::vector<Tensor<1,dim>>  &boundary_tractions = hydrodynamic_scratch.vector_options.boundary_traction_values;
-      if (use_stress_form)
-      {
-        const auto &present_velocity_sym_gradients
-          = scratch.get_symmetric_gradients("evaluation_point",
-                                            velocity);
-        for (const auto q: fe_face_values.quadrature_point_indices())
-          boundary_tractions[q] =
-              - present_pressure_values[q] * face_normal_vectors[q]
-              + 2.0 * nu * present_velocity_sym_gradients[q] * face_normal_vectors[q];
-      }
-      else
-      {
-        const auto &present_velocity_gradients = scratch.get_gradients("evaluation_point",
-                                                                       velocity);
-        for (const auto q: fe_face_values.quadrature_point_indices())
-          boundary_tractions[q] =
-              - present_pressure_values[q] * face_normal_vectors[q]
-              + nu * present_velocity_gradients[q] * face_normal_vectors[q];
-      }
-
-      // loop over face quadrature points
-      for (const auto q: fe_face_values.quadrature_point_indices())
-      {
-        // extract the test function's values at the face quadrature points
-        for (const auto i: fe_face_values.dof_indices())
-          hydrodynamic_scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
-
-        // loop over the degrees of freedom
-        for (const auto i: fe_face_values.dof_indices())
-          data.vectors[0](i) += hydrodynamic_scratch.phi_velocity[i] *
-                                boundary_tractions[q] *
-                                JxW[q];
-      } // loop over face quadrature points
-    } // loop over face quadrature points
 }
 
 
@@ -264,15 +257,13 @@ Solver<2>::
 assemble_rhs_local_cell
 (const typename DoFHandler<2>::active_cell_iterator &,
  AssemblyData::RightHandSide::ScratchData<2>        &,
- MeshWorker::CopyData<0,1,1>                        &,
- const bool                                           ) const;
+ MeshWorker::CopyData<0,1,1>                        &) const;
 template
 void Solver<3>::
 assemble_rhs_local_cell
 (const typename DoFHandler<3>::active_cell_iterator &,
  AssemblyData::RightHandSide::ScratchData<3>        &,
- MeshWorker::CopyData<0,1,1>                        &,
- const bool                                           ) const;
+ MeshWorker::CopyData<0,1,1>                        &) const;
 
 template
 void Solver<2>::
@@ -280,16 +271,14 @@ assemble_rhs_local_boundary
 (const typename DoFHandler<2>::active_cell_iterator &,
  const unsigned int                                  ,
  AssemblyData::RightHandSide::ScratchData<2>        &,
- MeshWorker::CopyData<0,1,1>                        &,
- const bool                                           ) const;
+ MeshWorker::CopyData<0,1,1>                        &) const;
 template
 void Solver<3>::
 assemble_rhs_local_boundary
 (const typename DoFHandler<3>::active_cell_iterator &,
  const unsigned int                                  ,
  AssemblyData::RightHandSide::ScratchData<3>        &,
- MeshWorker::CopyData<0,1,1>                        &,
- const bool                                           ) const;
+ MeshWorker::CopyData<0,1,1>                        &) const;
 
 }  // namespace BuoyantHydrodynamic
 

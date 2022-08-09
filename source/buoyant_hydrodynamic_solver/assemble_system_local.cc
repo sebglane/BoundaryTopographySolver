@@ -18,8 +18,7 @@ assemble_system_local_cell
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::Matrix::ScratchData<dim>                &scratch,
  MeshWorker::CopyData<1,1,1>                           &data,
- const bool                                             use_newton_linearization,
- const bool                                             use_stress_form) const
+ const bool                                             use_newton_linearization) const
 {
   data.matrices[0] = 0;
   data.vectors[0] = 0;
@@ -127,22 +126,124 @@ assemble_system_local_boundary
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  const unsigned int                                     face_number,
  AssemblyData::Matrix::ScratchData<dim>                &scratch,
- MeshWorker::CopyData<1,1,1>                           &data,
- const bool                                             /* use_newton_linearization */,
- const bool                                             /* use_stress_tensor */) const
+ MeshWorker::CopyData<1,1,1>                           &data) const
 {
-  const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
-  const FEValuesExtractors::Scalar  pressure(this->pressure_fe_index);
-  const FEValuesExtractors::Scalar  density(this->scalar_fe_index);
-
   const types::boundary_id  boundary_id{cell->face(face_number)->boundary_id()};
 
-  Hydrodynamic::AssemblyData::Matrix::
-  ScratchData<dim> &hydrodynamic_scratch
-    = static_cast<Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
-  Advection::AssemblyData::Matrix::
-  ScratchData<dim> &advection_scratch
-    = static_cast<Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
+  // Traction boundary conditions
+  const typename VectorBoundaryConditions<dim>::NeumannBCMapping
+  &neumann_bcs = this->velocity_boundary_conditions.neumann_bcs;
+
+  if (!neumann_bcs.empty())
+    if (neumann_bcs.find(boundary_id) != neumann_bcs.end())
+    {
+      Hydrodynamic::AssemblyData::Matrix::
+      ScratchData<dim> &hydrodynamic_scratch
+        = static_cast<Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
+      const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
+      const FEValuesExtractors::Scalar  pressure(this->pressure_fe_index);
+
+      const auto &fe_face_values = scratch.reinit(cell, face_number);
+      const auto &JxW = scratch.get_JxW_values();
+
+      // assign vector options
+      hydrodynamic_scratch.assign_vector_options_local_boundary("",
+                                                                velocity,
+                                                                pressure,
+                                                                0.0,
+                                                                neumann_bcs.at(boundary_id),
+                                                                this->background_velocity_ptr);
+
+      // boundary traction
+      const auto &boundary_tractions{hydrodynamic_scratch.vector_options.boundary_traction_values};
+
+      // loop over face quadrature points
+      for (const auto q: fe_face_values.quadrature_point_indices())
+      {
+        // extract the test function's values at the face quadrature points
+        for (const auto i: fe_face_values.dof_indices())
+          scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
+
+        // loop over the degrees of freedom
+        for (const auto i: fe_face_values.dof_indices())
+          data.vectors[0](i) += scratch.phi_velocity[i] *
+                                boundary_tractions[q] *
+                                JxW[q];
+        } // loop over face quadrature points
+      }
+
+  // Traction-free boundary conditions
+  if (this->include_boundary_stress_terms)
+    if (std::find(this->boundary_stress_ids.begin(),
+                  this->boundary_stress_ids.end(),
+                  boundary_id) != this->boundary_stress_ids.end())
+    {
+      Hydrodynamic::AssemblyData::Matrix::
+      ScratchData<dim> &hydrodynamic_scratch
+        = static_cast<Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
+      const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
+      const FEValuesExtractors::Scalar  pressure(this->pressure_fe_index);
+
+      const double nu{1.0 / this->reynolds_number};
+
+      const auto &fe_face_values = scratch.reinit(cell, face_number);
+      const auto &JxW = scratch.get_JxW_values();
+
+      // evaluate solution
+      scratch.extract_local_dof_values("evaluation_point",
+                                       this->evaluation_point);
+
+      // normal vectors
+      const auto &face_normal_vectors = scratch.get_normal_vectors();
+
+      // assign vector options
+      hydrodynamic_scratch.assign_vector_options_local_boundary("evaluation_point",
+                                                                velocity,
+                                                                pressure,
+                                                                nu,
+                                                                nullptr,
+                                                                this->background_velocity_ptr);
+
+      // boundary traction
+      const auto &boundary_tractions{hydrodynamic_scratch.vector_options.boundary_traction_values};
+
+      // loop over face quadrature points
+      for (const auto q: fe_face_values.quadrature_point_indices())
+      {
+        // extract the test function's values at the face quadrature points
+        for (const auto i: fe_face_values.dof_indices())
+        {
+          scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
+          scratch.phi_pressure[i] = fe_face_values[pressure].value(i, q);
+        }
+
+        // assign optional shape functions
+        scratch.assign_optional_shape_functions_local_boundary(velocity, q);
+
+        // loop over the degrees of freedom
+        if (hydrodynamic_scratch.vector_options.use_stress_form)
+          for (const auto i: fe_face_values.dof_indices())
+            for (const auto j: fe_face_values.dof_indices())
+              data.matrices[0](i, j) -=
+                  (-scratch.phi_pressure[j] * face_normal_vectors[q] +
+                   2.0 * nu * scratch.sym_grad_phi_velocity[j] * face_normal_vectors[q]) *
+                   scratch.phi_velocity[i] * JxW[q];
+        else
+          for (const auto i: fe_face_values.dof_indices())
+            for (const auto j: fe_face_values.dof_indices())
+              data.matrices[0](i, j) -=
+                  (-scratch.phi_pressure[j] * face_normal_vectors[q] +
+                   nu * scratch.grad_phi_velocity[j] * face_normal_vectors[q]) *
+                   scratch.phi_velocity[i] * JxW[q];
+
+        for (const auto i: fe_face_values.dof_indices())
+          data.vectors[0](i) += scratch.phi_velocity[i] *
+                                boundary_tractions[q] *
+                                JxW[q];
+
+      } // loop over face quadrature points
+    }
+
 
   // Dirichlet boundary conditions
   const typename ScalarBoundaryConditions<dim>::BCMapping
@@ -150,6 +251,13 @@ assemble_system_local_boundary
 
   if (dirichlet_bcs.find(boundary_id) != dirichlet_bcs.end())
   {
+    Advection::AssemblyData::Matrix::
+    ScratchData<dim> &advection_scratch
+      = static_cast<Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch);
+
+    const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
+    const FEValuesExtractors::Scalar  density(this->scalar_fe_index);
+
     const auto &fe_face_values = scratch.reinit(cell, face_number);
     const auto &JxW = scratch.get_JxW_values();
 
@@ -195,107 +303,6 @@ assemble_system_local_boundary
       } // loop over face quadrature points
   }
 
-  // Neumann boundary conditions
-  const typename VectorBoundaryConditions<dim>::NeumannBCMapping
-  &neumann_bcs = this->velocity_boundary_conditions.neumann_bcs;
-
-  if (!neumann_bcs.empty())
-    if (neumann_bcs.find(boundary_id) != neumann_bcs.end())
-    {
-      const auto &fe_face_values = scratch.reinit(cell, face_number);
-      const auto &JxW = scratch.get_JxW_values();
-
-      // assign vector options
-      hydrodynamic_scratch.assign_vector_options_local_boundary("",
-                                                                velocity,
-                                                                pressure,
-                                                                0.0,
-                                                                neumann_bcs.at(boundary_id),
-                                                                this->background_velocity_ptr);
-
-      // boundary traction
-      const auto &boundary_tractions{hydrodynamic_scratch.vector_options.boundary_traction_values};
-
-      // loop over face quadrature points
-      for (const auto q: fe_face_values.quadrature_point_indices())
-      {
-        // extract the test function's values at the face quadrature points
-        for (const auto i: fe_face_values.dof_indices())
-          hydrodynamic_scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
-
-        // loop over the degrees of freedom
-        for (const auto i: fe_face_values.dof_indices())
-          data.vectors[0](i) += hydrodynamic_scratch.phi_velocity[i] *
-                                boundary_tractions[q] *
-                                JxW[q];
-      } // loop over face quadrature points
-    }
-
-  // unconstrained boundary condition
-  if (this->include_boundary_stress_terms)
-    if (std::find(this->boundary_stress_ids.begin(),
-                  this->boundary_stress_ids.end(),
-                  boundary_id) != this->boundary_stress_ids.end())
-    {
-      const double nu{1.0 / this->reynolds_number};
-
-      const auto &fe_face_values = scratch.reinit(cell, face_number);
-      const auto &JxW = scratch.get_JxW_values();
-
-      // evaluate solution
-      scratch.extract_local_dof_values("evaluation_point",
-                                       this->evaluation_point);
-
-      // normal vectors
-      const auto &face_normal_vectors = scratch.get_normal_vectors();
-
-      // assign vector options
-      hydrodynamic_scratch.assign_vector_options_local_boundary("evaluation_point",
-                                                                velocity,
-                                                                pressure,
-                                                                nu,
-                                                                nullptr,
-                                                                this->background_velocity_ptr);
-
-      // boundary traction
-      const auto &boundary_tractions{hydrodynamic_scratch.vector_options.boundary_traction_values};
-
-      // loop over face quadrature points
-      for (const auto q: fe_face_values.quadrature_point_indices())
-      {
-        // extract the test function's values at the face quadrature points
-        for (const auto i: fe_face_values.dof_indices())
-        {
-          hydrodynamic_scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
-          hydrodynamic_scratch.phi_pressure[i] = fe_face_values[pressure].value(i, q);
-        }
-
-        // assign optional shape functions
-        hydrodynamic_scratch.assign_optional_shape_functions_local_boundary(velocity, q);
-
-        // loop over the degrees of freedom
-        if (hydrodynamic_scratch.vector_options.use_stress_form)
-          for (const auto i: fe_face_values.dof_indices())
-            for (const auto j: fe_face_values.dof_indices())
-              data.matrices[0](i, j) -=
-                  (-hydrodynamic_scratch.phi_pressure[j] * face_normal_vectors[q] +
-                   2.0 * nu * hydrodynamic_scratch.sym_grad_phi_velocity[j] * face_normal_vectors[q]) *
-                   hydrodynamic_scratch.phi_velocity[i] * JxW[q];
-        else
-          for (const auto i: fe_face_values.dof_indices())
-            for (const auto j: fe_face_values.dof_indices())
-              data.matrices[0](i, j) -=
-                  (-hydrodynamic_scratch.phi_pressure[j] * face_normal_vectors[q] +
-                   nu * hydrodynamic_scratch.grad_phi_velocity[j] * face_normal_vectors[q]) *
-                   hydrodynamic_scratch.phi_velocity[i] * JxW[q];
-
-        for (const auto i: fe_face_values.dof_indices())
-          data.vectors[0](i) += hydrodynamic_scratch.phi_velocity[i] *
-                                boundary_tractions[q] *
-                                JxW[q];
-
-      } // loop over face quadrature points
-    }
 }
 
 
@@ -307,7 +314,6 @@ assemble_system_local_cell
 (const typename DoFHandler<2>::active_cell_iterator &,
  AssemblyData::Matrix::ScratchData<2>               &,
  MeshWorker::CopyData<1,1,1>                        &,
- const bool                                          ,
  const bool                                           ) const;
 template
 void
@@ -316,7 +322,6 @@ assemble_system_local_cell
 (const typename DoFHandler<3>::active_cell_iterator &,
  AssemblyData::Matrix::ScratchData<3>               &,
  MeshWorker::CopyData<1,1,1>                        &,
- const bool                                          ,
  const bool                                           ) const;
 
 template
@@ -326,9 +331,7 @@ assemble_system_local_boundary
 (const typename DoFHandler<2>::active_cell_iterator &,
  const unsigned int                                  ,
  AssemblyData::Matrix::ScratchData<2>               &,
- MeshWorker::CopyData<1,1,1>                        &,
- const bool                                          ,
- const bool                                           ) const;
+ MeshWorker::CopyData<1,1,1>                        &) const;
 template
 void
 Solver<3>::
@@ -336,9 +339,7 @@ assemble_system_local_boundary
 (const typename DoFHandler<3>::active_cell_iterator &,
  const unsigned int                                  ,
  AssemblyData::Matrix::ScratchData<3>               &,
- MeshWorker::CopyData<1,1,1>                        &,
- const bool                                          ,
- const bool                                           ) const;
+ MeshWorker::CopyData<1,1,1>                        &) const;
 
 
 

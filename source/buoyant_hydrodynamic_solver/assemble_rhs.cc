@@ -66,8 +66,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
       {
         this->assemble_rhs_local_cell(cell,
                                       scratch,
-                                      data,
-                                      use_stress_form);
+                                      data);
       };
 
   // setup the lambda function for the boundary assembly
@@ -80,8 +79,7 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
         this->assemble_rhs_local_boundary(cell,
                                           face_number,
                                           scratch,
-                                          data,
-                                          use_stress_form);
+                                          data);
       };
 
   // setup the lambda function for the copy local to global operation

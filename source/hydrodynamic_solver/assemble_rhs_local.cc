@@ -104,7 +104,7 @@ assemble_rhs_local_boundary
   const typename VectorBoundaryConditions<dim>::NeumannBCMapping
   &neumann_bcs = velocity_boundary_conditions.neumann_bcs;
 
-  // Neumann boundary condition
+  // Traction boundary conditions
   if (!neumann_bcs.empty())
     if (neumann_bcs.find(boundary_id) != neumann_bcs.end())
     {
@@ -137,7 +137,7 @@ assemble_rhs_local_boundary
       } // loop over face quadrature points
     }
 
-  // unconstrained boundary condition
+  // Traction-free boundary conditions
   if (include_boundary_stress_terms)
     if (std::find(boundary_stress_ids.begin(),
                   boundary_stress_ids.end(),
