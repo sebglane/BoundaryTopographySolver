@@ -88,97 +88,6 @@ assemble_rhs_local_cell
 
 
 
-template <int dim, typename TriangulationType>
-void Solver<dim, TriangulationType>::
-assemble_rhs_local_boundary
-(const typename DoFHandler<dim>::active_cell_iterator  &cell,
- const unsigned int                                     face_number,
- AssemblyData::RightHandSide::ScratchData<dim>         &scratch,
- MeshWorker::CopyData<0,1,1>                           &data) const
-{
-  const FEValuesExtractors::Vector  velocity(velocity_fe_index);
-  const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
-
-  const types::boundary_id  boundary_id{cell->face(face_number)->boundary_id()};
-
-  const typename VectorBoundaryConditions<dim>::NeumannBCMapping
-  &neumann_bcs = velocity_boundary_conditions.neumann_bcs;
-
-  // Traction boundary conditions
-  if (!neumann_bcs.empty())
-    if (neumann_bcs.find(boundary_id) != neumann_bcs.end())
-    {
-      const auto &fe_face_values = scratch.reinit(cell, face_number);
-      const auto &JxW = scratch.get_JxW_values();
-
-      // assign vector options
-      scratch.assign_vector_options_boundary("",
-                                             velocity,
-                                             pressure,
-                                             0.0,
-                                             neumann_bcs.at(boundary_id),
-                                             background_velocity_ptr);
-
-      const auto &boundary_tractions{scratch.vector_options.boundary_traction_values};
-
-      // loop over face quadrature points
-      for (const auto q: fe_face_values.quadrature_point_indices())
-      {
-        // extract the test function's values at the face quadrature points
-        for (const auto i: fe_face_values.dof_indices())
-          scratch.phi_velocity[i] = fe_face_values[velocity].value(i,q);
-
-        // loop over the degrees of freedom
-        for (const auto i: fe_face_values.dof_indices())
-          data.vectors[0](i) += scratch.phi_velocity[i] *
-                                boundary_tractions[q] *
-                                JxW[q];
-      } // loop over face quadrature points
-    }
-
-  // Traction-free boundary conditions
-  if (include_boundary_stress_terms)
-    if (std::find(boundary_stress_ids.begin(),
-                  boundary_stress_ids.end(),
-                  boundary_id) != boundary_stress_ids.end())
-    {
-      const double nu{1.0 / reynolds_number};
-
-      const auto &fe_face_values = scratch.reinit(cell, face_number);
-      const auto &JxW = scratch.get_JxW_values();
-
-      // evaluate solution
-      scratch.extract_local_dof_values("evaluation_point",
-                                       this->evaluation_point);
-
-      // assign vector options
-      scratch.assign_vector_options_boundary("evaluation_point",
-                                             velocity,
-                                             pressure,
-                                             nu,
-                                             nullptr,
-                                             background_velocity_ptr);
-
-      // boundary traction
-      const auto &boundary_tractions{scratch.vector_options.boundary_traction_values};
-
-      // loop over face quadrature points
-      for (const auto q: fe_face_values.quadrature_point_indices())
-      {
-        // extract the test function's values at the face quadrature points
-        for (const auto i: fe_face_values.dof_indices())
-          scratch.phi_velocity[i] = fe_face_values[velocity].value(i, q);
-
-        // loop over the degrees of freedom
-        for (const auto i: fe_face_values.dof_indices())
-          data.vectors[0](i) += scratch.phi_velocity[i] *
-                                boundary_tractions[q] *
-                                JxW[q];
-      } // Loop over face quadrature points
-    }
-}
-
-
 // explicit instantiation
 template
 void
@@ -192,23 +101,6 @@ void
 Solver<3>::
 assemble_rhs_local_cell
 (const typename DoFHandler<3>::active_cell_iterator  &cell,
- AssemblyData::RightHandSide::ScratchData<3>         &scratch,
- MeshWorker::CopyData<0,1,1>                         &data) const;
-
-template
-void
-Solver<2>::
-assemble_rhs_local_boundary
-(const typename DoFHandler<2>::active_cell_iterator  &cell,
- const unsigned int                                   face_number,
- AssemblyData::RightHandSide::ScratchData<2>         &scratch,
- MeshWorker::CopyData<0,1,1>                         &data) const;
-template
-void
-Solver<3>::
-assemble_rhs_local_boundary
-(const typename DoFHandler<3>::active_cell_iterator  &cell,
- const unsigned int                                   face_number,
  AssemblyData::RightHandSide::ScratchData<3>         &scratch,
  MeshWorker::CopyData<0,1,1>                         &data) const;
 

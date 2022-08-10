@@ -108,10 +108,10 @@ assemble_rhs_local_boundary
  MeshWorker::CopyData<0,1,1>                           &data) const
 {
   this->Hydrodynamic::Solver<dim, TriangulationType>::
-  assemble_rhs_local_boundary(cell,
-                              face_number,
-                              scratch,
-                              data);
+  assemble_local_boundary(cell,
+                          face_number,
+                          scratch,
+                          data);
 
   // Dirichlet boundary conditions
   const typename ScalarBoundaryConditions<dim>::BCMapping

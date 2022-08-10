@@ -66,10 +66,10 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
       ScratchData            &scratch,
       CopyData               &data)
       {
-        this->assemble_rhs_local_boundary(cell,
-                                          face_number,
-                                          scratch,
-                                          data);
+        this->assemble_local_boundary(cell,
+                                      face_number,
+                                      scratch,
+                                      data);
       };
 
 
