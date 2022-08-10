@@ -186,14 +186,14 @@ operator()
                                                  pressure);
 
     // assign vector options
-    scratch.assign_vector_options_local_cell("evaluation_point",
-                                             velocity,
-                                             pressure,
-                                             angular_velocity_ptr,
-                                             body_force_ptr,
-                                             background_velocity_ptr,
-                                             rossby_number,
-                                             froude_number);
+    scratch.assign_vector_options("evaluation_point",
+                                  velocity,
+                                  pressure,
+                                  angular_velocity_ptr,
+                                  body_force_ptr,
+                                  background_velocity_ptr,
+                                  rossby_number,
+                                  froude_number);
     scratch.adjust_velocity_field_local_cell();
 
     // stabilization
@@ -459,14 +459,14 @@ operator()
                                                  pressure);
 
     // assign vector options
-    hydrodynamic_scratch.assign_vector_options_local_cell("evaluation_point",
-                                                          velocity,
-                                                          pressure,
-                                                          this->angular_velocity_ptr,
-                                                          this->body_force_ptr,
-                                                          this->background_velocity_ptr,
-                                                          this->rossby_number,
-                                                          this->froude_number);
+    hydrodynamic_scratch.assign_vector_options("evaluation_point",
+                                               velocity,
+                                               pressure,
+                                               this->angular_velocity_ptr,
+                                               this->body_force_ptr,
+                                               this->background_velocity_ptr,
+                                               this->rossby_number,
+                                               this->froude_number);
     hydrodynamic_scratch.adjust_velocity_field_local_cell();
 
     // solution values

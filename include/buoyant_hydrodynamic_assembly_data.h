@@ -18,10 +18,8 @@ using namespace dealii;
 
 namespace AssemblyData {
 
-namespace Matrix {
-
 template <int dim>
-class ScratchData : public Hydrodynamic::AssemblyData::Matrix::ScratchData<dim>,
+class ScratchData : public Hydrodynamic::AssemblyData::ScratchData<dim>,
                     public Advection::AssemblyData::ScratchData<dim>
 {
 public:
@@ -74,100 +72,25 @@ public:
     const double                                                froude_number = 0.0,
     const double                                                gradient_scaling_number = 0.0);
 
-  /*
-  void assign_vector_options_local_boundary(
-    const std::string                                          &name,
-    const FEValuesExtractors::Vector                           &velocity,
-    const FEValuesExtractors::Scalar                           &pressure,
-    const double                                                nu,
-    const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr = nullptr,
-    const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr);
-   */
-
   VectorOptions<dim>  vector_options;
 
 };
 
 
 
+namespace Matrix {
+
+template <int dim>
+using ScratchData = ScratchData<dim>;
+
 }  // namespace Matrix
+
+
 
 namespace RightHandSide {
 
 template <int dim>
-class ScratchData : public Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim>,
-                    public Advection::AssemblyData::ScratchData<dim>
-{
-public:
-  ScratchData(
-    const Mapping<dim>       &mapping,
-    const FiniteElement<dim> &fe,
-    const Quadrature<dim>    &quadrature,
-    const UpdateFlags        &update_flags,
-    const Quadrature<dim-1>  &face_quadrature = Quadrature<dim-1>(),
-    const UpdateFlags        &face_update_flags = update_default,
-    const StabilizationFlags &stabilization_flags = apply_none,
-    const bool                use_stress_form = false,
-    const bool                allocate_background_velocity = false,
-    const bool                allocate_body_force = false,
-    const bool                allocate_gravity_field = false,
-    const bool                allocate_traction = false,
-    const bool                allocate_density_source_term = false,
-    const bool                allocate_density_boundary_values = false,
-    const bool                allocate_reference_gradient = false);
-
-  ScratchData(
-    const FiniteElement<dim> &fe,
-    const Quadrature<dim>    &quadrature,
-    const UpdateFlags        &update_flags,
-    const Quadrature<dim-1>  &face_quadrature   = Quadrature<dim-1>(),
-    const UpdateFlags        &face_update_flags = update_default,
-    const StabilizationFlags &stabilization_flags = apply_none,
-    const bool                use_stress_form = false,
-    const bool                allocate_background_velocity = false,
-    const bool                allocate_body_force = false,
-    const bool                allocate_gravity_field = false,
-    const bool                allocate_traction = false,
-    const bool                allocate_density_source_term = false,
-    const bool                allocate_density_boundary_values = false,
-    const bool                allocate_reference_gradient = false);
-
-  ScratchData(const ScratchData<dim>  &data);
-
-  void assign_vector_options_local_cell(
-    const std::string                                          &name,
-    const FEValuesExtractors::Vector                           &velocity,
-    const FEValuesExtractors::Scalar                           &pressure,
-    const std::shared_ptr<const Utility::AngularVelocity<dim>> &angular_velocity_ptr = nullptr,
-    const std::shared_ptr<const TensorFunction<1,dim>>         &body_force_ptr = nullptr,
-    const std::shared_ptr<const TensorFunction<1,dim>>         &gravity_field_ptr = nullptr,
-    const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr,
-    const std::shared_ptr<const Function<dim>>                 &source_term_ptr = nullptr,
-    const std::shared_ptr<const Function<dim>>                 &reference_field_ptr = nullptr,
-    const double                                                rossby_number = 0.0,
-    const double                                                froude_number = 0.0,
-    const double                                                gradient_scaling_number = 0.0);
-
-//  void assign_vector_options_local_boundary(
-//    const std::string                                          &name,
-//    const FEValuesExtractors::Vector                           &velocity,
-//    const FEValuesExtractors::Scalar                           &pressure,
-//    const double                                                nu,
-//    const std::shared_ptr<const TensorFunction<1,dim>>         &boundary_traction_ptr = nullptr,
-//    const std::shared_ptr<const TensorFunction<1,dim>>         &background_velocity_ptr = nullptr);
-//
-//  void assign_optional_shape_functions_local_cell(
-//    const FEValuesExtractors::Vector &velocity,
-//    const FEValuesExtractors::Scalar &pressure,
-//    const unsigned int                q_point_index);
-//
-//  void assign_optional_shape_functions_local_boundary(
-//    const FEValuesExtractors::Vector &velocity,
-//    const unsigned int                q_point_index);
-
-  VectorOptions<dim>  vector_options;
-
-};
+using ScratchData = ScratchData<dim>;
 
 }  // namespace RightHandSide
 
