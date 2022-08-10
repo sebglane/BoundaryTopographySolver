@@ -149,20 +149,37 @@ assemble_system_local_boundary
     const FEValuesExtractors::Vector  velocity(this->velocity_fe_index);
     const FEValuesExtractors::Scalar  density(this->scalar_fe_index);
 
-    const auto &fe_face_values = scratch.reinit(cell, face_number);
+    auto &fe_face_values = scratch.reinit(cell, face_number);
     const auto &JxW = scratch.get_JxW_values();
 
     // evaluate solution
     scratch.extract_local_dof_values("evaluation_point",
                                      this->evaluation_point);
-    const auto &present_values = scratch.get_values("evaluation_point",
-                                                    density);
+    const auto &present_values  = scratch.get_values("evaluation_point",
+                                                     density);
+
+    // advection field
     const auto &present_velocity_values = scratch.get_values("evaluation_point",
                                                              velocity);
+    auto &advection_field_values{advection_scratch.vector_options.advection_field_face_values};
+    if (this->background_velocity_ptr != nullptr)
+    {
+      this->background_velocity_ptr->value_list(fe_face_values.get_quadrature_points(),
+                                                advection_field_values);
+      AssertDimension(present_velocity_values.size(),
+                      advection_field_values.size());
+
+      for (unsigned int q=0; q<advection_field_values.size(); ++q)
+        advection_field_values[q] += present_velocity_values[q];
+    }
+    else
+      advection_field_values = present_velocity_values;
+
+    // options
+    advection_scratch.assign_vector_options_local_boundary(dirichlet_bcs.at(boundary_id),
+                                                           nullptr);
 
     // boundary values
-    dirichlet_bcs.at(boundary_id)->value_list(fe_face_values.get_quadrature_points(),
-                                              advection_scratch.vector_options.boundary_values);
     const auto &boundary_values{advection_scratch.vector_options.boundary_values};
 
     // normal vectors
@@ -181,11 +198,11 @@ assemble_system_local_boundary
         {
           for (const auto j: fe_face_values.dof_indices())
             data.matrices[0](i, j) -= normal_vectors[q] *
-                                      present_velocity_values[q] *
+                                      advection_field_values[q] *
                                       advection_scratch.phi[i] *
                                       advection_scratch.phi[j] *
                                       JxW[q];
-          data.vectors[0](i) += present_velocity_values[q] *
+          data.vectors[0](i) += advection_field_values[q] *
                                 normal_vectors[q] *
                                 advection_scratch.phi[i] *
                                 (present_values[q] - boundary_values[q]) *
