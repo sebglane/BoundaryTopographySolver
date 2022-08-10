@@ -24,6 +24,7 @@ SET(TARGET_SRC
     hydrodynamic_postprocessor.cc
     hydrodynamic_problem.cc
     hydrodynamic_solver/apply_boundary_conditions.cc
+    hydrodynamic_solver/assemble_local_boundary.cc
     hydrodynamic_solver/assemble_rhs.cc
     hydrodynamic_solver/assemble_rhs_local.cc
     hydrodynamic_solver/assemble_system.cc
