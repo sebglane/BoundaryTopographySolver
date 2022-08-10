@@ -25,7 +25,7 @@ using namespace dealii;
 
 template <int dim>
 double compute_matrix
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int test_function_index,
  const unsigned int trial_function_index,
  const unsigned int quadrature_point_index,
@@ -38,18 +38,7 @@ double compute_matrix
 
 template <int dim>
 double compute_rhs
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const unsigned int test_function_index,
- const unsigned int quadrature_point_index,
- const double       nu,
- const double       mu,
- const double       delta);
-
-
-
-template <int dim>
-double compute_rhs
-(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int test_function_index,
  const unsigned int quadrature_point_index,
  const double       nu,
@@ -60,14 +49,7 @@ double compute_rhs
 
 template <int dim>
 void compute_strong_residual
-(AssemblyData::Matrix::ScratchData<dim> &scratch,
- const double nu);
-
-
-
-template <int dim>
-void compute_strong_residual
-(AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+(AssemblyData::ScratchData<dim> &scratch,
  const double nu);
 
 }  // namespace Hydrodynamic
@@ -81,7 +63,7 @@ using namespace dealii;
 
 template <int dim>
 double compute_matrix
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int test_function_index,
  const unsigned int trial_function_index,
  const unsigned int quadrature_point_index,
@@ -96,19 +78,7 @@ double compute_matrix
 
 template <int dim>
 double compute_rhs
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
- const unsigned int test_function_index,
- const unsigned int quadrature_point_index,
- const double       nu,
- const double       mu,
- const double       delta,
- const double       delta_density);
-
-
-
-template <int dim>
-double compute_rhs
-(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int test_function_index,
  const unsigned int quadrature_point_index,
  const double       nu,
@@ -120,15 +90,9 @@ double compute_rhs
 
 template <int dim>
 void compute_strong_residuals
-(AssemblyData::Matrix::ScratchData<dim> &scratch,
+(AssemblyData::ScratchData<dim> &scratch,
  const double nu);
 
-
-
-template <int dim>
-void compute_strong_residuals
-(AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const double nu);
 
 
 }  // namespace BuoyantHydrodynamic

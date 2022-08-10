@@ -78,7 +78,7 @@ assemble_rhs_local_cell
     }
 
     // assign optional shape functions
-    scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
+    scratch.assign_optional_shape_functions_rhs_local(velocity, pressure, q);
 
     for (const auto i: fe_values.dof_indices())
     {

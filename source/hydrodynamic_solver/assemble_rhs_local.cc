@@ -45,14 +45,14 @@ assemble_rhs_local_cell
                                                        pressure);
 
   // assign vector options
-  scratch.assign_vector_options_local_cell("evaluation_point",
-                                           velocity,
-                                           pressure,
-                                           angular_velocity_ptr,
-                                           body_force_ptr,
-                                           background_velocity_ptr,
-                                           rossby_number,
-                                           froude_number);
+  scratch.assign_vector_options("evaluation_point",
+                                velocity,
+                                pressure,
+                                angular_velocity_ptr,
+                                body_force_ptr,
+                                background_velocity_ptr,
+                                rossby_number,
+                                froude_number);
   scratch.adjust_velocity_field_local_cell();
 
   // stabilization
@@ -69,7 +69,7 @@ assemble_rhs_local_cell
     }
 
     // assign optional shape functions
-    scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
+    scratch.assign_optional_shape_functions_rhs_local(velocity, pressure, q);
 
     for (const auto i: fe_values.dof_indices())
     {
@@ -112,14 +112,13 @@ assemble_rhs_local_boundary
       const auto &JxW = scratch.get_JxW_values();
 
       // assign vector options
-      scratch.assign_vector_options_local_boundary("",
-                                                   velocity,
-                                                   pressure,
-                                                   0.0,
-                                                   neumann_bcs.at(boundary_id),
-                                                   background_velocity_ptr);
+      scratch.assign_vector_options_boundary("",
+                                             velocity,
+                                             pressure,
+                                             0.0,
+                                             neumann_bcs.at(boundary_id),
+                                             background_velocity_ptr);
 
-      // boundary traction
       const auto &boundary_tractions{scratch.vector_options.boundary_traction_values};
 
       // loop over face quadrature points
@@ -153,13 +152,12 @@ assemble_rhs_local_boundary
                                        this->evaluation_point);
 
       // assign vector options
-      scratch.assign_vector_options_local_boundary("evaluation_point",
-                                                   velocity,
-                                                   pressure,
-                                                   nu,
-                                                   nullptr,
-                                                   background_velocity_ptr);
-      scratch.adjust_velocity_field_local_boundary();
+      scratch.assign_vector_options_boundary("evaluation_point",
+                                             velocity,
+                                             pressure,
+                                             nu,
+                                             nullptr,
+                                             background_velocity_ptr);
 
       // boundary traction
       const auto &boundary_tractions{scratch.vector_options.boundary_traction_values};
