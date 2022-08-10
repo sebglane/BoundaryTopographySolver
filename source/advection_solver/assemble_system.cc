@@ -63,10 +63,10 @@ void Solver<dim, TriangulationType>::assemble_system
       ScratchData            &scratch,
       CopyData               &data)
       {
-        this->assemble_system_local_boundary(cell,
-                                             face_number,
-                                             scratch,
-                                             data);
+        this->assemble_local_boundary(cell,
+                                      face_number,
+                                      scratch,
+                                      data);
       };
 
   // setup the lambda function for the copy local to global operation
