@@ -404,7 +404,7 @@ namespace internal {
 
 template <int dim>
 double compute_hydrodynamic_rhs
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int i,
  const unsigned int q,
  const double       nu,
@@ -442,47 +442,8 @@ double compute_hydrodynamic_rhs
 
 
 template <int dim>
-double compute_hydrodynamic_rhs
-(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const unsigned int i,
- const unsigned int q,
- const double       nu,
- const double       mu,
- const double       delta)
-{
-  const Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &hydrodynamic_scratch
-  {static_cast<const Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch)};
-
-  const Advection::AssemblyData::Matrix::ScratchData<dim> &advection_scratch
-  {static_cast<const Advection::AssemblyData::Matrix::ScratchData<dim> &>(scratch)};
-
-  double rhs{Hydrodynamic::compute_rhs(hydrodynamic_scratch,
-                                       i,
-                                       q,
-                                       nu,
-                                       mu,
-                                       delta)};
-
-  if (scratch.vector_options.gravity_field_values)
-  {
-    Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
-
-    const double present_density_value{advection_scratch.present_values[q]};
-
-    rhs += present_density_value *
-           (scratch.vector_options.gravity_field_values->at(q) * hydrodynamic_scratch.phi_velocity[i]) /
-           (*hydrodynamic_scratch.vector_options.froude_number *
-            *hydrodynamic_scratch.vector_options.froude_number);
-  }
-
-  return (rhs);
-}
-
-
-
-template <int dim>
 double compute_density_matrix
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int i,
  const unsigned int j,
  const unsigned int q,
@@ -566,7 +527,7 @@ double compute_density_matrix
 
 template <int dim>
 double compute_density_rhs
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int i,
  const unsigned int q,
  const double       delta)
@@ -578,25 +539,6 @@ double compute_density_rhs
 
   return (rhs);
 }
-
-
-
-template <int dim>
-double compute_density_rhs
-(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const unsigned int i,
- const unsigned int q,
- const double       delta)
-{
-  const Advection::AssemblyData::RightHandSide::ScratchData<dim> &advection_scratch
-  {static_cast<const Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch)};
-
-  const double rhs{Advection::compute_rhs(advection_scratch, i, q, delta)};
-
-  return (rhs);
-}
-
-
 
 }  // namespace internal
 
@@ -604,7 +546,7 @@ double compute_density_rhs
 
 template <int dim>
 double compute_matrix
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int i,
  const unsigned int j,
  const unsigned int q,
@@ -679,7 +621,7 @@ double compute_matrix
 
 template <int dim>
 double compute_rhs
-(const AssemblyData::Matrix::ScratchData<dim> &scratch,
+(const AssemblyData::ScratchData<dim> &scratch,
  const unsigned int i,
  const unsigned int q,
  const double       nu,
@@ -703,39 +645,12 @@ double compute_rhs
   return (rhs);
 }
 
-
-
-template <int dim>
-double compute_rhs
-(const AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const unsigned int i,
- const unsigned int q,
- const double       nu,
- const double       mu,
- const double       delta,
- const double       delta_density)
-{
-  double rhs{internal::
-             compute_hydrodynamic_rhs(scratch,
-                                      i,
-                                      q,
-                                      nu,
-                                      mu,
-                                      delta)};
-  rhs += internal::
-         compute_density_rhs(scratch,
-                             i,
-                             q,
-                             delta_density);
-
-  return (rhs);
-}
 
 
 
 template <int dim>
 void compute_strong_residuals
-(AssemblyData::Matrix::ScratchData<dim> &scratch,
+(AssemblyData::ScratchData<dim> &scratch,
  const double nu)
 {
   Hydrodynamic::AssemblyData::Matrix::ScratchData<dim> &hydrodynamic_scratch =
@@ -775,53 +690,11 @@ void compute_strong_residuals
 
 
 
-template <int dim>
-void compute_strong_residuals
-(AssemblyData::RightHandSide::ScratchData<dim> &scratch,
- const double nu)
-{
-  Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &hydrodynamic_scratch =
-  static_cast<Hydrodynamic::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
-
-  Advection::AssemblyData::RightHandSide::ScratchData<dim> &advection_scratch =
-  static_cast<Advection::AssemblyData::RightHandSide::ScratchData<dim> &>(scratch);
-
-  if (hydrodynamic_scratch.stabilization_flags & (apply_supg|apply_pspg))
-  {
-    Hydrodynamic::
-    compute_strong_residual(hydrodynamic_scratch,
-                            nu);
-
-    if (scratch.vector_options.gravity_field_values)
-    {
-      const auto &present_density_values{advection_scratch.present_values};
-
-      Assert(hydrodynamic_scratch.vector_options.froude_number, ExcInternalError());
-      AssertDimension(present_density_values.size(),
-                      scratch.vector_options.gravity_field_values->size());
-
-      auto &strong_residuals{hydrodynamic_scratch.present_strong_residuals};
-      AssertDimension(present_density_values.size(),
-                      strong_residuals.size());
-
-      for (std::size_t q=0; q<present_density_values.size(); ++q)
-        strong_residuals[q] -= present_density_values[q] *
-                               scratch.vector_options.gravity_field_values->at(q) /
-                               (*hydrodynamic_scratch.vector_options.froude_number *
-                                *hydrodynamic_scratch.vector_options.froude_number);
-    }
-  }
-
-  Advection::compute_strong_residual(advection_scratch);
-}
-
-
-
 
 // explicit instantiations
 template
 double compute_matrix
-(const AssemblyData::Matrix::ScratchData<2> &,
+(const AssemblyData::ScratchData<2> &,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
@@ -833,7 +706,7 @@ double compute_matrix
  const bool          );
 template
 double compute_matrix
-(const AssemblyData::Matrix::ScratchData<3> &,
+(const AssemblyData::ScratchData<3> &,
  const unsigned int ,
  const unsigned int ,
  const unsigned int ,
@@ -847,7 +720,7 @@ double compute_matrix
 template
 double
 compute_rhs
-(const AssemblyData::Matrix::ScratchData<2> &,
+(const AssemblyData::ScratchData<2> &,
  const unsigned int   ,
  const unsigned int   ,
  const double         ,
@@ -857,27 +730,7 @@ compute_rhs
 template
 double
 compute_rhs
-(const AssemblyData::Matrix::ScratchData<3> &,
- const unsigned int   ,
- const unsigned int   ,
- const double         ,
- const double         ,
- const double         ,
- const double          );
-template
-double
-compute_rhs
-(const AssemblyData::RightHandSide::ScratchData<2> &,
- const unsigned int   ,
- const unsigned int   ,
- const double         ,
- const double         ,
- const double         ,
- const double          );
-template
-double
-compute_rhs
-(const AssemblyData::RightHandSide::ScratchData<3> &,
+(const AssemblyData::ScratchData<3> &,
  const unsigned int   ,
  const unsigned int   ,
  const double         ,
@@ -885,29 +738,16 @@ compute_rhs
  const double         ,
  const double          );
 
-
 template
 void
 compute_strong_residuals
-(AssemblyData::Matrix::ScratchData<2> &,
+(AssemblyData::ScratchData<2> &,
  const double                       );
 template
 void
 compute_strong_residuals
-(AssemblyData::Matrix::ScratchData<3> &,
+(AssemblyData::ScratchData<3> &,
  const double                       );
-
-template
-void
-compute_strong_residuals
-(AssemblyData::RightHandSide::ScratchData<2> &,
- const double                       );
-template
-void
-compute_strong_residuals
-(AssemblyData::RightHandSide::ScratchData<3> &,
- const double                       );
-
 
 }  // namespace BuoyantHydrodynamic
 
