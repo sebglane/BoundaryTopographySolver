@@ -130,14 +130,14 @@ assign_vector_options_local_cell
  const double                                                stratification_number)
 {
   Hydrodynamic::AssemblyData::Matrix::
-  ScratchData<dim>::assign_vector_options_local_cell(name,
-                                                     velocity,
-                                                     pressure,
-                                                     angular_velocity_ptr,
-                                                     body_force_ptr,
-                                                     background_velocity_ptr,
-                                                     rossby_number,
-                                                     froude_number);
+  ScratchData<dim>::assign_vector_options(name,
+                                          velocity,
+                                          pressure,
+                                          angular_velocity_ptr,
+                                          body_force_ptr,
+                                          background_velocity_ptr,
+                                          rossby_number,
+                                          froude_number);
 
   Advection::AssemblyData::Matrix::
   ScratchData<dim>::assign_vector_options_local_cell(source_term_ptr,
@@ -294,14 +294,14 @@ assign_vector_options_local_cell
  const double                                                stratification_number)
 {
   Hydrodynamic::AssemblyData::RightHandSide::
-  ScratchData<dim>::assign_vector_options_local_cell(name,
-                                                     velocity,
-                                                     pressure,
-                                                     angular_velocity_ptr,
-                                                     body_force_ptr,
-                                                     background_velocity_ptr,
-                                                     rossby_number,
-                                                     froude_number);
+  ScratchData<dim>::assign_vector_options(name,
+                                          velocity,
+                                          pressure,
+                                          angular_velocity_ptr,
+                                          body_force_ptr,
+                                          background_velocity_ptr,
+                                          rossby_number,
+                                          froude_number);
 
   Advection::AssemblyData::RightHandSide::
   ScratchData<dim>::assign_vector_options_local_cell(source_term_ptr,

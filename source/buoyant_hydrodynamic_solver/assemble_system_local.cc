@@ -66,8 +66,7 @@ assemble_system_local_cell
                                            this->gradient_scaling_number);
 
   // stabilization
-  compute_strong_residuals(scratch,
-                           nu);
+  compute_strong_residuals(scratch, nu);
 
   for (const auto q: fe_values.quadrature_point_indices())
   {
@@ -83,7 +82,7 @@ assemble_system_local_cell
     }
 
     // assign optional shape functions
-    scratch.assign_optional_shape_functions_local_cell(velocity, pressure, q);
+    scratch.assign_optional_shape_functions_system_local(velocity, pressure, q);
 
     for (const auto i: fe_values.dof_indices())
     {
