@@ -50,6 +50,7 @@ SET(TARGET_SRC
     advection_solver/assemble_system_local.cc
     advection_solver/assemble_rhs.cc
     advection_solver/assemble_rhs_local.cc
+    advection_solver/assemble_local_boundary.cc
     advection_solver/advection_solver.cc
     advection_solver/setup.cc
 )
