@@ -1,0 +1,133 @@
+/**
+
+@mainpage Documentation of the nonlinear MHD solver
+@author Sebastian Glane
+\tableofcontents
+
+This github repository contains a suite of solvers for stationary incompressible
+flow problems. The following types of problems can be solved with the current 
+version of the library
+  - incompessible hydrodynamic flow,
+  - rotating incompressible hydrodynamic flow
+  - buoyant incompessible hydrodynamic flow,
+  - rotating buoyant incompressible flow.
+  
+It is possible to also formulate all problems in terms of a pertubation analysis.
+Then, the base or background state is denoted by \f$\bar{\phi}\f$ and the perturbation
+by \f$\phi'\f$, i.e., \f$\phi=\bar{\phi}+\phi'\f$.
+
+The objective is to finally implement a solver which is also capable of solving 
+stationary MHD problems.
+
+@section Overview Overview of the problems and solvers
+
+In the following, the equations which are governing the different problems stated above will be presented.
+
+@subsection Hydrodynamic Hydrodynamic problem
+
+The equations governing the hydrodynamic problem read
+\f[
+\begin{equation*}
+    \nabla\cdot\bs{v}=0\,,\qquad
+    \bs{v}\cdot\nabla\otimes\bs{v}+\frac{2}{\Rossby}\bs{\varOmega}\times\bs{v}
+    =\nabla\cdot\bs{\sigma}+\frac{1}{\Froude^2}\bs{b}\,,\qquad
+    \mathrm{on}\ \varOmega\,,
+\end{equation*}
+\f]
+
+where \f$\bs{\sigma}\f$ is the Cauchy stress tensor, \f$\bs{b}\f$ the body
+force density \f$\bs{\varOmega}\f$ is the angular velocity and \f$\Rossby\f$ the Rossby number.
+In the literature on computational fluid dynamics, two different kind of formulations
+of the Cauchy stress tensor are used:
+   - the so-called stress form: \f$\bs{\sigma}=-p\bs{1}+\frac{1}{\Reynolds}2\bs{d}\f$,
+     where \f$\bs{d}\f$ is the symmetric velocity gradient and \f$\Reynolds\f$ the
+     Reynolds number,
+   - the Laplacean form: \f$\bs{\sigma}=-p\bs{1}+\frac{1}{\Reynolds}\nabla\otimes\bs{v}\f$.
+
+The parameter 
+Hydrodynamic::ProblemParameters#viscous_term_weak_form controls which formulation
+is used and is specified in the input file.
+
+The dimensionless parameters \f$\Reynolds\f$, \f$\Rossby\f$, \f$\Froude\f$, of
+which the latter two are optional, are specified in the input file and stored as
+member variables in parameter class Hydrodynamic::ProblemParameters.
+
+The angular velocity \f$\bs{\varOmega}\f$ can be specified through the method
+Hydrodynamic::HydrodynamicProblem::set_angular_velocity and is stored in the member
+variable Hydrodynamic::Solver::angular_velocity_ptr.
+
+A background velocity field \f$\bar{V}\f$ can be specified through the method
+Hydrodynamic::HydrodynamicProblem::set_background_velocity and is stored in the member
+variable Hydrodynamic::Solver::background_velocity_ptr. The background velocity
+is taken into account in the nonlinear convective term. A background pressure 
+field \f$\bar{p}\f$ cannot be specified because it is assumed that the
+background pressure complies with the background velocity field \f$\bar{V}\f$.
+
+The equations governing the hydrodynamic problem above are supplemented by boundary
+conditions. These are
+   - Dirichlet boundary conditions: \f$\bs{v}= \bs{v}_\mathrm{D}\f$,
+   - normal flux boundary conditions: \f$\bs{n}\cdot\bs{v}= v_\perp\f$,
+   - tagential flux boundary conditions: \f$\bs{n}\times\bs{v}= \bs{v}_\parallel\f$,
+   - traction boundary conditions: \f$\bs{n}\cdot\bs{\sigma}= \bs{t}\f$.
+
+The boundary conditions are specified in the method Hydrodynamic::HydrodynamicProblem::set_boundary_conditions
+and handled in the member variables Hydrodynamic::Solver::velocity_boundary_conditions 
+and Hydrodynamic::Solver::pressure_boundary_conditions.
+
+The discretization of the problem including an SUPG-PSPG-grad-div stabilization
+is discussed in detail in the documentation of the class Hydrodynamic::Solver.
+
+@subsection AdvectionProblem Advection problem
+
+The equation governing the hydrodynamic problem reads
+\f[
+\begin{equation*}
+    \bs{v}\cdot\nabla\varphi=r\,,
+\end{equation*}
+\f]
+
+where \f$\varphi\f$ is transported scalar field and \f$r\f$ an internal source
+term. The advection field or velocity \f$\bs{v}\f$ must be specified through the 
+method Advection::AdvectionProblem::set_advection_field and is stored in the member
+variable Advection::Solver::advection_field_ptr. The source term can be specified through the method
+Advection::AdvectionProblem::set_source_term and is stored in the member
+variable Advection::Solver::source_term_ptr.
+
+The equations governing this problem are supplemented by a Dirichlet boundary
+condition \f$\varphi=\varphi_\mathrm{D}\f$ on boundaries where the incoming flux
+is positive, i.e., \f$\bs{n}\cdot\bs{v}>0\f$. The boundary conditions are specified
+in the method Advection::AdvectionProblem::set_boundary_conditions
+and handled in the member variables Advection::Solver::scalar_boundary_conditions.
+
+The discretization of the problem including an SUPG stabilization
+is discussed in detail in the documentation of the class Advection::Solver.
+
+@subsection BuoyantHydrodynamic Buoyant hydrodynamic problem
+
+The equations governing the buoyant hydrodynamic problem read
+
+\f[
+\begin{gather*}
+    \bs{v}\cdot\nabla\rho=0\,,\qquad    \mathrm{on}\ \varOmega\\
+    \nabla\cdot\bs{v}=0\,,\qquad
+    \bs{v}\cdot\nabla\otimes\bs{v}+\frac{2}{\Rossby}\bs{\varOmega}\times\bs{v}
+    =\nabla\cdot\bs{\sigma}+\frac{1}{\Froude^2}\bs{b}+\frac{1}{\Froude^2}\rho\bs{g}\,,\qquad
+    \mathrm{on}\ \varOmega\,,
+\end{gather*}
+\f]
+
+Here, a transport equation for the density \f$\rho\f$ was added and the buoyancy
+term was included in the momentum equation. The gravity field \f$\bs{g}\f$ can be
+specified through the method BuoyantHydrodynamic::BuoyantHydrodynamicProblem::set_gravity_field
+and is stored in the member variable BuoyantHydrodynamic::Solver::gravity_field_ptr.
+
+Moreover, it is possible to specify a background density \f$\bar{\rho}\f$ and
+related background density gradient scaling number or stratification number
+\f$\Stratification\f$. The former can be specified through the methods 
+BuoyantHydrodynamic::BuoyantHydrodynamicProblem::set_reference_density and is
+stored in the member variable Advection::Solver::reference_field_ptr. The latter
+is part of the problem parameters BuoyantHydrodynamic::ProblemParameters and is
+specified through an input file.
+
+*
+*/
