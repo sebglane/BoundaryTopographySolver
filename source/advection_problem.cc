@@ -61,15 +61,6 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Mapping - Polynomial degree",
                     "1",
                     Patterns::Integer(1));
-
-  prm.enter_subsection("Advection solver parameters");
-  {
-    prm.declare_entry("Stratification number",
-                      "0.0",
-                      Patterns::Double(0.0));
-  }
-  prm.leave_subsection();
-
 }
 
 
@@ -80,15 +71,6 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   mapping_degree = prm.get_integer("Mapping - Polynomial degree");
   AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
-
-  prm.enter_subsection("Advection solver parameters");
-  {
-    stratification_number = prm.get_double("Stratification number");
-    AssertThrow(stratification_number >= 0.0, ExcLowerRangeType<double>(stratification_number, 0.0));
-    AssertIsFinite(stratification_number);
-  }
-  prm.leave_subsection();
-
 }
 
 
@@ -105,8 +87,6 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
                << "(" << std::to_string(prm.mapping_degree) << ")";
      Utility::add_line(stream, "Mapping", strstream.str().c_str());
    }
-  if (prm.stratification_number > 0.0)
-    Utility::add_line(stream, "Stratification number", prm.stratification_number);
 
   Utility::add_header(stream);
 
@@ -119,7 +99,7 @@ template <int dim, typename TriangulationType>
 AdvectionProblem<dim, TriangulationType>::AdvectionProblem(const ProblemParameters &parameters)
 :
 mapping(parameters.mapping_degree),
-solver(triangulation, mapping, parameters, parameters.stratification_number),
+solver(triangulation, mapping, parameters),
 n_initial_refinements(parameters.refinement_parameters.n_initial_refinements),
 n_initial_bndry_refinements(parameters.refinement_parameters.n_initial_bndry_refinements)
 {
