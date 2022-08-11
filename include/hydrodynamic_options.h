@@ -21,6 +21,9 @@ namespace Hydrodynamic
 
 using namespace dealii;
 
+/**
+ * @todo Add documentation.
+ */
 template<int dim>
 struct ScalarOptions
 {
@@ -35,7 +38,9 @@ struct ScalarOptions
 };
 
 
-
+/**
+ * @todo Add documentation.
+ */
 template<int dim>
 struct VectorOptions
 {

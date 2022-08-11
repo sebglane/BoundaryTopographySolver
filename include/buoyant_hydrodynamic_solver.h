@@ -64,7 +64,9 @@ template <typename Stream>
 Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
-
+/**
+ * @todo Add documentation.
+ */
 template <int dim,
           typename TriangulationType = Triangulation<dim>>
 class Solver: public Hydrodynamic::Solver<dim, TriangulationType>,

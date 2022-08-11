@@ -17,6 +17,9 @@ namespace BuoyantHydrodynamic
 
 using namespace dealii;
 
+/**
+ * @todo Add documentation.
+ */
 template<int dim>
 struct VectorOptions
 {

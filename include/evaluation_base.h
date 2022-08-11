@@ -19,6 +19,9 @@ namespace Base {
 
 using namespace dealii;
 
+/**
+ * @todo Add documentation.
+ */
 template <int dim, typename VectorType = BlockVector<double> >
 class EvaluationBase
 {

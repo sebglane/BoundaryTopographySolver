@@ -57,11 +57,6 @@ struct ProblemParameters: SolverParameters
    * @brief Polynomial degree of the mapping.
    */
   unsigned int  mapping_degree;
-
-  /*!
-   * @brief The stratification number of the problem.
-   */
-  double        stratification_number;
 };
 
 
@@ -73,7 +68,9 @@ template <typename Stream>
 Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
-
+/**
+ * @todo Add documentation.
+ */
 template <int dim,
           typename TriangulationType = Triangulation<dim>>
 class AdvectionProblem

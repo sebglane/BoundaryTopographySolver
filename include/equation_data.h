@@ -15,6 +15,9 @@ namespace EquationData {
 
 using namespace dealii;
 
+/**
+ * @todo Add documentation.
+ */
 template<int dim>
 class VelocityBoundaryValues : public Function<dim>
 {
@@ -28,6 +31,9 @@ private:
     Tensor<1,dim>           direction_vector;
 };
 
+/**
+ * @todo Add documentation.
+ */
 template<int dim>
 class BackgroundVelocity : public Function<dim>
 {
@@ -41,6 +47,9 @@ private:
     Tensor<1,dim>           direction_vector;
 };
 
+/**
+ * @todo Add documentation.
+ */
 template<int dim>
 class BackgroundMagneticField : public Function<dim>
 {
