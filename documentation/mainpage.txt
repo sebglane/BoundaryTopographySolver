@@ -4,9 +4,11 @@
 @author Sebastian Glane
 \tableofcontents
 
-This github repository contains a suite of solvers for stationary incompressible
-flow problems. The following types of problems can be solved with the current 
-version of the library
+[![CI](https://github.com/sebglane/BoundaryTopographySolver/actions/workflows/main.yml/badge.svg)](https://github.com/sebglane/BoundaryTopographySolver/actions/workflows/main.yml)
+
+This repository contains a suite of deal.ii solvers for stationary hydrodynamic
+and magnetohydrodynamic problems. The solvers are constructed in an object-oriented
+fashion. The following types of problems can be solved with the current version of the library
   - incompessible hydrodynamic flow,
   - rotating incompressible hydrodynamic flow
   - buoyant incompessible hydrodynamic flow,
