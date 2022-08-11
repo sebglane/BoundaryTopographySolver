@@ -36,10 +36,10 @@ void make_grid<2>()
   {
     triangulation.refine_global();
 
-    std::string fname("Mesh2D_level" + Utilities::to_string(i, 2) + ".vtk");
+    std::string fname("Mesh2D_level" + Utilities::to_string(i, 2) + ".svg");
     std::ofstream out(fname);
 
-    GridOut().write(triangulation, out, GridOut::OutputFormat::vtk);
+    GridOut().write(triangulation, out, GridOut::OutputFormat::svg);
   }
 
   for (unsigned int step=0; step<n_boundary_refinements; ++step)
@@ -68,24 +68,43 @@ void make_grid<3>()
 
   constexpr int dim{3};
 
-  GridFactory::TopographyBox<dim> topography_box(2.0 * numbers::PI, 0.1);
-
-  Triangulation<dim>  triangulation;
-  topography_box.create_coarse_mesh(triangulation);
-
-  for (unsigned int i=0; i<4; ++i)
   {
-    triangulation.set_all_refine_flags();
-    for (const auto &cell: triangulation.active_cell_iterators())
-      if (cell->refine_flag_set())
-        cell->set_refine_flag(RefinementCase<dim>::cut_xz);
-    triangulation.execute_coarsening_and_refinement();
+    GridFactory::TopographyBox<dim> topography_box(2.0 * numbers::PI, 0.1);
+
+    Triangulation<dim>  triangulation;
+    topography_box.create_coarse_mesh(triangulation);
+
+    for (unsigned int i=0; i<4; ++i)
+    {
+      triangulation.set_all_refine_flags();
+      for (const auto &cell: triangulation.active_cell_iterators())
+        if (cell->refine_flag_set())
+          cell->set_refine_flag(RefinementCase<dim>::cut_xz);
+      triangulation.execute_coarsening_and_refinement();
+    }
+
+    std::string fname("Mesh3D_PlaneWave.vtk");
+    std::ofstream out(fname);
+
+    GridOut().write(triangulation, out, GridOut::OutputFormat::vtk);
   }
+  {
+    GridFactory::TopographyBox<dim> topography_box(2.0 * numbers::PI, 0.1, 0.0, false);
 
-  std::string fname("Mesh3D.vtk");
-  std::ofstream out(fname);
+    Triangulation<dim>  triangulation;
+    topography_box.create_coarse_mesh(triangulation);
 
-  GridOut().write(triangulation, out, GridOut::OutputFormat::vtk);
+    for (unsigned int i=0; i<4; ++i)
+    {
+      triangulation.set_all_refine_flags();
+      triangulation.execute_coarsening_and_refinement();
+    }
+
+    std::string fname("Mesh3D.vtk");
+    std::ofstream out(fname);
+
+    GridOut().write(triangulation, out, GridOut::OutputFormat::vtk);
+  }
 
 }
 
