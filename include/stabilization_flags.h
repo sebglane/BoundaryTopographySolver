@@ -16,8 +16,14 @@
  */
 enum StabilizationFlags
 {
+  /**
+   * @todo Add documentation.
+   */
   apply_none = 0,
 
+  /**
+   * @todo Add documentation.
+   */
   apply_supg = 0x0001,
 
   apply_pspg = 0x0002,

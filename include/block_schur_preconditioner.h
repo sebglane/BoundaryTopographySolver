@@ -21,6 +21,9 @@ namespace Preconditioning {
 
 using namespace dealii;
 
+/**
+ * @todo Add documentation.
+ */
 template <class PreconditionerTypeA, class PreconditionerTypeS>
 class BlockSchurPreconditioner : public Subscriptor
 {

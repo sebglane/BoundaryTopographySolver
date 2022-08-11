@@ -17,6 +17,9 @@ namespace GridFactory {
 
 using namespace dealii;
 
+/**
+ * @todo Add documentation.
+ */
 template<int dim>
 class SinusoidalManifold: public ChartManifold<dim,dim,dim-1>
 {

@@ -74,6 +74,9 @@ Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
 
 
+/**
+ * @todo Add documentation.
+ */
 template <int dim,
           typename TriangulationType = Triangulation<dim>>
 class Solver: virtual public Base::Solver<dim, TriangulationType>

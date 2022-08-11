@@ -23,6 +23,9 @@ namespace Hydrodynamic {
 
 using namespace dealii;
 
+/**
+ * @todo Add documentation.
+ */
 template <int dim>
 double compute_matrix
 (const AssemblyData::ScratchData<dim> &scratch,

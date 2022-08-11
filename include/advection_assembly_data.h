@@ -22,6 +22,10 @@ using namespace dealii;
 
 namespace AssemblyData {
 
+
+/**
+ * @todo Add documentation.
+ */
 template <int dim>
 class ScratchData : virtual public MeshWorker::ScratchData<dim>
 {

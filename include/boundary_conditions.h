@@ -174,7 +174,7 @@ public:
   bool closed() const;
 
   /*!
-   * @todo Sets the boundary condition by setting @ref flag_boundary_conditions_closed
+   * @brief Sets the boundary condition by setting @ref flag_boundary_conditions_closed
    * to true.
    */
   void close();
