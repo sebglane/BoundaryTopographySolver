@@ -46,6 +46,9 @@ using namespace dealii;
 
 using namespace BoundaryConditions;
 
+/**
+ * @todo Add documentation.
+ */
 struct Parameters
 {
   /*!
@@ -137,6 +140,8 @@ Stream& operator<<(Stream &stream, const Parameters &prm);
 
 /*
  * @class Solver
+ *
+ * @todo Add documentation.
  *
  */
 template <int dim,

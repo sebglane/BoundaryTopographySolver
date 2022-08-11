@@ -22,6 +22,9 @@ namespace Hydrodynamic {
 
 using namespace dealii;
 
+/**
+ * @todo Add documentation.
+ */
 template <int dim, typename VectorType = BlockVector<double> >
 class EvaluationStabilization : public Base::EvaluationBase<dim, VectorType>
 {

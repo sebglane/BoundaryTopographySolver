@@ -68,7 +68,9 @@ template <typename Stream>
 Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
-
+/**
+ * @todo Add documentation.
+ */
 template <int dim,
           typename TriangulationType = Triangulation<dim>>
 class AdvectionProblem

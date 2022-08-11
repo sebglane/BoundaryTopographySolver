@@ -14,6 +14,9 @@
 namespace Utility
 {
 
+/**
+ * @todo Add documentation.
+ */
 template <int dim>
 class AngularVelocity : public dealii::FunctionTime<double>
 {

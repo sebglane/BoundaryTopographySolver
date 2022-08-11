@@ -18,6 +18,9 @@ using namespace dealii;
 
 namespace AssemblyData {
 
+/**
+ * @todo Add documentation.
+ */
 template <int dim>
 class ScratchData : public Hydrodynamic::AssemblyData::ScratchData<dim>,
                     public Advection::AssemblyData::ScratchData<dim>
