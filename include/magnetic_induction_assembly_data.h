@@ -34,11 +34,7 @@ public:
     const UpdateFlags        &update_flags,
     const Quadrature<dim-1>  &face_quadrature = Quadrature<dim-1>(),
     const UpdateFlags        &face_update_flags = update_default,
-    const StabilizationFlags &stabilization_flags = apply_none,
-    const bool                use_stress_form = false,
-    const bool                allocate_background_velocity = false,
-    const bool                allocate_body_force = false,
-    const bool                allocate_traction = false);
+    const bool                allocate_background_magnetic_field = false);
 
   ScratchData(
     const FiniteElement<dim> &fe,
@@ -46,13 +42,12 @@ public:
     const UpdateFlags        &update_flags,
     const Quadrature<dim-1>  &face_quadrature   = Quadrature<dim-1>(),
     const UpdateFlags        &face_update_flags = update_default,
-    const StabilizationFlags &stabilization_flags = apply_none,
-    const bool                use_stress_form = false,
-    const bool                allocate_background_velocity = false,
-    const bool                allocate_body_force = false,
-    const bool                allocate_traction = false);
+    const bool                allocate_background_velocity = false);
 
   ScratchData(const ScratchData<dim>  &data);
+
+  /*
+   *
 
   void assign_vector_options(
     const std::string                                          &name,
@@ -67,6 +62,9 @@ public:
     const std::shared_ptr<const TensorFunction<1,dim>>         &background_magnetic_field_ptr = nullptr);
 
   void adjust_velocity_field_local_cell();
+
+  *
+  */
 
   VectorOptions<dim>          vector_options;
 
