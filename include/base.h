@@ -186,6 +186,10 @@ protected:
   (const typename BoundaryConditionsBase<dim>::BCMapping &normal_flux_bcs,
    const ComponentMask                                   &mask);
 
+  void apply_tangential_flux_constraints
+  (const typename BoundaryConditionsBase<dim>::BCMapping &normal_flux_bcs,
+   const ComponentMask                                   &mask);
+
   void apply_periodicity_constraints
   (std::vector<PeriodicBoundaryData<dim>> &periodic_bcs,
    const ComponentMask                    &mask);

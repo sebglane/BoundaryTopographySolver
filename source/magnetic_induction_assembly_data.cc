@@ -17,26 +17,23 @@ ScratchData<dim>::ScratchData
  const FiniteElement<dim> &fe,
  const Quadrature<dim>    &quadrature,
  const UpdateFlags        &update_flags,
- const Quadrature<dim-1>  &face_quadrature,
- const UpdateFlags        &face_update_flags,
+ const bool                allocate_velocity_field,
  const bool                allocate_background_magnetic_field)
 :
 MeshWorker::ScratchData<dim>(mapping,
                              fe,
                              quadrature,
-                             update_flags,
-                             face_quadrature,
-                             face_update_flags),
+                             update_flags),
 vector_options(quadrature.size(),
+               allocate_velocity_field,
                allocate_background_magnetic_field),
 phi_magnetic_field(fe.n_dofs_per_cell()),
-grad_phi_magnetic_field(fe.n_dofs_per_cell()),
+curl_phi_magnetic_field(fe.n_dofs_per_cell()),
 div_phi_magnetic_field(fe.n_dofs_per_cell()),
-phi_magnetic_pressure(fe.n_dofs_per_cell()),
 grad_phi_magnetic_pressure(fe.n_dofs_per_cell()),
 present_magnetic_field_values(quadrature.size()),
-present_magnetic_field_gradients(quadrature.size()),
-present_magnetic_pressure_values(quadrature.size()),
+present_magnetic_field_curls(quadrature.size()),
+present_magnetic_field_divergences(quadrature.size()),
 present_magnetic_pressure_gradients(quadrature.size())
 {}
 
@@ -47,8 +44,7 @@ ScratchData<dim>::ScratchData
 (const FiniteElement<dim> &fe,
  const Quadrature<dim>    &quadrature,
  const UpdateFlags        &update_flags,
- const Quadrature<dim-1>  &face_quadrature,
- const UpdateFlags        &face_update_flags,
+ const bool                allocate_velocity_field,
  const bool                allocate_background_magnetic_field)
 :
 ScratchData<dim>(fe.reference_cell()
@@ -56,8 +52,7 @@ ScratchData<dim>(fe.reference_cell()
                  fe,
                  quadrature,
                  update_flags,
-                 face_quadrature,
-                 face_update_flags,
+                 allocate_velocity_field,
                  allocate_background_magnetic_field)
 {}
 
@@ -67,13 +62,12 @@ ScratchData<dim>::ScratchData(const ScratchData<dim>  &other)
 MeshWorker::ScratchData<dim>(other),
 vector_options(other.vector_options),
 phi_magnetic_field(other.phi_magnetic_field),
-grad_phi_magnetic_field(other.grad_phi_magnetic_field),
+curl_phi_magnetic_field(other.curl_phi_magnetic_field),
 div_phi_magnetic_field(other.div_phi_magnetic_field),
-phi_magnetic_pressure(other.phi_magnetic_pressure),
 grad_phi_magnetic_pressure(other.grad_phi_magnetic_pressure),
 present_magnetic_field_values(other.present_magnetic_field_values),
-present_magnetic_field_gradients(other.present_magnetic_field_gradients),
-present_magnetic_pressure_values(other.present_magnetic_pressure_values),
+present_magnetic_field_curls(other.present_magnetic_field_curls),
+present_magnetic_field_divergences(other.present_magnetic_field_divergences),
 present_magnetic_pressure_gradients(other.present_magnetic_pressure_gradients)
 {}
 

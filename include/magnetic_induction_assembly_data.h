@@ -32,16 +32,14 @@ public:
     const FiniteElement<dim> &fe,
     const Quadrature<dim>    &quadrature,
     const UpdateFlags        &update_flags,
-    const Quadrature<dim-1>  &face_quadrature = Quadrature<dim-1>(),
-    const UpdateFlags        &face_update_flags = update_default,
+    const bool                allocate_velocity_field = false,
     const bool                allocate_background_magnetic_field = false);
 
   ScratchData(
     const FiniteElement<dim> &fe,
     const Quadrature<dim>    &quadrature,
     const UpdateFlags        &update_flags,
-    const Quadrature<dim-1>  &face_quadrature   = Quadrature<dim-1>(),
-    const UpdateFlags        &face_update_flags = update_default,
+    const bool                allocate_velocity_field = false,
     const bool                allocate_background_velocity = false);
 
   ScratchData(const ScratchData<dim>  &data);
@@ -65,22 +63,20 @@ public:
 
   *
   */
+  using curl_type = typename FEValuesViews::Vector<dim>::curl_type;
 
   VectorOptions<dim>          vector_options;
 
   // shape functions
   std::vector<Tensor<1, dim>> phi_magnetic_field;
-  std::vector<Tensor<2, dim>> grad_phi_magnetic_field;
+  std::vector<curl_type>      curl_phi_magnetic_field;
   std::vector<double>         div_phi_magnetic_field;
-  std::vector<double>         phi_magnetic_pressure;
-
-  // stabilization related shape functions
   std::vector<Tensor<1, dim>> grad_phi_magnetic_pressure;
 
   // present solution values
   std::vector<Tensor<1, dim>> present_magnetic_field_values;
-  std::vector<Tensor<2, dim>> present_magnetic_field_gradients;
-  std::vector<double>         present_magnetic_pressure_values;
+  std::vector<curl_type>      present_magnetic_field_curls;
+  std::vector<double>         present_magnetic_field_divergences;
   std::vector<Tensor<1, dim>> present_magnetic_pressure_gradients;
 
 };
