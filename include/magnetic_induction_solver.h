@@ -56,6 +56,11 @@ struct SolverParameters: virtual Base::Parameters
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const SolverParameters &prm);
 
+  /*!
+   * @brief Stabilization parameter controlling the SUPG and PSPG terms.
+   */
+  double  c;
+
 };
 
 
@@ -78,7 +83,9 @@ public:
          const SolverParameters &parameters,
          const double         magnetic_reynolds_number = 1.0);
 
-  void set_background_magnetic_field(const std::shared_ptr<const TensorFunction<1, dim>> &background_field);
+  void set_background_magnetic_field(const std::shared_ptr<const TensorFunction<1, dim>> &magnetic_field);
+
+  void set_velocity_field(const std::shared_ptr<const TensorFunction<1, dim>> &velocity_field);
 
   VectorBoundaryConditions<dim>&  get_magnetic_field_bcs();
   const VectorBoundaryConditions<dim>&  get_magnetic_field_bcs() const;
@@ -128,15 +135,19 @@ protected:
 
   std::shared_ptr<const TensorFunction<1, dim>> background_magnetic_field_ptr;
 
+  std::shared_ptr<const TensorFunction<1, dim>> velocity_field_ptr;
+
   const unsigned int  magnetic_fe_degree;
 
   const double        magnetic_reynolds_number;
+
+  const double        c;
 
   unsigned int        magnetic_field_fe_index;
 
   unsigned int        magnetic_pressure_fe_index;
 
-  unsigned int        magnetic_velocity_block_index;
+  unsigned int        magnetic_field_block_index;
 
   unsigned int        magnetic_pressure_block_index;
 
@@ -149,6 +160,15 @@ inline void Solver<dim, TriangulationType>::set_background_magnetic_field
 (const std::shared_ptr<const TensorFunction<1, dim>> &magnetic_field)
 {
   background_magnetic_field_ptr = magnetic_field;
+}
+
+
+
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_velocity_field
+(const std::shared_ptr<const TensorFunction<1, dim>> &velocity_field)
+{
+  velocity_field_ptr = velocity_field;
 }
 
 
