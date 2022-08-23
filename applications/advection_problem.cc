@@ -110,7 +110,7 @@ topographic_bndry_id(numbers::invalid_boundary_id),
 back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
-  std::cout << "Solving viscous buoyant topography problem" << std::endl;
+  std::cout << "Solving advection problem with topography" << std::endl;
 }
 
 
@@ -131,7 +131,7 @@ topographic_bndry_id(numbers::invalid_boundary_id),
 back_bndry_id(numbers::invalid_boundary_id),
 front_bndry_id(numbers::invalid_boundary_id)
 {
-  std::cout << "Solving viscous buoyant topography problem" << std::endl;
+  std::cout << "Solving advection problem with topography" << std::endl;
 }
 
 

@@ -524,7 +524,7 @@ protected:
 
 private:
   /*!
-   * @brief A scalar zero tensor function used for homogeneous boundary
+   * @brief A zero tensor function used for homogeneous boundary
    * conditions.
    */
   const std::shared_ptr<TensorFunction<1, dim>>  zero_tensor_function_ptr
