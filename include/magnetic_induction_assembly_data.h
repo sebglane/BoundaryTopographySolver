@@ -44,25 +44,12 @@ public:
 
   ScratchData(const ScratchData<dim>  &data);
 
-  /*
-   *
-
   void assign_vector_options(
-    const std::string                                          &name,
-    const FEValuesExtractors::Vector                           &magnetic_field,
-    const FEValuesExtractors::Scalar                           &magnetic_pressure,
-    const std::shared_ptr<const TensorFunction<1,dim>>         &background_magnetic_field_ptr = nullptr);
+    const std::shared_ptr<const TensorFunction<1,dim>> &velocity_field_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>> &background_magnetic_field_ptr = nullptr);
 
-  void assign_vector_options_boundary(
-    const std::string                                          &name,
-    const FEValuesExtractors::Vector                           &magnetic_field,
-    const FEValuesExtractors::Scalar                           &magnetic_pressure,
-    const std::shared_ptr<const TensorFunction<1,dim>>         &background_magnetic_field_ptr = nullptr);
+  void adjust_magnetic_field_local_cell();
 
-  void adjust_velocity_field_local_cell();
-
-  *
-  */
   using curl_type = typename FEValuesViews::Vector<dim>::curl_type;
 
   VectorOptions<dim>          vector_options;

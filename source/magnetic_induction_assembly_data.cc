@@ -72,6 +72,100 @@ present_magnetic_pressure_gradients(other.present_magnetic_pressure_gradients)
 {}
 
 
+template <int dim>
+void ScratchData<dim>::assign_vector_options
+(const std::shared_ptr<const TensorFunction<1,dim>> &velocity_field_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>> &background_magnetic_field_ptr)
+{
+  const unsigned int n_q_points{this->get_current_fe_values().n_quadrature_points};
+
+  // background magnetic field
+  if (background_magnetic_field_ptr != nullptr)
+  {
+    Assert(vector_options.background_magnetic_field_values,
+           ExcMessage("Background magnetic field values are not allocated in options."));
+    AssertDimension(vector_options.background_magnetic_field_values->size(),
+                    n_q_points);
+
+    background_magnetic_field_ptr->value_list(this->get_quadrature_points(),
+                                              *vector_options.background_magnetic_field_values);
+
+    Assert(vector_options.background_magnetic_field_curls,
+           ExcMessage("Background magnetic field curls are not allocated in options."));
+    AssertDimension(vector_options.background_magnetic_field_curls->size(),
+                    n_q_points);
+    Assert(vector_options.background_magnetic_field_divergences,
+           ExcMessage("Background magnetic field curls are not allocated in options."));
+    AssertDimension(vector_options.background_magnetic_field_divergences->size(),
+                    n_q_points);
+
+    std::vector<Tensor<2,dim>> background_magnetic_field_gradients(n_q_points);
+
+    background_magnetic_field_ptr->gradient_list(this->get_quadrature_points(),
+                                                 background_magnetic_field_gradients);
+
+    if constexpr(dim == 2)
+      for (unsigned int q = 0; q < n_q_points; ++q)
+      {
+        vector_options.background_magnetic_field_divergences->at(q) = trace(background_magnetic_field_gradients[q]);
+        vector_options.background_magnetic_field_curls->at(q)[0] = background_magnetic_field_gradients[q][1][0] -
+                                                                   background_magnetic_field_gradients[q][0][1];
+      }
+    else if constexpr(dim == 3)
+      for (unsigned int q = 0; q < n_q_points; ++q)
+      {
+        vector_options.background_magnetic_field_divergences->at(q) = trace(background_magnetic_field_gradients[q]);
+        vector_options.background_magnetic_field_curls->at(q)[0] = background_magnetic_field_gradients[q][2][1] -
+                                                                   background_magnetic_field_gradients[q][1][2];
+        vector_options.background_magnetic_field_curls->at(q)[1] = background_magnetic_field_gradients[q][0][2] -
+                                                                   background_magnetic_field_gradients[q][2][0];
+        vector_options.background_magnetic_field_curls->at(q)[2] = background_magnetic_field_gradients[q][1][0] -
+                                                                   background_magnetic_field_gradients[q][0][1];
+      }
+  }
+
+  // velocity field
+  if (velocity_field_ptr != nullptr)
+  {
+    Assert(vector_options.velocity_field_values,
+           ExcMessage("Velocity field values are not allocated in options."));
+    AssertDimension(vector_options.velocity_field_values->size(),
+                    n_q_points);
+
+    velocity_field_ptr->value_list(this->get_quadrature_points(),
+                                   *vector_options.velocity_field_values);
+  }
+}
+
+
+
+template <int dim>
+void ScratchData<dim>::adjust_magnetic_field_local_cell()
+{
+  if (vector_options.background_magnetic_field_values)
+  {
+    Assert(vector_options.background_magnetic_field_curls,
+           ExcMessage("Background magnetic field curls are not assigned in options."));
+    Assert(vector_options.background_magnetic_field_divergences,
+           ExcMessage("Background magnetic field divergences are not assigned in options."));
+
+    AssertDimension(vector_options.background_magnetic_field_values->size(),
+                    present_magnetic_field_values.size());
+    AssertDimension(vector_options.background_magnetic_field_curls->size(),
+                    present_magnetic_field_curls.size());
+    AssertDimension(vector_options.background_magnetic_field_divergences->size(),
+                    present_magnetic_field_divergences.size());
+
+    for (unsigned int q=0; q<present_magnetic_field_values.size(); ++q)
+    {
+      present_magnetic_field_values[q] += vector_options.background_magnetic_field_values->at(q);
+      present_magnetic_field_curls[q] += vector_options.background_magnetic_field_curls->at(q);
+      present_magnetic_field_divergences[q] += vector_options.background_magnetic_field_divergences->at(q);
+    }
+  }
+}
+
+
 
 // explicit instantiations
 template class ScratchData<2>;

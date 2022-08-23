@@ -55,6 +55,8 @@ SET(TARGET_SRC
     advection_solver/advection_solver.cc
     advection_solver/setup.cc
     # magnetic induction solver
+    magnetic_induction_assembly_data.cc
+    magnetic_induction_options.cc
     magnetic_postprocessor.cc
 )
 ADD_LIBRARY(${TARGET} SHARED ${TARGET_SRC})
