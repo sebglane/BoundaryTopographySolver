@@ -39,8 +39,7 @@ void Solver<dim, TriangulationType>::assemble_system
   AssertThrow(this->froude_number > 0.0,
               ExcMessage("For a buoyant fluid, the Froude number must be specified."));
   AssertThrow(this->reynolds_number > 0.0,
-              ExcMessage("The Reynolds must not vanish (stabilization is not "
-                         "implemented yet)."));
+              ExcMessage("The Reynolds number must not vanish."));
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 

@@ -52,7 +52,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
 
       bool matching_bc_found = false;
 
-      // iterate over periodic bcs of the velocity
+      // iterate over periodic bcs of the pressure
       for (std::size_t j=0; j<pressure_boundary_conditions.periodic_bcs.size(); ++j)
       {
         const PeriodicBoundaryData<dim> &pressure_bc =
@@ -93,8 +93,6 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
   }
   // Dirichlet pressure boundary conditions
   {
-    const FEValuesExtractors::Scalar  pressure(pressure_fe_index);
-
     if (!include_boundary_stress_terms)
       AssertThrow(pressure_boundary_conditions.regularity_guaranteed(),
                   ExcMessage("No boundary conditions were set for the pressure"));

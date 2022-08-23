@@ -30,9 +30,8 @@ void Solver<dim, TriangulationType>::assemble_system
                 ExcMessage("Non-vanishing Froude number is required if the body "
                            "force is specified."));
 
-  AssertThrow(reynolds_number != 0.0,
-              ExcMessage("The Reynolds must not vanish (stabilization is not "
-                         "implemented yet)."));
+  AssertThrow(reynolds_number > 0.0,
+              ExcMessage("The Reynolds number must not vanish."));
 
   TimerOutput::Scope timer_section(this->computing_timer, "Assemble system");
 

@@ -39,7 +39,7 @@ void Solver<dim, TriangulationType>::setup_dofs()
   coupling_table.reinit(this->fe_system->n_components(),
                         this->fe_system->n_components());
 
-  // velocity-pressure coupling
+  // coupling
   for (unsigned int r=0; r<coupling_table.n_rows(); ++r)
     for (unsigned int c=0; c<coupling_table.n_cols(); ++c)
       coupling_table[r][c] = DoFTools::always;
