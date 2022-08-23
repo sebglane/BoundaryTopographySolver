@@ -54,6 +54,8 @@ SET(TARGET_SRC
     advection_solver/assemble_local_boundary.cc
     advection_solver/advection_solver.cc
     advection_solver/setup.cc
+    # magnetic induction solver
+    magnetic_postprocessor.cc
 )
 ADD_LIBRARY(${TARGET} SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(boundary_topography)
