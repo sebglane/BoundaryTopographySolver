@@ -18,7 +18,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
     this->pcout << "    Apply boundary conditions..." << std::endl;
 
   AssertThrow(scalar_boundary_conditions.closed(),
-              ExcMessage("The velocity boundary conditions have not been closed."));
+              ExcMessage("The boundary conditions have not been closed."));
 
   const FEValuesExtractors::Scalar  scalar_field(scalar_fe_index);
 

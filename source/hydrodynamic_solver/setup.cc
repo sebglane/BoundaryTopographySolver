@@ -20,7 +20,10 @@ void Solver<dim, TriangulationType>::setup_fe_system()
   if (this->verbose)
     this->pcout << "    Setup FE system..." << std::endl;
 
+  velocity_block_index = 0;
   velocity_fe_index = 0;
+
+  pressure_block_index = 1;
   pressure_fe_index = dim;
 
   this->fe_system = std::make_shared<FESystem<dim>>(FESystem<dim>(FE_Q<dim>(velocity_fe_degree), dim), 1,
