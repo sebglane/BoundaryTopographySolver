@@ -10,6 +10,7 @@ SET(SOURCE_FILES
     topography_problem.cc
     topography_problem_perturbed.cc
     topography_mesh.cc
+    magnetic_induction_problem.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})

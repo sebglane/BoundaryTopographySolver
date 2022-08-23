@@ -222,7 +222,8 @@ apply_tangential_flux_constraints
                                                            mapping);
   function_map.clear();
   boundary_id_set.clear();
-  const Functions::ZeroFunction<dim>  zero_function(fe_system->n_components());
+
+  const Functions::ZeroFunction<dim>  zero_function(dim);
 
   for (const auto &[boundary_id, function]: tangential_flux_bcs)
   {

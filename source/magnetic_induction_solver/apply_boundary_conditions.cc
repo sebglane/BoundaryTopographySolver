@@ -90,7 +90,7 @@ void Solver<dim, TriangulationType>::apply_boundary_conditions()
               ExcMessage("Only tangential boundary conditions can be applied for the magnetic field."));
 
   if (!magnetic_field_boundary_conditions.tangential_flux_bcs.empty())
-    this->apply_tangential_flux_constraints(magnetic_field_boundary_conditions.normal_flux_bcs,
+    this->apply_tangential_flux_constraints(magnetic_field_boundary_conditions.tangential_flux_bcs,
                                             this->fe_system->component_mask(magnetic_field));
 
   // Dirichlet magnetic pressure boundary conditions
