@@ -26,7 +26,8 @@ struct VectorOptions
 {
   VectorOptions(const unsigned int n_q_points,
                 const bool allocate_velocity_field = false,
-                const bool allocate_background_magnetic_field = false);
+                const bool allocate_background_magnetic_field = false,
+                const bool allocate_source_term = false);
 
   VectorOptions(const VectorOptions<dim> &other);
 
@@ -39,6 +40,9 @@ struct VectorOptions
 
   // velocity field
   std::optional<std::vector<Tensor<1, dim>>>  velocity_field_values;
+
+  // source term values
+  std::optional<std::vector<Tensor<1, dim>>>  source_term_values;
 
 };
 

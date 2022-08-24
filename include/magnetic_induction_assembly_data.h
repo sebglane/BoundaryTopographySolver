@@ -33,20 +33,23 @@ public:
     const Quadrature<dim>    &quadrature,
     const UpdateFlags        &update_flags,
     const bool                allocate_velocity_field = false,
-    const bool                allocate_background_magnetic_field = false);
+    const bool                allocate_background_magnetic_field = false,
+    const bool                allocate_source_term = false);
 
   ScratchData(
     const FiniteElement<dim> &fe,
     const Quadrature<dim>    &quadrature,
     const UpdateFlags        &update_flags,
     const bool                allocate_velocity_field = false,
-    const bool                allocate_background_velocity = false);
+    const bool                allocate_background_velocity = false,
+    const bool                allocate_source_term = false);
 
   ScratchData(const ScratchData<dim>  &data);
 
   void assign_vector_options(
     const std::shared_ptr<const TensorFunction<1,dim>> &velocity_field_ptr = nullptr,
-    const std::shared_ptr<const TensorFunction<1,dim>> &background_magnetic_field_ptr = nullptr);
+    const std::shared_ptr<const TensorFunction<1,dim>> &background_magnetic_field_ptr = nullptr,
+    const std::shared_ptr<const TensorFunction<1,dim>> &source_term_ptr = nullptr);
 
   void adjust_magnetic_field_local_cell();
 

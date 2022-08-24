@@ -49,7 +49,8 @@ assemble_rhs_local_cell
 
   // assign vector options
   scratch.assign_vector_options(velocity_field_ptr,
-                                background_magnetic_field_ptr);
+                                background_magnetic_field_ptr,
+                                source_term_ptr);
   scratch.adjust_magnetic_field_local_cell();
 
   for (const auto q: fe_values.quadrature_point_indices())

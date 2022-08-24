@@ -213,7 +213,7 @@ void Problem<dim>::set_boundary_conditions()
   }
 }
 
-}  // namespace AdvectionProblem
+}  // namespace MagneticInductionProblem
 
 
 

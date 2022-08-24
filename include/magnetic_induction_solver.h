@@ -87,6 +87,8 @@ public:
 
   void set_velocity_field(const std::shared_ptr<const TensorFunction<1, dim>> &velocity_field);
 
+  void set_source_term(const std::shared_ptr<const TensorFunction<1, dim>> &source_term);
+
   VectorBoundaryConditions<dim>&  get_magnetic_field_bcs();
   const VectorBoundaryConditions<dim>&  get_magnetic_field_bcs() const;
 
@@ -137,6 +139,8 @@ protected:
 
   std::shared_ptr<const TensorFunction<1, dim>> velocity_field_ptr;
 
+  std::shared_ptr<const TensorFunction<1, dim>> source_term_ptr;
+
   const unsigned int  magnetic_fe_degree;
 
   const double        magnetic_reynolds_number;
@@ -169,6 +173,15 @@ inline void Solver<dim, TriangulationType>::set_velocity_field
 (const std::shared_ptr<const TensorFunction<1, dim>> &velocity_field)
 {
   velocity_field_ptr = velocity_field;
+}
+
+
+
+template <int dim, typename TriangulationType>
+inline void Solver<dim, TriangulationType>::set_source_term
+(const std::shared_ptr<const TensorFunction<1, dim>> &source_term)
+{
+  source_term_ptr = source_term;
 }
 
 

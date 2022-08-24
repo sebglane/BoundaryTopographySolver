@@ -96,6 +96,8 @@ protected:
 
   virtual void set_velocity_field();
 
+  virtual void set_source_term();
+
   virtual void set_postprocessor();
 
   TriangulationType       triangulation;
@@ -120,6 +122,14 @@ inline void MagneticInductionProblem<dim, TriangulationType>::set_background_mag
 
 template <int dim, typename TriangulationType>
 inline void MagneticInductionProblem<dim, TriangulationType>::set_velocity_field()
+{
+  return;
+}
+
+
+
+template <int dim, typename TriangulationType>
+inline void MagneticInductionProblem<dim, TriangulationType>::set_source_term()
 {
   return;
 }

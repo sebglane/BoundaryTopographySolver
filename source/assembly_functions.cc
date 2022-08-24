@@ -1039,6 +1039,13 @@ double compute_rhs
         rhs += cross_product_3d(present_velocity_value, present_magnetic_field_value) * magnetic_field_test_function_curl;
   }
 
+  if (scratch.vector_options.source_term_values)
+  {
+    const Tensor<1, dim> &source_term_value{scratch.vector_options.source_term_values->at(q)};
+
+    rhs += source_term_value * magnetic_field_test_function_value;
+  }
+
   return (rhs);
 
 }

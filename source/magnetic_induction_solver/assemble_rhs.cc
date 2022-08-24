@@ -56,7 +56,9 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
   UpdateFlags update_flags{update_values|
                            update_gradients|
                            update_JxW_values};
-  if (velocity_field_ptr != nullptr || background_magnetic_field_ptr != nullptr)
+  if (velocity_field_ptr != nullptr ||
+      background_magnetic_field_ptr != nullptr||
+      source_term_ptr != nullptr)
     update_flags |= update_quadrature_points;
 
   // initialize scratch and copy object
@@ -65,7 +67,8 @@ void Solver<dim, TriangulationType>::assemble_rhs(const bool use_homogeneous_con
                       quadrature_formula,
                       update_flags,
                       velocity_field_ptr != nullptr,
-                      background_magnetic_field_ptr != nullptr);
+                      background_magnetic_field_ptr != nullptr,
+                      source_term_ptr != nullptr);
   CopyData  copy(this->fe_system->n_dofs_per_cell());
 
   // mesh worker

@@ -4,7 +4,6 @@
  *  Created on: Aug 10, 2022
  *      Author: sg
  */
-
 #include <magnetic_induction_problem.h>
 
 #include <fstream>
@@ -155,6 +154,7 @@ void MagneticInductionProblem<dim, TriangulationType>::run()
   this->set_postprocessor();
 
   solver.solve();
+
 }
 
 // explicit instantiations

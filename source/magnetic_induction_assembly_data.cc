@@ -18,7 +18,8 @@ ScratchData<dim>::ScratchData
  const Quadrature<dim>    &quadrature,
  const UpdateFlags        &update_flags,
  const bool                allocate_velocity_field,
- const bool                allocate_background_magnetic_field)
+ const bool                allocate_background_magnetic_field,
+ const bool                allocate_source_term)
 :
 MeshWorker::ScratchData<dim>(mapping,
                              fe,
@@ -26,7 +27,8 @@ MeshWorker::ScratchData<dim>(mapping,
                              update_flags),
 vector_options(quadrature.size(),
                allocate_velocity_field,
-               allocate_background_magnetic_field),
+               allocate_background_magnetic_field,
+               allocate_source_term),
 phi_magnetic_field(fe.n_dofs_per_cell()),
 curl_phi_magnetic_field(fe.n_dofs_per_cell()),
 div_phi_magnetic_field(fe.n_dofs_per_cell()),
@@ -45,7 +47,8 @@ ScratchData<dim>::ScratchData
  const Quadrature<dim>    &quadrature,
  const UpdateFlags        &update_flags,
  const bool                allocate_velocity_field,
- const bool                allocate_background_magnetic_field)
+ const bool                allocate_background_magnetic_field,
+ const bool                allocate_source_term)
 :
 ScratchData<dim>(fe.reference_cell()
                  .template get_default_linear_mapping<dim>(),
@@ -53,8 +56,11 @@ ScratchData<dim>(fe.reference_cell()
                  quadrature,
                  update_flags,
                  allocate_velocity_field,
-                 allocate_background_magnetic_field)
+                 allocate_background_magnetic_field,
+                 allocate_source_term)
 {}
+
+
 
 template <int dim>
 ScratchData<dim>::ScratchData(const ScratchData<dim>  &other)
@@ -72,10 +78,12 @@ present_magnetic_pressure_gradients(other.present_magnetic_pressure_gradients)
 {}
 
 
+
 template <int dim>
 void ScratchData<dim>::assign_vector_options
 (const std::shared_ptr<const TensorFunction<1,dim>> &velocity_field_ptr,
- const std::shared_ptr<const TensorFunction<1,dim>> &background_magnetic_field_ptr)
+ const std::shared_ptr<const TensorFunction<1,dim>> &background_magnetic_field_ptr,
+ const std::shared_ptr<const TensorFunction<1,dim>> &source_term_ptr)
 {
   const unsigned int n_q_points{this->get_current_fe_values().n_quadrature_points};
 
@@ -134,6 +142,18 @@ void ScratchData<dim>::assign_vector_options
 
     velocity_field_ptr->value_list(this->get_quadrature_points(),
                                    *vector_options.velocity_field_values);
+  }
+
+  // source term
+  if (source_term_ptr != nullptr)
+  {
+    Assert(vector_options.source_term_values,
+           ExcMessage("Source term values are not allocated in options."));
+    AssertDimension(vector_options.source_term_values->size(),
+                    n_q_points);
+
+    source_term_ptr->value_list(this->get_quadrature_points(),
+                                *vector_options.source_term_values);
   }
 }
 
