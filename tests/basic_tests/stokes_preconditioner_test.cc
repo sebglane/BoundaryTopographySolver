@@ -114,10 +114,9 @@ test_assembly_serial
     {
 
       FEValuesExtractors::Scalar  pressure(dim);
-      IndexSet    boundary_dofs;
-      DoFTools::extract_boundary_dofs(dof_handler,
-                                      fe_system.component_mask(pressure),
-                                      boundary_dofs);
+      const IndexSet boundary_dofs =
+          DoFTools::extract_boundary_dofs(dof_handler,
+                                          fe_system.component_mask(pressure));
 
       // look for an admissible local degree of freedom to constrain
       types::global_dof_index bndry_idx = numbers::invalid_dof_index;

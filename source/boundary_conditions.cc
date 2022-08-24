@@ -56,7 +56,7 @@ namespace internal
   {
     std::string typestr = boost::core::demangle(typeid(object).name());
     //                              123456789*123456789*
-    std::size_t pos = typestr.find("RMHD::EquationData::");
+    std::size_t pos = typestr.find("BoundaryConditions::");
     if (pos!=std::string::npos)
       typestr.erase(pos, 20);
     //                    123456789*123456789*
@@ -67,10 +67,6 @@ namespace internal
     pos = typestr.find("dealii::");
     if (pos!=std::string::npos)
       typestr.erase(pos, 8);
-    //                    123456
-    pos = typestr.find("RMHD::");
-    if (pos!=std::string::npos)
-      typestr.erase(pos, 6);
 
     return (typestr);
   }
@@ -584,6 +580,7 @@ void VectorBoundaryConditions<dim>::print_summary
 }
 
 
+
 template <int dim>
 void VectorBoundaryConditions<dim>::set_neumann_bc(
   const types::boundary_id                      boundary_id,
@@ -600,17 +597,13 @@ void VectorBoundaryConditions<dim>::set_neumann_bc(
   if (function.get() == nullptr)
     this->neumann_bcs[boundary_id] = zero_tensor_function_ptr;
   else
-  {
-    std::stringstream message;
-    message << "Function of a Neumann boundary condition needs to have "
-            << dim << " components.";
-
     this->neumann_bcs[boundary_id] = function;
-  }
 
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
 }
+
+
 
 template <int dim>
 void VectorBoundaryConditions<dim>::set_normal_flux_bc(
@@ -624,6 +617,7 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bc(
                                    function,
                                    dim,
                                    time_dependent);
+
   // @attention I am not sure if this passes a fully constrained
   this->flag_regularity_guaranteed = true;
 }
@@ -640,6 +634,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bc
                                    function,
                                    dim,
                                    time_dependent);
+
   // @attention I am not sure if this passes a fully constrained
   this->flag_regularity_guaranteed = true;
 }
