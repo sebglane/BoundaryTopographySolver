@@ -197,6 +197,53 @@ apply_normal_flux_constraints
 
 template <int dim, typename TriangulationType>
 void Solver<dim, TriangulationType>::
+apply_tangential_flux_constraints
+(const typename BoundaryConditionsBase<dim>::BCMapping &tangential_flux_bcs,
+ const ComponentMask                                   &mask)
+{
+  std::map<types::boundary_id, const Function<dim> *> function_map;
+  std::set<types::boundary_id>  boundary_id_set;
+
+  AssertDimension(mask.n_selected_components(), dim);
+
+  const unsigned int first_vector_component{mask.first_selected_component()};
+
+  for (auto const &[boundary_id, function] : tangential_flux_bcs)
+  {
+    function_map[boundary_id] = function.get();
+    boundary_id_set.insert(boundary_id);
+  }
+
+  VectorTools::compute_nonzero_tangential_flux_constraints(dof_handler,
+                                                           first_vector_component,
+                                                           boundary_id_set,
+                                                           function_map,
+                                                           nonzero_constraints,
+                                                           mapping);
+  function_map.clear();
+  boundary_id_set.clear();
+
+  const Functions::ZeroFunction<dim>  zero_function(dim);
+
+  for (const auto &[boundary_id, function]: tangential_flux_bcs)
+  {
+    function_map[boundary_id] = &zero_function;
+    boundary_id_set.insert(boundary_id);
+  }
+
+  VectorTools::compute_nonzero_tangential_flux_constraints(dof_handler,
+                                                           first_vector_component,
+                                                           boundary_id_set,
+                                                           function_map,
+                                                           zero_constraints,
+                                                           mapping);
+}
+
+
+
+
+template <int dim, typename TriangulationType>
+void Solver<dim, TriangulationType>::
 apply_mean_value_constraint
 (const ComponentMask &mask,
  const double         mean_value)
@@ -306,6 +353,18 @@ template
 void
 Solver<3>::
 apply_normal_flux_constraints
+(const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
+
+
+template
+void
+Solver<2>::
+apply_tangential_flux_constraints
+(const typename BoundaryConditionsBase<2>::BCMapping &, const ComponentMask &);
+template
+void
+Solver<3>::
+apply_tangential_flux_constraints
 (const typename BoundaryConditionsBase<3>::BCMapping &, const ComponentMask &);
 
 template

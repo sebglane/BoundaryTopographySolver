@@ -16,6 +16,8 @@
 #include <buoyant_hydrodynamic_options.h>
 #include <hydrodynamic_assembly_data.h>
 #include <hydrodynamic_options.h>
+#include <magnetic_induction_assembly_data.h>
+#include <magnetic_induction_options.h>
 
 #include <optional>
 
@@ -166,6 +168,45 @@ double compute_residual_linearization_matrix
  const double       delta);
 
 }  // namespace Advection
+
+
+
+namespace MagneticInduction {
+
+using namespace dealii;
+
+/**
+ * @todo Add documentation.
+ */
+template <int dim>
+double compute_matrix
+(const AssemblyData::ScratchData<dim> &scratch,
+ const unsigned int test_function_index,
+ const unsigned int trial_function_index,
+ const unsigned int quadrature_point_index,
+ const double       lambda,
+ const double       tau,
+ const double       upsilon);
+
+
+
+template <int dim>
+double compute_rhs
+(const AssemblyData::ScratchData<dim> &scratch,
+ const unsigned int test_function_index,
+ const unsigned int quadrature_point_index,
+ const double       lambda,
+ const double       tau,
+ const double       upsilon);
+
+
+
+template <int dim>
+void compute_strong_residual
+(AssemblyData::ScratchData<dim> &scratch,
+ const double nu);
+
+}  // namespace MagneticInduction
 
 
 

@@ -949,3 +949,149 @@ compute_residual_linearization_matrix
  const double       );
 
 }  // namespace Advection
+
+
+
+namespace MagneticInduction {
+
+
+template <int dim>
+double compute_matrix
+(const AssemblyData::ScratchData<dim> &scratch,
+ const unsigned int i,
+ const unsigned int j,
+ const unsigned int q,
+ const double       lambda,
+ const double       tau,
+ const double       upsilon)
+{
+  using curl_type = typename FEValuesViews::Vector<dim>::curl_type;
+
+  const curl_type      &magnetic_field_test_function_curl{scratch.curl_phi_magnetic_field[i]};
+  const Tensor<1, dim> &magnetic_field_test_function_value{scratch.phi_magnetic_field[i]};
+  const double          magnetic_field_test_function_divergence{scratch.div_phi_magnetic_field[i]};
+
+  const curl_type      &magnetic_field_trial_function_curl{scratch.curl_phi_magnetic_field[j]};
+  const Tensor<1, dim> &magnetic_field_trial_function_value{scratch.phi_magnetic_field[j]};
+  const double          magnetic_field_trial_function_divergence{scratch.div_phi_magnetic_field[j]};
+
+  const Tensor<1, dim> &magnetic_pressure_test_function_gradient{scratch.grad_phi_magnetic_pressure[i]};
+
+  const Tensor<1, dim> &magnetic_pressure_trial_function_gradient{scratch.grad_phi_magnetic_pressure[j]};
+
+  double matrix{lambda * magnetic_field_trial_function_curl * magnetic_field_test_function_curl +
+                magnetic_pressure_trial_function_gradient * magnetic_field_test_function_value +
+                tau * magnetic_field_trial_function_divergence * magnetic_field_test_function_divergence -
+                magnetic_field_trial_function_value * magnetic_pressure_test_function_gradient +
+                upsilon * magnetic_pressure_trial_function_gradient * magnetic_pressure_test_function_gradient};
+
+  if (scratch.vector_options.velocity_field_values)
+  {
+    const Tensor<1, dim> &present_velocity_value{scratch.vector_options.velocity_field_values->at(q)};
+
+    if constexpr(dim == 2)
+        matrix -= (present_velocity_value * cross_product_2d(magnetic_field_trial_function_value)) * magnetic_field_test_function_curl[0];
+    else if constexpr(dim == 2)
+        matrix -= cross_product_3d(present_velocity_value, magnetic_field_trial_function_value) * magnetic_field_test_function_curl;
+  }
+
+  return (matrix);
+}
+
+
+
+template <int dim>
+double compute_rhs
+(const AssemblyData::ScratchData<dim> &scratch,
+ const unsigned int i,
+ const unsigned int q,
+ const double       lambda,
+ const double       tau,
+ const double       upsilon)
+{
+  using curl_type = typename FEValuesViews::Vector<dim>::curl_type;
+
+  const curl_type      &magnetic_field_test_function_curl{scratch.curl_phi_magnetic_field[i]};
+  const Tensor<1, dim> &magnetic_field_test_function_value{scratch.phi_magnetic_field[i]};
+  const double          magnetic_field_test_function_divergence{scratch.div_phi_magnetic_field[i]};
+
+  const Tensor<1, dim> &magnetic_pressure_test_function_gradient{scratch.grad_phi_magnetic_pressure[i]};
+
+  const curl_type      &present_magnetic_field_curl{scratch.present_magnetic_field_curls[q]};
+  const Tensor<1, dim> &present_magnetic_field_value{scratch.present_magnetic_field_values[q]};
+  const double          present_magnetic_field_divergence{scratch.present_magnetic_field_divergences[q]};
+
+  const Tensor<1, dim> &present_magnetic_pressure_gradient{scratch.present_magnetic_pressure_gradients[q]};
+
+  double rhs{-lambda * present_magnetic_field_curl * magnetic_field_test_function_curl -
+             present_magnetic_pressure_gradient * magnetic_field_test_function_value -
+             tau * present_magnetic_field_divergence * magnetic_field_test_function_divergence +
+             present_magnetic_field_value * magnetic_pressure_test_function_gradient -
+             upsilon * present_magnetic_pressure_gradient * magnetic_pressure_test_function_gradient};
+
+  if (scratch.vector_options.velocity_field_values)
+  {
+    const Tensor<1, dim> &present_velocity_value{scratch.vector_options.velocity_field_values->at(q)};
+
+    if constexpr(dim == 2)
+        rhs += (present_velocity_value * cross_product_2d(present_magnetic_field_value)) * magnetic_field_test_function_curl[0];
+    else if constexpr(dim == 2)
+        rhs += cross_product_3d(present_velocity_value, present_magnetic_field_value) * magnetic_field_test_function_curl;
+  }
+
+  if (scratch.vector_options.source_term_values)
+  {
+    const Tensor<1, dim> &source_term_value{scratch.vector_options.source_term_values->at(q)};
+
+    rhs += source_term_value * magnetic_field_test_function_value;
+  }
+
+  return (rhs);
+
+}
+
+
+
+// explicit instantiations
+template
+double
+compute_matrix
+(const AssemblyData::ScratchData<2> &,
+ const unsigned int   ,
+ const unsigned int   ,
+ const unsigned int   ,
+ const double         ,
+ const double         ,
+ const double          );
+template
+double
+compute_matrix
+(const AssemblyData::ScratchData<3> &,
+ const unsigned int   ,
+ const unsigned int   ,
+ const unsigned int   ,
+ const double         ,
+ const double         ,
+ const double          );
+
+template
+double
+compute_rhs
+(const AssemblyData::ScratchData<2> &,
+ const unsigned int   ,
+ const unsigned int   ,
+ const double         ,
+ const double         ,
+ const double          );
+template
+double
+compute_rhs
+(const AssemblyData::ScratchData<3> &,
+ const unsigned int   ,
+ const unsigned int   ,
+ const double         ,
+ const double         ,
+ const double          );
+
+
+}  // namespace MagneticInduction

@@ -54,6 +54,18 @@ SET(TARGET_SRC
     advection_solver/assemble_local_boundary.cc
     advection_solver/advection_solver.cc
     advection_solver/setup.cc
+    # magnetic induction solver
+    magnetic_induction_assembly_data.cc
+    magnetic_induction_options.cc
+    magnetic_postprocessor.cc
+    magnetic_induction_problem.cc
+    magnetic_induction_solver/apply_boundary_conditions.cc
+    magnetic_induction_solver/assemble_system.cc
+    magnetic_induction_solver/assemble_system_local.cc
+    magnetic_induction_solver/assemble_rhs.cc
+    magnetic_induction_solver/assemble_rhs_local.cc
+    magnetic_induction_solver/magnetic_induction_solver.cc
+    magnetic_induction_solver/setup.cc
 )
 ADD_LIBRARY(${TARGET} SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(boundary_topography)
