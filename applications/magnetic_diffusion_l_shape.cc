@@ -18,8 +18,9 @@
 
 #include <magnetic_induction_problem.h>
 
-#include <memory>
 #include <filesystem>
+#include <memory>
+#include <set>
 
 namespace MagneticDiffusionProblem {
 
@@ -193,24 +194,49 @@ void Problem<dim>::make_grid()
     const std::shared_ptr<Function<dim>> magnetic_field_function =
         std::make_shared<ExactMagneticField<dim>>(n);
 
-    Vector<double> interpolate_exact_solution(dof_handler.n_dofs());
+    Vector<double> interpolated_exact_solution(dof_handler.n_dofs());
 
     VectorTools::interpolate(dof_handler,
                              *magnetic_field_function,
-                             interpolate_exact_solution);
+                             interpolated_exact_solution);
+
+    AffineConstraints<double> constraints;
+    std::set<types::boundary_id> boundary_ids;
+    boundary_ids.insert(dirichlet_bndry_id);
+
+    std::map<types::boundary_id, const Function<dim> *> function_map;
+    function_map[dirichlet_bndry_id] = magnetic_field_function.get();
+
+    VectorTools::compute_nonzero_tangential_flux_constraints
+    (dof_handler,
+     0,
+     boundary_ids,
+     function_map,
+     constraints);
+    constraints.close();
+
+    Vector<double>  projected_exact_solution(dof_handler.n_dofs());
+    VectorTools::project(dof_handler,
+                         constraints,
+                         QGauss<dim>(magnetic_fe_degree + 1),
+                         *magnetic_field_function, projected_exact_solution);
+    constraints.distribute(projected_exact_solution);
 
     // prepare data out object
     DataOut<dim>  data_out;
     data_out.attach_dof_handler(dof_handler);
-    data_out.add_data_vector(interpolate_exact_solution,
-                             std::vector<std::string>(dim, "exact_magnetic_field"),
+    data_out.add_data_vector(interpolated_exact_solution,
+                             std::vector<std::string>(dim, "interpolated_magnetic_field"),
                              data_out.type_dof_data,
                              std::vector<DataComponentInterpretation::DataComponentInterpretation>(dim, DataComponentInterpretation::component_is_part_of_vector));
-
+    data_out.add_data_vector(projected_exact_solution,
+                             std::vector<std::string>(dim, "projected_magnetic_field"),
+                             data_out.type_dof_data,
+                             std::vector<DataComponentInterpretation::DataComponentInterpretation>(dim, DataComponentInterpretation::component_is_part_of_vector));
     data_out.build_patches(magnetic_fe_degree);
 
     // write output to disk
-    const std::string filename = "interpolated-solution.vtk";
+    const std::string filename = "exact-solution.vtk";
     std::filesystem::path output_file(".");
     output_file /= filename;
 
